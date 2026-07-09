@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nöbetçi — Çalışan İSG Asistanı</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#F2B705">
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; font-family:Inter,sans-serif; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.6; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect, useMemo } = React;
+
+const THEMES = {
+  light: { pageBg:"#EDEAE2", bezel:"#171512", bg:"#FAF9F5", header:"#FFFFFF", surface:"#FFFFFF", surfaceAlt:"#F3F1EA",
+    border:"#E3DFD3", textPrimary:"#211E19", textMuted:"#726D60", textFaint:"#A39D8C", accent:"#F2B705", onAccent:"#211E19",
+    bubbleAssistantBg:"#F3F1EA", bubbleAssistantText:"#2B2822", successBg:"#E4F2E1", successText:"#3E7A34", warnBg:"#FBEFD2", warnText:"#8A6300",
+    emergencyBg:"#FFF1E4", emergencyBorder:"#E8781E", emergencyText:"#8A4200", highRiskBg:"#FCE4E4", highRiskText:"#B3261E", pendingBg:"#EFEAF9", pendingText:"#5B3FA0" },
+  dark: { pageBg:"#0D0C0A", bezel:"#0D0C0A", bg:"#171512", header:"#1C1A16", surface:"#1C1A16", surfaceAlt:"#2A2721",
+    border:"#33302A", textPrimary:"#F5F1E6", textMuted:"#8A8577", textFaint:"#5C584E", accent:"#F2B705", onAccent:"#171512",
+    bubbleAssistantBg:"#2A2721", bubbleAssistantText:"#E8DCC0", successBg:"#1E3320", successText:"#7FBF6E", warnBg:"#332A12", warnText:"#F2B705",
+    emergencyBg:"#2A1A00", emergencyBorder:"#F2B705", emergencyText:"#F2B705", highRiskBg:"#3C1F1F", highRiskText:"#FF6B6B", pendingBg:"#2A2340", pendingText:"#B39DDB" },
+};
+
+function Ic({ children, viewBox = "0 0 24 24", style = {}, sw = 2 }) {
+  return <svg viewBox={viewBox} width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", ...style }}>{children}</svg>;
+}
+const HardHat = (p) => <Ic {...p}><path d="M4 18h16" /><path d="M6 18v-2a6 6 0 0 1 12 0v2" /><path d="M10 10V6a2 2 0 0 1 4 0v4" /><path d="M2 18h20" /></Ic>;
+const Send = (p) => <Ic {...p}><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4 20-7Z" /></Ic>;
+const MessageSquare = (p) => <Ic {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></Ic>;
+const Camera = (p) => <Ic {...p}><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" /><circle cx="12" cy="14" r="3.5" /></Ic>;
+const QrCode = (p) => <Ic {...p}><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h7v7h-7Z" /><path d="M11 11h2v2h-2Z" /></Ic>;
+const BookOpen = (p) => <Ic {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></Ic>;
+const Bell = (p) => <Ic {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></Ic>;
+const Copy = (p) => <Ic {...p}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></Ic>;
+const Trash2 = (p) => <Ic {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></Ic>;
+const Plus = (p) => <Ic {...p}><path d="M12 5v14M5 12h14" /></Ic>;
+const CheckCircle2 = (p) => <Ic {...p}><circle cx="12" cy="12" r="9" /><path d="m8.5 12.5 2.3 2.3L16 10" /></Ic>;
+const ClipboardList = (p) => <Ic {...p}><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 3h6v3H9z" /><path d="M9 11h6M9 15h6M9 19h3" /></Ic>;
+const ShieldAlert = (p) => <Ic {...p}><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" /><path d="M12 8v5M12 16h.01" /></Ic>;
+const ShieldCheck = (p) => <Ic {...p}><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" /><path d="m8.5 12 2.3 2.3L15.5 10" /></Ic>;
+const Zap = (p) => <Ic {...p}><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" /></Ic>;
+const Flame = (p) => <Ic {...p}><path d="M12 2s-6 5-6 11a6 6 0 0 0 12 0c0-2-1-3-1-3s-1 2-2.5 2c1-3-2.5-5-2.5-10Z" /></Ic>;
+const MapPin = (p) => <Ic {...p}><path d="M12 22s7-6.4 7-12a7 7 0 1 0-14 0c0 5.6 7 12 7 12Z" /><circle cx="12" cy="10" r="2.5" /></Ic>;
+const Wrench = (p) => <Ic {...p}><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L2.8 18.2l3 3 6.3-6.3a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2z" /></Ic>;
+const Vest = (p) => <Ic {...p}><path d="M8 3.5 12 6l4-2.5 3 3.5-2.5 1.7V20.5H7.5V8.7L5 7z" /><path d="M9.5 3.8v6M14.5 3.8v6" /></Ic>;
+const Calendar = (p) => <Ic {...p}><rect x="3" y="4.5" width="18" height="16" rx="2" /><path d="M3 9.5h18M8 3v3M16 3v3" /></Ic>;
+const AlertTriangle = (p) => <Ic {...p}><path d="M10.3 3.9 2 18a1 1 0 0 0 .9 1.5h18.2a1 1 0 0 0 .9-1.5L13.7 3.9a1 1 0 0 0-1.7 0Z" /><path d="M12 9.5v4M12 17h.01" /></Ic>;
+
+const API_ENDPOINT = "/.netlify/functions/chat";
+const DB_NAME = "nobetci-isg";
+const DB_VERSION = 3;
+const STORES = ["equipment", "notifications", "trainings", "kkd", "settings"];
+
+function getDBInstance() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      STORES.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath:"id" }); });
+    };
+  });
+}
+async function saveData(storeName, data) {
+  try { const db = await getDBInstance(); db.transaction(storeName, "readwrite").objectStore(storeName).put(data); } catch (e) { console.error(e); }
+}
+async function loadAllData(storeName) {
+  try {
+    const db = await getDBInstance();
+    return new Promise((resolve) => {
+      const req = db.transaction(storeName, "readonly").objectStore(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+    });
+  } catch (e) { return []; }
+}
+
+// ---- Türkiye İSG mevzuatına dayalı statik referans veriler ----
+// Kaynak başlıkları genel düzeydedir; kesin madde/süre için işyeri İSG uzmanına ve
+// güncel Resmî Gazete metnine bakılmalıdır — uygulama madde numarası iddia etmez.
+
+const HAZARD_CLASSES = [
+  { val:"az", label:"Az Tehlikeli", hours:8, renewalMonths:36 },
+  { val:"tehlikeli", label:"Tehlikeli", hours:12, renewalMonths:24 },
+  { val:"cok", label:"Çok Tehlikeli", hours:16, renewalMonths:12 },
+];
+
+const DEFAULT_CONTROLS = [
+  { id:1, label:"Elektrik İç Tesisatı / Topraklama Tesisatı", period:"Yılda 1", periodMonths:12, qr:null, lastCheck:null },
+  { id:2, label:"Kaldırma ve İletme Ekipmanı (Vinç / Forklift / Caraskal)", period:"Yılda 1", periodMonths:12, qr:null, lastCheck:null },
+  { id:3, label:"Basınçlı Kap ve Tesisat (Kompresör Tankı, Kazan vb.)", period:"Yılda 1", periodMonths:12, qr:null, lastCheck:null },
+  { id:4, label:"Kompresörler", period:"Yılda 1", periodMonths:12, qr:null, lastCheck:null },
+  { id:5, label:"Yangın Söndürme Tüpü / Sistemi", period:"Yılda 1 (dolum/bakım)", periodMonths:12, qr:null, lastCheck:null },
+  { id:6, label:"İskele", period:"Kurulum sonrası + haftalık göz kontrolü", periodMonths:1, qr:null, lastCheck:null },
+  { id:7, label:"Asansör / İnsan-Yük Asansörü", period:"Yılda 1", periodMonths:12, qr:null, lastCheck:null },
+];
+
+const DEFAULT_TRAININGS = [
+  { id:1, title:"Genel İSG Bilgilendirme", completedDate:null },
+  { id:2, title:"Yangından Korunma ve Acil Durum", completedDate:null },
+  { id:3, title:"İlk Yardım", completedDate:null },
+  { id:4, title:"KKD Kullanımı", completedDate:null },
+  { id:5, title:"Elektrik Güvenliği", completedDate:null },
+  { id:6, title:"Yüksekte Çalışma", completedDate:null },
+  { id:7, title:"Kimyasal Maddelerle Çalışma", completedDate:null },
+  { id:8, title:"Kapalı Alanda Çalışma", completedDate:null },
+  { id:9, title:"Elle Taşıma / Ergonomi", completedDate:null },
+];
+
+const DEFAULT_KKD = [
+  { id:1, area:"Baş", emoji:"⛑️", item:"Baret", standard:"EN 397", status:"unknown" },
+  { id:2, area:"Göz / Yüz", emoji:"🥽", item:"İş Gözlüğü / Yüz Siperliği", standard:"EN 166", status:"unknown" },
+  { id:3, area:"İşitme", emoji:"🎧", item:"Kulaklık / Kulak Tıkacı", standard:"EN 352", status:"unknown" },
+  { id:4, area:"Solunum", emoji:"😷", item:"Toz / Gaz Maskesi", standard:"EN 149", status:"unknown" },
+  { id:5, area:"El", emoji:"🧤", item:"Koruyucu Eldiven", standard:"EN 388", status:"unknown" },
+  { id:6, area:"Ayak", emoji:"🥾", item:"Çelik Burunlu Ayakkabı", standard:"EN ISO 20345", status:"unknown" },
+  { id:7, area:"Düşme", emoji:"🪢", item:"Paraşüt Tipi Emniyet Kemeri", standard:"EN 361", status:"unknown" },
+  { id:8, area:"Gövde", emoji:"🦺", item:"Reflektörlü Yelek", standard:"EN ISO 20471", status:"unknown" },
+];
+
+const HAZARD_CATEGORIES = ["Düşme", "Elektrik", "Yangın", "Kimyasal", "Ergonomik", "Gürültü", "Kesici / Delici Alet", "Sıcak Yüzey", "KKD Eksikliği", "Diğer"];
+
+const QUICK_ACTIONS = [
+  { label:"Ramak kala bildir", icon:ClipboardList, prompt:"Ramak kala olayı nasıl bildiririm?",
+    answer:"Ramak kala bildirimi için:\n• Bildirimler sekmesinden \"Yeni Bildirim\" oluştur\n• Türü \"Ramak Kala\" seç, tehlike kategorisini ve yeri belirt, fotoğraf ekleyebilirsin\n• AI ön analiz yapar, İSG uzmanına düşer\n• Uzman onaylayınca işverene görev olarak düşer\nKimlik bilgin süreçte saklı tutulur." },
+  { label:"KKD kuralları", icon:HardHat, prompt:"Bu alanda hangi KKD'leri kullanmalıyım?",
+    answer:"Genel saha kuralı:\n• Baret ve çelik burunlu ayakkabı her zaman\n• İş gözlüğü kesme/taşlama alanlarında\n• 85 dB üzeri gürültüde kulaklık\n• Kimyasal alanlarda eldiven + maske\nKKD Yönetmeliği gereği bu donanımlar işveren tarafından ücretsiz sağlanır ve CE işaretli olmalıdır. Alan girişindeki tabelayı da kontrol et, bölgeye özel ek KKD olabilir." },
+  { label:"Kimyasal güvenlik", icon:ShieldAlert, prompt:"Kimyasal madde ile çalışırken nelere dikkat etmeliyim?",
+    answer:"• Kullanmadan önce SDS (güvenlik bilgi formu) etiketini oku\n• Uygun eldiven/gözlük/maske tak\n• Alanı havalandır, yiyecek-içecek bulundurma\n• Cilde/göze temasta bol suyla yıka, İSG'ye haber ver\nFarklı kimyasalları asla karıştırma." },
+  { label:"Elektrik güvenliği", icon:Zap, prompt:"Elektrik panolarında ve kablolarda nelere dikkat etmeliyim?",
+    answer:"• Yetkin değilsen pano kapaklarını asla açma\n• Hasarlı kabloyu kullanma, etiketleyip bildir\n• Bakım öncesi enerjinin kesildiğinden emin ol (LOTO)\n• Islak elle elektrikli ekipmana dokunma" },
+  { label:"Yangın söndürücü", icon:Flame, prompt:"Yangın söndürücü nasıl kullanılır?",
+    answer:"PASS yöntemi:\n• Pimi çek\n• Hortumu ateşin dibine nişanla\n• Tetiği sık\n• Alevin tabanını süpürerek söndür\nDuman yoğunsa müdahale etme, tahliye et ve 112'yi ara." },
+  { label:"Acil toplanma noktası", icon:MapPin, prompt:"Acil durumda toplanma noktası neresi ve nasıl davranmalıyım?",
+    answer:"• Alarm çalınca çalışmayı bırak, makineyi güvenli konuma al\n• En yakın çıkışa yürüyerek (koşmadan) ilerle\n• Toplanma noktasına git\n• Amirin sayım yapana kadar alanı terk etme" },
+  { label:"Periyodik kontrol nedir", icon:Wrench, prompt:"İş ekipmanlarında periyodik kontrol neden ve ne sıklıkla yapılır?",
+    answer:"İş Ekipmanlarının Kullanımında Sağlık ve Güvenlik Şartları Yönetmeliği gereği, kaldırma-iletme ekipmanları, basınçlı kaplar, elektrik tesisatı gibi ekipmanlar düzenli aralıklarla yetkili kişi/kuruluşlarca kontrol edilir. Genel uygulamada çoğu ekipman için periyot yılda bir, iskele gibi bazı ekipmanlarda daha sık gözle kontrol gerekir. Kesin süre ekipman tipine göre değişir; \"Kontrol\" sekmesinden takip edebilirsin." },
+  { label:"Eğitim süresi ne kadar", icon:BookOpen, prompt:"Zorunlu İSG eğitimlerimin süresi ve yenileme periyodu nedir?",
+    answer:"Çalışanların İSG Eğitimlerinin Usul ve Esasları Hakkında Yönetmelik'e göre işyerinin tehlike sınıfına göre asgari eğitim süresi ve yenileme periyodu değişir (az tehlikeli / tehlikeli / çok tehlikeli). \"Eğitim\" sekmesinden işyerinin tehlike sınıfını seçip kendi süre ve yenileme takvimini görebilirsin. Kesin planlama işvereninin görevlendirdiği İSG uzmanına aittir." },
+];
+
+const SYSTEM_PROMPT = `Sen "Nöbetçi" — bir İSG Yönetim Platformu'nun yapay zeka risk uzmanısın. Bu uygulamayı SADECE saha çalışanları kullanır (işveren ve İSG uzmanı panelleri ayrı sistemlerdedir). Gerçek bir İSG uzmanı gibi gerekçeli, ölçülü ve tutarlı davranırsın. Tüm değerlendirmelerini Türkiye İSG mevzuatı çerçevesinde yaparsın.
+
+İLGİLİ MEVZUAT BAŞLIKLARI (genel düzeyde referans ver, madde numarası UYDURMA):
+- 6331 sayılı İş Sağlığı ve Güvenliği Kanunu
+- İş Sağlığı ve Güvenliği Risk Değerlendirmesi Yönetmeliği
+- Kişisel Koruyucu Donanımların İşyerlerinde Kullanılması Hakkında Yönetmelik (KKD)
+- Çalışanların İş Sağlığı ve Güvenliği Eğitimlerinin Usul ve Esasları Hakkında Yönetmelik
+- İş Ekipmanlarının Kullanımında Sağlık ve Güvenlik Şartları Yönetmeliği (periyodik kontroller)
+- Yapı İşlerinde İş Sağlığı ve Güvenliği Yönetmeliği
+- Elle Taşıma İşleri Yönetmeliği
+- Çalışanların Gürültü ile İlgili Risklerden Korunmalarına Dair Yönetmelik
+- Kimyasal Maddelerle Çalışmalarda Sağlık ve Güvenlik Önlemleri Hakkında Yönetmelik
+
+SORGULAMALI RİSK MOTORU — kullanıcı bir tehlike/durum bildirdiğinde (örn. "Elektrik panosu açık"):
+1. Direkt cevap VERME. Önce durumu netleştirecek 3-5 spesifik soru sor (örn. enerjili mi, kilitli alanda mı, yetkisiz erişim mümkün mü, ne zamandır böyle, daha önce benzer olay oldu mu).
+2. Yeterli bilgi toplandıktan sonra değerlendirmeni şu yapıda sun:
+   • **Risk Seviyesi**: Düşük / Orta / Yüksek — gerekçesiyle birlikte
+   • **Önerilen Yöntem**: L Tipi (Olasılık x Şiddet matrisi) veya Fine-Kinney (Olasılık x Frekans x Şiddet) — hangisi bu duruma daha uygunsa öner ve kısaca neden
+   • **Gerekçe**: neden bu seviyeyi verdiğini 1-2 cümleyle açıkla
+   • **Önleyici Faaliyet**: somut, uygulanabilir 2-4 madde
+   • **İlgili Mevzuat Alanı**: yukarıdaki listeden en uygun genel başlığı belirt — spesifik madde numarası UYDURMA, emin değilsen "ilgili yönetmeliğe bakılmalı" de.
+
+KAPSAM GENİŞLETMELERİ:
+- Periyodik kontrol soruları: ekipman tipini netleştir (kaldırma ekipmanı mı, basınçlı kap mı, elektrik tesisatı mı vb.), genel periyodu (çoğu ekipman için yılda 1, iskelede haftalık göz kontrolü) belirt, uygulamadaki "Kontrol" sekmesine yönlendir.
+- Eğitim soruları: işyerinin tehlike sınıfına (az/tehlikeli/çok tehlikeli) göre asgari saat ve yenileme periyodunun değiştiğini belirt, kesin planlamanın İSG uzmanına ait olduğunu hatırlat, "Eğitim" sekmesine yönlendir.
+- KKD soruları: ilgili vücut bölgesini, önerilen KKD tipini ve varsa standardını (EN...) belirt; KKD'nin işveren tarafından ücretsiz ve CE işaretli sağlanması gerektiğini hatırlat, "KKD" sekmesine yönlendir.
+- Sahadaki risk soruları: tehlike kategorisini (düşme, elektrik, yangın, kimyasal, ergonomik, gürültü, kesici/delici, sıcak yüzey vb.) netleştirerek ilerle.
+
+KESİN KURALLAR:
+- ❌ Rastgele veya standart bir risk puanı verme; her değerlendirme somut bilgiye dayanmalı.
+- ❌ Her olaya otomatik "çok yüksek risk" deme — gerçekçi ol, çoğu durum Orta seviyededir, yalnızca can kaybı/ağır yaralanma potansiyeli net olduğunda Yüksek de.
+- ❌ Emin olmadığın bilgiyi (mevzuat maddesi, kesin istatistik, kesin saat/süre) kesinmiş gibi sunma; genel/asgari düzeyde belirt.
+- ✅ Bilgi yetersizse önce soru sor, tahmin yürütme.
+- ✅ Türk mevzuatına genel düzeyde uygun, gerekçeli öneriler sun.
+- ✅ Cevapların telefon ekranında rahat okunur, madde işaretli olsun.
+
+Diğer konular (KKD, kimyasal, yüksekte çalışma, kapalı alan, kaldırma ekipmanları, yangın, ilk yardım, ergonomi, kazı, gürültü, ısı stresi, ramak kala, iş kazası vb.) için de aynı titizlikle, gerekirse soru sorarak yanıt ver.
+
+Fotoğraf analizinde: tehlikeleri listele, her biri için risk seviyesi (gerekçeli) ve önlem yaz; net tehlike yoksa dürüstçe söyle.
+
+Acil durum ifadelerinde (yaralandım, yangın, gaz kaçağı, elektrik çarpması vb.) HER ŞEYDEN ÖNCE "Bu acil bir durum, hemen 112'yi arayın" uyarısı ver.
+
+Ton: samimi ama profesyonel, saha tecrübesi olan bir uzman gibi.`;
+
+// ---- Tarih yardımcıları ----
+function todayISO() { return new Date().toISOString().slice(0,10); }
+function addMonths(dateStr, months) { const d = new Date(dateStr); d.setMonth(d.getMonth() + months); return d; }
+function daysBetween(a, b) { return Math.ceil((a - b) / (1000*60*60*24)); }
+
+function NobetciPlatform() {
+  const [mode, setMode] = useState("light");
+  const theme = THEMES[mode];
+  const [activePanel, setActivePanel] = useState("chat");
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [controls, setControls] = useState([]);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanTargetOpen, setScanTargetOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notifFormOpen, setNotifFormOpen] = useState(false);
+  const [notifDesc, setNotifDesc] = useState("");
+  const [notifType, setNotifType] = useState("ramakKala");
+  const [notifCategory, setNotifCategory] = useState(HAZARD_CATEGORIES[0]);
+  const [copiedIdx, setCopiedIdx] = useState(null);
+  const [trainings, setTrainings] = useState([]);
+  const [hazardClass, setHazardClass] = useState("tehlikeli");
+  const [kkdList, setKkdList] = useState([]);
+  const workerName = "Ahmet Yıldız";
+
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const scrollRef = useRef(null);
+
+  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior:"smooth" }); }, [messages]);
+
+  useEffect(() => {
+    setMessages([{ role:"assistant", text:"İş Sağlığı ve Güvenliği ile ilgili sorularınızı yanıtlayabilirim. Bir tehlike bildirirseniz, doğru değerlendirebilmem için önce birkaç soru soracağım. Periyodik kontroller, eğitim takvimin veya KKD durumun hakkında da sorabilirsin. Nasıl yardımcı olabilirim?", time:nowLabel() }]);
+
+    loadAllData("notifications").then(setNotifications);
+
+    loadAllData("equipment").then(rows => {
+      if (rows.length) setControls(rows);
+      else { setControls(DEFAULT_CONTROLS); DEFAULT_CONTROLS.forEach(c => saveData("equipment", c)); }
+    });
+
+    loadAllData("trainings").then(rows => {
+      if (rows.length) setTrainings(rows);
+      else { setTrainings(DEFAULT_TRAININGS); DEFAULT_TRAININGS.forEach(t => saveData("trainings", t)); }
+    });
+
+    loadAllData("kkd").then(rows => {
+      if (rows.length) setKkdList(rows);
+      else { setKkdList(DEFAULT_KKD); DEFAULT_KKD.forEach(k => saveData("kkd", k)); }
+    });
+
+    loadAllData("settings").then(rows => {
+      const hz = rows.find(r => r.id === "hazardClass");
+      if (hz) setHazardClass(hz.value);
+    });
+  }, []);
+
+  function nowLabel() { return new Date().toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit" }); }
+  function todayLabel() { return new Date().toLocaleDateString("tr-TR"); }
+
+  function updateHazardClass(val) {
+    setHazardClass(val);
+    saveData("settings", { id:"hazardClass", value:val });
+  }
+
+  async function sendMessage(text) {
+    if (!text.trim() || loading) return;
+    const newMessages = [...messages, { role:"user", text, time:nowLabel() }];
+    setMessages(newMessages); setInput(""); setLoading(true);
+    try {
+      const response = await fetch(API_ENDPOINT, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ max_tokens:1200, system: SYSTEM_PROMPT, messages: newMessages.map(m => ({ role:m.role, content:m.text })) }),
+      });
+      if (!response.ok) throw new Error("api_error");
+      const data = await response.json();
+      const textBlock = data?.content?.find(c => c.type==="text");
+      const replyText = textBlock ? textBlock.text : "Cevap oluşturulamadı.";
+      setMessages(prev => [...prev, { role:"assistant", text: replyText, time: nowLabel() }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role:"assistant", text:"Bağlantı hatası. Acil durum varsa 112'yi arayın.", time: nowLabel() }]);
+    } finally { setLoading(false); }
+  }
+
+  function askQuickAction(qa) {
+    setMessages(prev => [...prev, { role:"user", text:qa.prompt, time:nowLabel() }, { role:"assistant", text:qa.answer, time:nowLabel() }]);
+  }
+
+  function copyMessage(text, idx) {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1500);
+    });
+  }
+
+  function clearChat() {
+    setMessages([{ role:"assistant", text:"Sohbet temizlendi. Nasıl yardımcı olabilirim?", time:nowLabel() }]);
+  }
+
+  function handlePhotoSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(",")[1];
+      setMessages(prev => [...prev, { role:"user", text:"Bu fotoğrafta tehlike var mı?", image:dataUrl, time:nowLabel() }]);
+      setLoading(true);
+      try {
+        const response = await fetch(API_ENDPOINT, {
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ max_tokens:1200, system: SYSTEM_PROMPT, messages:[{ role:"user", content:[{ type:"image", source:{ type:"base64", media_type:"image/jpeg", data:base64 } }, { type:"text", text:"Saha fotoğrafı — tehlike analizi yap ve risk seviyesini gerekçeli belirt." }] }] }),
+        });
+        if (!response.ok) throw new Error("api_error");
+        const data = await response.json();
+        const textBlock = data?.content?.find(c => c.type==="text");
+        setMessages(prev => [...prev, { role:"assistant", text: textBlock ? textBlock.text : "Analiz yapılamadı.", time:nowLabel() }]);
+      } catch (err) {
+        setMessages(prev => [...prev, { role:"assistant", text:"Fotoğraf analiz edilemedi.", time:nowLabel() }]);
+      } finally { setLoading(false); }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ---- Bildirim Merkezi ----
+  async function submitNotification() {
+    if (!notifDesc.trim()) return;
+    const notif = { id:Date.now(), type:notifType, category:notifCategory, desc:notifDesc.trim(), status:"pending", worker:workerName, date:todayLabel(), aiAnalysis:null };
+    const updated = [notif, ...notifications];
+    setNotifications(updated); saveData("notifications", notif);
+    setNotifDesc(""); setNotifFormOpen(false);
+
+    try {
+      const response = await fetch(API_ENDPOINT, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ max_tokens:600, system: SYSTEM_PROMPT, messages:[{ role:"user", content:`Bildirim türü: ${notifType === "ramakKala" ? "Ramak Kala" : notifType === "tehlike" ? "Tehlike" : "İş Kazası"}. Tehlike kategorisi: ${notifCategory}. Açıklama: "${notif.desc}". Bu bildirime kısa bir ön analiz yap: olası risk seviyesi (gerekçeli) ve İSG uzmanının dikkat etmesi gereken noktalar. 3-4 madde, kısa.` }] }),
+      });
+      const data = await response.json();
+      const textBlock = data?.content?.find(c => c.type==="text");
+      const analyzed = { ...notif, status:"ai_analyzed", aiAnalysis: textBlock ? textBlock.text : "AI analizi alınamadı." };
+      setNotifications(prev => prev.map(n => n.id === notif.id ? analyzed : n));
+      saveData("notifications", analyzed);
+    } catch (e) {
+      const failed = { ...notif, status:"ai_analyzed", aiAnalysis:"AI analizine şu an ulaşılamadı, uzman manuel değerlendirecek." };
+      setNotifications(prev => prev.map(n => n.id === notif.id ? failed : n));
+      saveData("notifications", failed);
+    }
+  }
+
+  function quickReport(desc, category, type="tehlike") {
+    setNotifType(type); setNotifCategory(category); setNotifDesc(desc);
+    setActivePanel("notif"); setNotifFormOpen(true);
+  }
+
+  const notifStatusMeta = (status) => {
+    if (status === "pending") return { label:"AI Analiz Ediyor…", bg:theme.pendingBg, color:theme.pendingText };
+    if (status === "ai_analyzed") return { label:"Uzman İncelemesinde", bg:theme.warnBg, color:theme.warnText };
+    if (status === "approved") return { label:"Onaylandı — Görev Oluştu", bg:theme.successBg, color:theme.successText };
+    return { label:status, bg:theme.surfaceAlt, color:theme.textMuted };
+  };
+
+  // ---- Periyodik Kontrol ----
+  function controlStatus(item) {
+    if (!item.lastCheck) return { label:"Kayıt Yok", bg:theme.warnBg, color:theme.warnText, urgent:true };
+    const next = addMonths(item.lastCheck, item.periodMonths);
+    const diff = daysBetween(next, new Date());
+    if (diff < 0) return { label:`Gecikti · ${Math.abs(diff)} gün`, bg:theme.highRiskBg, color:theme.highRiskText, urgent:true };
+    if (diff <= 30) return { label:`${diff} gün kaldı`, bg:theme.warnBg, color:theme.warnText, urgent:true };
+    return { label:`Güncel · ${diff} gün kaldı`, bg:theme.successBg, color:theme.successText, urgent:false };
+  }
+  function markControlChecked(id) {
+    const updated = controls.map(c => c.id === id ? { ...c, lastCheck: todayISO() } : c);
+    setControls(updated); saveData("equipment", updated.find(c => c.id === id));
+  }
+  function attachScanToControl(id) {
+    const updated = controls.map(c => c.id === id ? { ...c, qr: scanResult, lastCheck: todayISO() } : c);
+    setControls(updated); saveData("equipment", updated.find(c => c.id === id));
+    setScanResult(null); setScanTargetOpen(false);
+  }
+  function reportControlIssue(item) {
+    quickReport(`${item.label} — arıza/sorun bildirimi`, "Diğer", "tehlike");
+  }
+
+  // ---- Eğitim ----
+  const hazardInfo = HAZARD_CLASSES.find(h => h.val === hazardClass);
+  function trainingStatus(t) {
+    if (!t.completedDate) return { label:"Hiç Alınmadı", bg:theme.warnBg, color:theme.warnText, urgent:true, next:null };
+    const next = addMonths(t.completedDate, hazardInfo.renewalMonths);
+    const diff = daysBetween(next, new Date());
+    if (diff < 0) return { label:`Süresi Doldu · ${Math.abs(diff)} gün`, bg:theme.highRiskBg, color:theme.highRiskText, urgent:true, next };
+    if (diff <= 45) return { label:`Yenileme ${diff} gün içinde`, bg:theme.warnBg, color:theme.warnText, urgent:true, next };
+    return { label:`Geçerli · ${diff} gün kaldı`, bg:theme.successBg, color:theme.successText, urgent:false, next };
+  }
+  function markTrainingCompleted(id) {
+    const updated = trainings.map(t => t.id === id ? { ...t, completedDate: todayISO() } : t);
+    setTrainings(updated); saveData("trainings", updated.find(t => t.id === id));
+  }
+
+  // ---- KKD ----
+  function setKkdStatus(id, status) {
+    const updated = kkdList.map(k => k.id === id ? { ...k, status, lastUpdate: todayISO() } : k);
+    setKkdList(updated); saveData("kkd", updated.find(k => k.id === id));
+    if (status === "hasarli") { const item = updated.find(k => k.id === id); quickReport(`${item.item} (${item.area}) hasarlı/eksik — yenisi gerekiyor`, "KKD Eksikliği", "tehlike"); }
+  }
+  const kkdMeta = (status) => {
+    if (status === "verildi") return { label:"Bende Var", bg:theme.successBg, color:theme.successText };
+    if (status === "hasarli") return { label:"Hasarlı / Eksik", bg:theme.highRiskBg, color:theme.highRiskText };
+    return { label:"Durum Belirtilmedi", bg:theme.warnBg, color:theme.warnText };
+  };
+
+  // ---- Genel özet metrikleri (çalışan bazlı) ----
+  const myNotifs = notifications.filter(n => n.worker === workerName);
+  const openNotifs = myNotifs.filter(n => n.status !== "approved").length;
+  const urgentControls = controls.filter(c => controlStatus(c).urgent).length;
+  const urgentTrainings = trainings.filter(t => trainingStatus(t).urgent).length;
+  const missingKkd = kkdList.filter(k => k.status !== "verildi").length;
+  const riskCategoryCounts = useMemo(() => {
+    const counts = {};
+    myNotifs.filter(n => n.status !== "approved").forEach(n => { counts[n.category || "Diğer"] = (counts[n.category || "Diğer"] || 0) + 1; });
+    return Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  }, [notifications]);
+
+  // ============ RENDER: CHAT ============
+  const renderChatPanel = () => (
+    <div className="flex-1 flex flex-col" style={{ background: theme.bg }}>
+      <div className="flex items-center justify-between px-4 py-2 border-b shrink-0" style={{ borderColor:theme.border, background:theme.header }}>
+        <p className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color:theme.textFaint }}>Sık Sorulanlar</p>
+        <button onClick={clearChat} className="flex items-center gap-1 text-[10.5px] font-semibold" style={{ color:theme.textMuted }}>
+          <Trash2 style={{ fontSize:"12px" }} /> Sohbeti Temizle
+        </button>
+      </div>
+      <div className="flex gap-2 px-4 py-2 overflow-x-auto shrink-0 border-b" style={{ background:theme.bg, borderColor:theme.border }}>
+        {QUICK_ACTIONS.map(qa => (
+          <button key={qa.label} onClick={() => askQuickAction(qa)} disabled={loading} className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] shrink-0 disabled:opacity-50" style={{ border:`1px solid ${theme.border}`, background:theme.surfaceAlt, color:theme.textPrimary }}>
+            <qa.icon style={{ fontSize:"13px", color:theme.accent }} /> {qa.label}
+          </button>
+        ))}
+      </div>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2.5">
+        {messages.map((m, i) => (
+          <div key={i} className="flex flex-col" style={{ animation:"fadeIn 0.25s ease-out" }}>
+            <div className={`flex items-end gap-2 ${m.role==="user"?"justify-end":"justify-start"}`}>
+              {m.role==="assistant" && (
+                <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mb-3.5" style={{ background:theme.accent }}>
+                  <HardHat style={{ fontSize:"14px", color:theme.onAccent }} sw={2.5} />
+                </div>
+              )}
+              <div className="flex flex-col max-w-[80%]">
+                <div className="rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-snug whitespace-pre-wrap" style={m.role==="user" ? { background:theme.accent, color:theme.onAccent, borderBottomRightRadius:"0.25rem", fontWeight:500 } : { background:theme.bubbleAssistantBg, color:theme.bubbleAssistantText, border:`1px solid ${theme.border}`, borderBottomLeftRadius:"0.25rem" }}>
+                  {m.image && <img src={m.image} alt="Fotoğraf" className="rounded-lg mb-2 max-h-40 w-full object-cover" />}
+                  {m.text}
+                </div>
+                <div className={`flex items-center gap-2 mt-1 ${m.role==="user"?"justify-end":"justify-start"}`}>
+                  <span className="text-[10px]" style={{ color:theme.textFaint }}>{m.time}</span>
+                  {m.role === "assistant" && (
+                    <button onClick={() => copyMessage(m.text, i)} className="text-[10px] flex items-center gap-0.5" style={{ color: copiedIdx === i ? theme.successText : theme.textFaint }}>
+                      <Copy style={{ fontSize:"10px" }} /> {copiedIdx === i ? "Kopyalandı" : "Kopyala"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex items-end gap-2 justify-start">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background:theme.accent }}>
+              <HardHat style={{ fontSize:"14px", color:theme.onAccent }} sw={2.5} />
+            </div>
+            <div className="rounded-2xl px-3 py-2" style={{ background:theme.bubbleAssistantBg, border:`1px solid ${theme.border}`, borderBottomLeftRadius:"0.25rem" }}>
+              <div className="flex gap-1"><span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background:theme.textFaint }} /><span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background:theme.textFaint, animationDelay:"150ms" }} /><span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background:theme.textFaint, animationDelay:"300ms" }} /></div>
+            </div>
+          </div>
+        )}
+      </div>
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoSelected} style={{ display:"none" }} />
+      <div className="flex items-center gap-2 px-3 py-3 border-t shrink-0" style={{ borderColor:theme.border, background:theme.header }}>
+        <button onClick={() => fileInputRef.current?.click()} disabled={loading} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40" style={{ background:theme.surfaceAlt, border:`1px solid ${theme.border}` }}>
+          <Camera style={{ fontSize:"16px", color:theme.textMuted }} />
+        </button>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage(input)} placeholder="Sorunuzu yazın..." className="flex-1 text-sm rounded-full px-4 py-2.5 outline-none border" style={{ background:theme.surfaceAlt, borderColor:theme.border, color:theme.textPrimary }} />
+        <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40" style={{ background:theme.accent }}>
+          <Send style={{ fontSize:"16px", color:theme.onAccent }} sw={2.5} />
+        </button>
+      </div>
+    </div>
+  );
+
+  // ============ RENDER: BİLDİRİM (+ Sahadaki Riskler özeti) ============
+  const renderNotifPanel = () => (
+    <div className="flex-1 flex flex-col" style={{ background:theme.bg }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <p className="font-[Oswald] text-lg uppercase tracking-wide mb-1" style={{ color:theme.textPrimary }}>Bildirim Merkezi</p>
+        <p className="text-xs mb-3" style={{ color:theme.textFaint }}>Bildirirsin → AI ön analiz yapar → İSG uzmanı inceler → onaylanınca işverene görev düşer</p>
+
+        {riskCategoryCounts.length > 0 && (
+          <div className="rounded-xl border px-3.5 py-3 mb-3" style={{ borderColor:theme.border, background:theme.surface }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide mb-2 flex items-center gap-1" style={{ color:theme.textFaint }}><AlertTriangle style={{ fontSize:"12px" }} /> Sahadaki Açık Riskler</p>
+            <div className="flex flex-wrap gap-1.5">
+              {riskCategoryCounts.map(([cat, count]) => (
+                <span key={cat} className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full" style={{ background:theme.highRiskBg, color:theme.highRiskText }}>{cat} · {count}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button onClick={() => setNotifFormOpen(v => !v)} className="w-full py-2.5 rounded-lg font-semibold mb-3 flex items-center justify-center gap-1.5" style={{ background:theme.accent, color:theme.onAccent }}>
+          <Plus style={{ fontSize:"14px" }} sw={2.5} /> Yeni Bildirim
+        </button>
+
+        {notifFormOpen && (
+          <div className="rounded-xl border px-3.5 py-3 mb-3" style={{ borderColor:theme.border, background:theme.surfaceAlt }}>
+            <div className="flex gap-2 mb-2">
+              {[["ramakKala","Ramak Kala"],["tehlike","Tehlike"],["kaza","İş Kazası"]].map(([val,label]) => (
+                <button key={val} onClick={() => setNotifType(val)} className="flex-1 text-[11px] py-1.5 rounded-lg font-semibold" style={notifType===val ? { background:theme.accent, color:theme.onAccent } : { background:theme.surface, color:theme.textMuted, border:`1px solid ${theme.border}` }}>{label}</button>
+              ))}
+            </div>
+            <p className="text-[10.5px] font-semibold mb-1" style={{ color:theme.textFaint }}>Tehlike Kategorisi</p>
+            <select value={notifCategory} onChange={e=>setNotifCategory(e.target.value)} className="w-full text-sm rounded-lg px-3 py-2 mb-2 outline-none border" style={{ background:theme.surface, borderColor:theme.border, color:theme.textPrimary }}>
+              {HAZARD_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <textarea value={notifDesc} onChange={e=>setNotifDesc(e.target.value)} placeholder="Ne oldu, nerede? Kısaca açıklayın..." rows={3} className="w-full text-sm rounded-lg px-3 py-2 mb-2 outline-none border resize-none" style={{ background:theme.surface, borderColor:theme.border, color:theme.textPrimary }} />
+            <button onClick={submitNotification} disabled={!notifDesc.trim()} className="w-full text-sm font-semibold py-2 rounded-lg disabled:opacity-40" style={{ background:theme.accent, color:theme.onAccent }}>Gönder</button>
+          </div>
+        )}
+
+        {myNotifs.length === 0 && (
+          <p className="text-xs text-center py-6" style={{ color:theme.textFaint }}>Henüz bildirim yok.</p>
+        )}
+
+        {myNotifs.map(n => {
+          const meta = notifStatusMeta(n.status);
+          return (
+            <div key={n.id} className="rounded-xl border px-3.5 py-3 mb-2.5" style={{ borderColor:theme.border, background:theme.surface }}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-sm font-semibold leading-snug" style={{ color:theme.textPrimary }}>{n.desc}</p>
+                <span className="shrink-0 text-[9.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background:meta.bg, color:meta.color }}>{meta.label}</span>
+              </div>
+              <p className="text-[11px]" style={{ color:theme.textFaint }}>{n.date} • {n.category} • {n.type === "ramakKala" ? "Ramak Kala" : n.type === "tehlike" ? "Tehlike" : "İş Kazası"}</p>
+              {n.aiAnalysis && (
+                <div className="mt-2 rounded-lg px-2.5 py-2 text-[11.5px] whitespace-pre-wrap" style={{ background:theme.surfaceAlt, color:theme.textMuted }}>
+                  <span className="font-semibold" style={{ color:theme.textPrimary }}>AI Ön Analiz:</span>{"\n"}{n.aiAnalysis}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ============ RENDER: PERİYODİK KONTROL ============
+  function startQRScan() {
+    if (navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" } }).then(stream => {
+        if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.onloadedmetadata = () => { videoRef.current.play(); scanQRLoop(); }; }
+      });
+    }
+  }
+  function scanQRLoop() {
+    if (canvasRef.current && videoRef.current) {
+      const canvas = canvasRef.current; const ctx = canvas.getContext("2d");
+      canvas.width = videoRef.current.videoWidth; canvas.height = videoRef.current.videoHeight;
+      ctx.drawImage(videoRef.current, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, canvas.width, canvas.height);
+      if (code) { setScanResult(code.data); setScanTargetOpen(true); videoRef.current.srcObject?.getTracks().forEach(t => t.stop()); }
+      else requestAnimationFrame(scanQRLoop);
+    }
+  }
+
+  const renderControlPanel = () => (
+    <div className="flex-1 flex flex-col" style={{ background:theme.bg }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <p className="font-[Oswald] text-lg uppercase tracking-wide mb-1" style={{ color:theme.textPrimary }}>Periyodik Kontrol</p>
+        <p className="text-xs mb-3" style={{ color:theme.textFaint }}>İş Ekipmanlarının Kullanımında Sağlık ve Güvenlik Şartları Yönetmeliği'ne göre genel kontrol periyotları. Kesin süre ve yetkili kuruluş için işyeri İSG uzmanına danışın.</p>
+
+        {!scanTargetOpen ? (
+          <button onClick={startQRScan} className="w-full py-3 rounded-xl border-2 text-center font-semibold mb-3 flex items-center justify-center gap-2" style={{ borderColor:theme.accent, background:theme.surfaceAlt, color:theme.accent }}>
+            <QrCode style={{ fontSize:"16px" }} /> Ekipman QR Tara ve Yerinde İşaretle
+          </button>
+        ) : (
+          <div className="rounded-xl p-3.5 mb-3" style={{ background:theme.successBg }}>
+            <p className="text-sm mb-2" style={{ color:theme.successText }}>✓ QR Okundu — hangi ekipmana bağlansın?</p>
+            <div className="flex flex-col gap-1.5">
+              {controls.map(c => (
+                <button key={c.id} onClick={() => attachScanToControl(c.id)} className="text-left text-xs rounded-lg px-2.5 py-1.5" style={{ background:theme.surface, color:theme.textPrimary, border:`1px solid ${theme.border}` }}>{c.label}</button>
+              ))}
+            </div>
+            <button onClick={() => { setScanTargetOpen(false); setScanResult(null); }} className="w-full mt-2 py-1.5 rounded-lg text-xs font-semibold" style={{ background:theme.surfaceAlt, color:theme.textMuted }}>Vazgeç</button>
+          </div>
+        )}
+        <video ref={videoRef} style={{ display:"none" }} /><canvas ref={canvasRef} style={{ display:"none" }} />
+
+        {controls.map(c => {
+          const meta = controlStatus(c);
+          return (
+            <div key={c.id} className="rounded-xl border px-3.5 py-3 mb-2.5" style={{ borderColor:theme.border, background:theme.surface }}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-sm font-semibold leading-snug" style={{ color:theme.textPrimary }}>{c.label}</p>
+                <span className="shrink-0 text-[9.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background:meta.bg, color:meta.color }}>{meta.label}</span>
+              </div>
+              <p className="text-[11px] mb-2" style={{ color:theme.textFaint }}>Periyot: {c.period}{c.lastCheck ? ` • Son kontrol: ${new Date(c.lastCheck).toLocaleDateString("tr-TR")}` : ""}{c.qr ? " • QR ile eşleşti" : ""}</p>
+              <div className="flex gap-2">
+                <button onClick={() => markControlChecked(c.id)} className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1" style={{ background:theme.surfaceAlt, color:theme.textPrimary, border:`1px solid ${theme.border}` }}><CheckCircle2 style={{ fontSize:"12px" }} /> Bugün Kontrol Edildi</button>
+                <button onClick={() => reportControlIssue(c)} className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg" style={{ background:theme.highRiskBg, color:theme.highRiskText }}>Arıza/Sorun Bildir</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ============ RENDER: EĞİTİM ============
+  const renderEducationPanel = () => (
+    <div className="flex-1 flex flex-col" style={{ background:theme.bg }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <p className="font-[Oswald] text-lg uppercase tracking-wide mb-1" style={{ color:theme.textPrimary }}>Eğitim Takibi</p>
+        <p className="text-xs mb-3" style={{ color:theme.textFaint }}>Çalışanların İSG Eğitimlerinin Usul ve Esasları Hakkında Yönetmelik'e göre asgari süre ve yenileme periyodu, işyerinin tehlike sınıfına göre değişir.</p>
+
+        <div className="rounded-xl border px-3.5 py-3 mb-3" style={{ borderColor:theme.border, background:theme.surface }}>
+          <p className="text-[10.5px] font-semibold uppercase tracking-wide mb-2" style={{ color:theme.textFaint }}>İşyerimin Tehlike Sınıfı</p>
+          <div className="flex gap-2 mb-2">
+            {HAZARD_CLASSES.map(h => (
+              <button key={h.val} onClick={() => updateHazardClass(h.val)} className="flex-1 text-[11px] py-1.5 rounded-lg font-semibold" style={hazardClass===h.val ? { background:theme.accent, color:theme.onAccent } : { background:theme.surfaceAlt, color:theme.textMuted, border:`1px solid ${theme.border}` }}>{h.label}</button>
+            ))}
+          </div>
+          <p className="text-[11px]" style={{ color:theme.textMuted }}>Asgari eğitim süresi: <b>{hazardInfo.hours} saat</b> • Genel yenileme periyodu: <b>{hazardInfo.renewalMonths/12 >= 1 ? `${hazardInfo.renewalMonths/12} yılda 1` : `${hazardInfo.renewalMonths} ayda 1`}</b></p>
+          <p className="text-[10px] mt-1" style={{ color:theme.textFaint }}>Kesin süre ve içerik işyerinin risk değerlendirmesine ve İSG uzmanının planına göre değişebilir.</p>
+        </div>
+
+        {trainings.map(t => {
+          const meta = trainingStatus(t);
+          return (
+            <div key={t.id} className="rounded-xl border px-3.5 py-3 mb-2.5" style={{ borderColor:theme.border, background:theme.surface }}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-sm font-semibold leading-snug" style={{ color:theme.textPrimary }}>{t.title}</p>
+                <span className="shrink-0 text-[9.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background:meta.bg, color:meta.color }}>{meta.label}</span>
+              </div>
+              <p className="text-[11px] mb-2" style={{ color:theme.textFaint }}>{t.completedDate ? `Son tamamlanma: ${new Date(t.completedDate).toLocaleDateString("tr-TR")}` : "Henüz tamamlanmadı"}</p>
+              <button onClick={() => markTrainingCompleted(t.id)} className="w-full text-[11px] font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1" style={{ background:theme.surfaceAlt, color:theme.textPrimary, border:`1px solid ${theme.border}` }}><CheckCircle2 style={{ fontSize:"12px" }} /> Bugün Tamamlandı Olarak İşaretle</button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ============ RENDER: KKD ============
+  const renderKkdPanel = () => (
+    <div className="flex-1 flex flex-col" style={{ background:theme.bg }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <p className="font-[Oswald] text-lg uppercase tracking-wide mb-1" style={{ color:theme.textPrimary }}>Kişisel Koruyucu Donanım</p>
+        <p className="text-xs mb-3" style={{ color:theme.textFaint }}>KKD Yönetmeliği gereği bu donanımlar işveren tarafından ücretsiz sağlanır, CE işaretli ve risklere uygun olmalıdır. Hasarlı/eksik KKD çalışma güvenliğini doğrudan etkiler — hemen bildirin.</p>
+
+        {kkdList.map(k => {
+          const meta = kkdMeta(k.status);
+          return (
+            <div key={k.id} className="rounded-xl border px-3.5 py-3 mb-2.5" style={{ borderColor:theme.border, background:theme.surface }}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-sm font-semibold leading-snug flex items-center gap-1.5" style={{ color:theme.textPrimary }}><span>{k.emoji}</span>{k.item}</p>
+                <span className="shrink-0 text-[9.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background:meta.bg, color:meta.color }}>{meta.label}</span>
+              </div>
+              <p className="text-[11px] mb-2" style={{ color:theme.textFaint }}>{k.area} • Standart: {k.standard}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setKkdStatus(k.id, "verildi")} className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg" style={{ background:theme.successBg, color:theme.successText }}>Bende Var</button>
+                <button onClick={() => setKkdStatus(k.id, "hasarli")} className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg" style={{ background:theme.highRiskBg, color:theme.highRiskText }}>Hasarlı / Eksik Bildir</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 py-4 px-2" style={{ background:theme.pageBg }}>
+      <div className="relative w-full max-w-[400px] h-[760px] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col" style={{ border:`8px solid ${theme.bezel}`, background:theme.bg }}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b shrink-0" style={{ borderColor:theme.border, background:theme.header }}>
+          <div className="flex items-center gap-2">
+            <p className="font-[Oswald] text-[14px] uppercase tracking-wide" style={{ color:theme.textPrimary }}>Nöbetçi</p>
+            <span className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background:theme.surfaceAlt, color:theme.textMuted, border:`1px solid ${theme.border}` }}>👷 Çalışan</span>
+          </div>
+          <button onClick={() => setMode(mode === "light" ? "dark" : "light")} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background:theme.surfaceAlt }}>{mode === "light" ? "🌙" : "☀️"}</button>
+        </div>
+
+        {(openNotifs > 0 || urgentControls > 0 || urgentTrainings > 0 || missingKkd > 0) && (
+          <div className="flex gap-1.5 px-4 py-2 border-b overflow-x-auto shrink-0" style={{ borderColor:theme.border, background:theme.header }}>
+            {openNotifs > 0 && <span className="shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background:theme.pendingBg, color:theme.pendingText }}>{openNotifs} açık bildirim</span>}
+            {urgentControls > 0 && <span className="shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background:theme.warnBg, color:theme.warnText }}>{urgentControls} kontrol dikkat</span>}
+            {urgentTrainings > 0 && <span className="shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background:theme.warnBg, color:theme.warnText }}>{urgentTrainings} eğitim dikkat</span>}
+            {missingKkd > 0 && <span className="shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background:theme.highRiskBg, color:theme.highRiskText }}>{missingKkd} KKD eksik</span>}
+          </div>
+        )}
+
+        {activePanel === "chat" && renderChatPanel()}
+        {activePanel === "notif" && renderNotifPanel()}
+        {activePanel === "control" && renderControlPanel()}
+        {activePanel === "education" && renderEducationPanel()}
+        {activePanel === "kkd" && renderKkdPanel()}
+
+        <div className="flex border-t justify-around shrink-0" style={{ borderColor:theme.border, background:theme.header }}>
+          <button onClick={() => setActivePanel("chat")} className="flex-1 py-2.5 flex flex-col items-center gap-1" style={{ opacity:activePanel==="chat"?1:0.5 }}><MessageSquare style={{ fontSize:"17px", color:theme.accent }} /><span className="text-[8.5px]">Sohbet</span></button>
+          <button onClick={() => setActivePanel("notif")} className="flex-1 py-2.5 flex flex-col items-center gap-1" style={{ opacity:activePanel==="notif"?1:0.5 }}><Bell style={{ fontSize:"17px", color:activePanel==="notif"?theme.accent:theme.textMuted }} /><span className="text-[8.5px]">Bildirim</span></button>
+          <button onClick={() => setActivePanel("control")} className="flex-1 py-2.5 flex flex-col items-center gap-1" style={{ opacity:activePanel==="control"?1:0.5 }}><Wrench style={{ fontSize:"17px", color:activePanel==="control"?theme.accent:theme.textMuted }} /><span className="text-[8.5px]">Kontrol</span></button>
+          <button onClick={() => setActivePanel("education")} className="flex-1 py-2.5 flex flex-col items-center gap-1" style={{ opacity:activePanel==="education"?1:0.5 }}><BookOpen style={{ fontSize:"17px", color:activePanel==="education"?theme.accent:theme.textMuted }} /><span className="text-[8.5px]">Eğitim</span></button>
+          <button onClick={() => setActivePanel("kkd")} className="flex-1 py-2.5 flex flex-col items-center gap-1" style={{ opacity:activePanel==="kkd"?1:0.5 }}><Vest style={{ fontSize:"17px", color:activePanel==="kkd"?theme.accent:theme.textMuted }} /><span className="text-[8.5px]">KKD</span></button>
+        </div>
+      </div>
+      <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }`}</style>
+    </div>
+  );
+}
+
+try {
+  ReactDOM.createRoot(document.getElementById("root")).render(<NobetciPlatform />);
+} catch (e) {
+  document.body.innerHTML = "<div style='padding:20px; color:red;'><b>Hata:</b> " + e.message + "</div>";
+}
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("service-worker.js").catch(() => {}); });
+}
+</script>
+</body>
+</html>
