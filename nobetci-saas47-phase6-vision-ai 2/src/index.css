@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+}
+
+/* MOBİL DÜZELTME: Uygulama genelinde form alanları (input/select/textarea) Tailwind'in
+ * `text-sm` (14px) sınıfını kullanıyor (59+ kullanım, 17 dosya — bkz. FineKinneyForm,
+ * RiskDetectionForm, şirket/departman/şube formları vb.). iOS Safari, font-size 16px'in
+ * ALTINDAKİ bir form alanına dokunulduğunda sayfayı OTOMATİK YAKINLAŞTIRIR — sahada
+ * telefonla form dolduran bir İSG uygulaması için bu, her alana dokunuşta kullanıcının
+ * elle geri uzaklaştırması gereken ciddi bir rahatsızlık kaynağı.
+ *
+ * Düzeltme kasıtlı olarak TEK bir global kuralla yapıldı (59 dosyadaki className'i tek
+ * tek değiştirmek yerine) — yalnızca mobil genişlikte (Tailwind'in `sm` kırılım noktası,
+ * 640px, ile tutarlı) devreye girer, masaüstü görünümü hiç etkilenmez. Görsel boyut
+ * (padding/rounded/renk) aynı kalır, yalnızca font-size'ı iOS'un zoom eşiğinin üstüne
+ * (16px) çıkarır. */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

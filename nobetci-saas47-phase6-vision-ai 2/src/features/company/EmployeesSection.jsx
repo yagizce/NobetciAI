@@ -1,0 +1,215 @@
+import { useState, useEffect } from "react";
+import { useToast } from "../../contexts/ToastContext.jsx";
+import { useRole } from "../../contexts/RoleContext.jsx";
+import { useSubmitGuard } from "../../hooks/useSubmitGuard.js";
+import { getRoleLabel } from "../../constants/allRoles.js";
+import { getEmployees, saveEmployee, deleteEmployee } from "../../services/employeeService.js";
+import { getDepartments } from "../../services/departmentService.js";
+import { EMPLOYEE_STATUS_OPTIONS } from "../../constants/company.js";
+import { logActivity } from "../../services/auditService.js";
+import { createId } from "../../utils/id.js";
+import { pushSystemNotification } from "../../services/systemNotificationService.js";
+import { turkishLower } from "../../utils/text.js";
+import CsvImportButton from "../../components/CsvImportButton.jsx";
+import Button from "../../components/ui/Button.jsx";
+import Badge from "../../components/ui/Badge.jsx";
+import EmptyState from "../../components/EmptyState.jsx";
+import Loading from "../../components/Loading.jsx";
+import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
+import { Plus, Users, Trash2 } from "../../components/icons/index.jsx";
+
+const EMPTY_FORM = { fullName: "", employeeNumber: "", departmentId: "", position: "", phone: "", email: "", status: "active" };
+
+/**
+ * @param {{ theme: object, companyId: string }} props
+ */
+export default function EmployeesSection({ theme, companyId }) {
+  const { showToast } = useToast();
+  const { role } = useRole();
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  useEffect(() => {
+    Promise.all([getEmployees(companyId), getDepartments(companyId)]).then(([emps, depts]) => {
+      setEmployees(emps);
+      setDepartments(depts);
+      setLoaded(true);
+    });
+  }, [companyId]);
+
+  function departmentName(id) {
+    return departments.find((d) => d.id === Number(id))?.name || "—";
+  }
+
+  function resetForm() {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setFormOpen(false);
+  }
+
+  function openEditForm(emp) {
+    setForm({
+      fullName: emp.fullName, employeeNumber: emp.employeeNumber, departmentId: emp.departmentId || "",
+      position: emp.position, phone: emp.phone, email: emp.email, status: emp.status,
+    });
+    setEditingId(emp.id);
+    setFormOpen(true);
+  }
+
+  async function handleSubmit() {
+    if (!form.fullName.trim()) return;
+    const entry = {
+      id: editingId || createId(), companyId, fullName: form.fullName.trim(), employeeNumber: form.employeeNumber.trim(),
+      departmentId: form.departmentId || null, position: form.position.trim(),
+      phone: form.phone.trim(), email: form.email.trim(), status: form.status,
+    };
+    await saveEmployee(entry);
+    setEmployees((prev) => (editingId ? prev.map((e) => (e.id === entry.id ? entry : e)) : [entry, ...prev]));
+    showToast(editingId ? "Çalışan güncellendi." : "Yeni çalışan eklendi.", "success");
+    logActivity({ actor: getRoleLabel(role) || role, action: editingId ? "Çalışan güncellendi" : "Çalışan eklendi", details: entry.fullName, entityType: "employee" });
+    if (!editingId) {
+      pushSystemNotification({ type: "employeeAdded", title: "Yeni Çalışan Eklendi", message: entry.fullName });
+    }
+    resetForm();
+  }
+  // HARDENING: çift tıklama koruması (bkz. hooks/useSubmitGuard.js).
+  const [guardedHandleSubmit, isSubmitting] = useSubmitGuard(handleSubmit);
+
+  async function handleConfirmDelete() {
+    const emp = employees.find((e) => e.id === confirmDeleteId);
+    try {
+      await deleteEmployee(confirmDeleteId);
+      setEmployees((prev) => prev.filter((e) => e.id !== confirmDeleteId));
+      setConfirmDeleteId(null);
+      showToast("Çalışan silindi.", "neutral");
+      logActivity({ actor: getRoleLabel(role) || role, action: "Çalışan silindi", details: emp?.fullName || "", entityType: "employee" });
+    } catch (err) {
+      // HARDENING: silme başarısız olursa (örn. IndexedDB hatası) listeden KALDIRILMAZ —
+      // ama kullanıcı bunu bilmeden dialog'un kapandığını sanabilirdi, artık toast gösteriliyor.
+      console.error("Çalışan silinemedi:", err);
+      showToast("Çalışan silinemedi, lütfen tekrar deneyin.", "error");
+    }
+  }
+
+  // CSV içe aktarma: her satırı bir çalışan nesnesine çevirir. Departman adı yazım
+  // hatası/eşleşmeme durumunda satır ATLANIR (hatalı departmana sessizce atamak yerine) —
+  // CsvImportButton bu satırları önizlemede kullanıcıya "hata" olarak gösterir.
+  function mapEmployeeRow(row, alreadyStaged = [], rowIndex = 0) {
+    const fullName = row["Ad Soyad"];
+    if (!fullName) return { error: "Ad Soyad boş olamaz" };
+
+    const deptName = row["Departman"];
+    let departmentId = null;
+    if (deptName) {
+      const dept = departments.find((d) => turkishLower(d.name) === turkishLower(deptName));
+      if (!dept) return { error: `Departman bulunamadı: "${deptName}" (önce Departmanlar sekmesinden ekleyin)` };
+      departmentId = dept.id;
+    }
+
+    const statusRaw = turkishLower(row["Durum"] || "aktif");
+    const status = statusRaw.startsWith("pasif") ? "inactive" : "active";
+
+    return {
+      id: createId(),
+      companyId, fullName, employeeNumber: row["Sicil No"] || "", departmentId,
+      position: row["Görev"] || "", phone: row["Telefon"] || "", email: row["E-posta"] || "", status,
+    };
+  }
+
+  async function handleBulkImport(entities) {
+    for (const entity of entities) {
+      await saveEmployee(entity);
+    }
+    const fresh = await getEmployees(companyId);
+    setEmployees(fresh);
+    showToast(`${entities.length} çalışan içe aktarıldı.`, "success");
+    logActivity({ actor: getRoleLabel(role) || role, action: "Toplu çalışan içe aktarma", details: `${entities.length} kayıt`, entityType: "employee" });
+  }
+
+  if (!loaded) return <Loading label="Çalışanlar yükleniyor..." />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <Button size="sm" onClick={() => { setForm(EMPTY_FORM); setEditingId(null); setFormOpen(true); }} className="flex items-center gap-1.5">
+          <Plus style={{ fontSize: "13px" }} sw={2.5} /> Yeni Çalışan
+        </Button>
+        <CsvImportButton
+          templateHeaders={["Ad Soyad", "Sicil No", "Departman", "Görev", "Telefon", "E-posta", "Durum"]}
+          templateExampleRow={["Ahmet Yılmaz", "1024", "Üretim", "Operatör", "0555 000 00 00", "ahmet@ornek.com", "Aktif"]}
+          mapRow={mapEmployeeRow}
+          onConfirm={handleBulkImport}
+        />
+      </div>
+
+      {formOpen && (
+        <div className="rounded-xl border px-3.5 py-3 mb-4" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
+          <div className="grid gap-2 mb-2 sm:grid-cols-2">
+            <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Ad Soyad"
+              className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+            <input value={form.employeeNumber} onChange={(e) => setForm({ ...form, employeeNumber: e.target.value })} placeholder="Sicil No"
+              className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+          </div>
+          <div className="grid gap-2 mb-2 sm:grid-cols-2">
+            <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+              className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }}>
+              <option value="">Departman seç</option>
+              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            <input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="Görev"
+              className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+          </div>
+          <div className="grid gap-2 mb-2 sm:grid-cols-2">
+            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefon"
+              className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="E-posta" type="email"
+              className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+          </div>
+          <div className="flex gap-2 mb-3">
+            {EMPLOYEE_STATUS_OPTIONS.map((s) => (
+              <button key={s.value} onClick={() => setForm({ ...form, status: s.value })} className="flex-1 text-xs font-semibold py-1.5 rounded-lg"
+                style={form.status === s.value ? { background: theme.accent, color: theme.onAccent } : { background: theme.surface, color: theme.textMuted, border: `1px solid ${theme.border}` }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={resetForm} disabled={isSubmitting} className="flex-1">Vazgeç</Button>
+            <Button onClick={guardedHandleSubmit} disabled={!form.fullName.trim() || isSubmitting} className="flex-1">{isSubmitting ? "Kaydediliyor..." : editingId ? "Güncelle" : "Kaydet"}</Button>
+          </div>
+        </div>
+      )}
+
+      {employees.length === 0 ? (
+        <EmptyState icon={Users} title="Henüz çalışan yok" description="İlk çalışanınızı ekleyin." />
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {employees.map((emp) => (
+            <div key={emp.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{emp.fullName}</p>
+                <Badge tone={emp.status === "active" ? "success" : "neutral"}>{emp.status === "active" ? "Aktif" : "Pasif"}</Badge>
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: theme.textMuted }}>{emp.position || "—"} • {departmentName(emp.departmentId)}</p>
+              {emp.employeeNumber && <p className="text-[11px]" style={{ color: theme.textFaint }}>Sicil No: {emp.employeeNumber}</p>}
+              <div className="flex gap-2 mt-2 -mx-2 -mb-1">
+                <button onClick={() => openEditForm(emp)} className="text-[11px] font-semibold px-2 py-1.5" style={{ color: theme.accent }}>Düzenle</button>
+                <button onClick={() => setConfirmDeleteId(emp.id)} className="text-[11px] font-semibold flex items-center gap-0.5 px-2 py-1.5" style={{ color: theme.emergencyText }}>
+                  <Trash2 style={{ fontSize: "11px" }} /> Sil
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ConfirmDialog open={confirmDeleteId !== null} title="Çalışanı sil" message="Bu çalışanı silmek istediğinize emin misiniz?" confirmLabel="Sil" danger
+        onConfirm={handleConfirmDelete} onCancel={() => setConfirmDeleteId(null)} />
+    </div>
+  );
+}
