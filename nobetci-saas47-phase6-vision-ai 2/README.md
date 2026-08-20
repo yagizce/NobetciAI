@@ -214,3 +214,5 @@ Hata bildirimi ve öneriler için lütfen bir **Issue** açın.
 
 Bu proje için henüz açık bir lisans belirlenmemiştir — tüm hakları saklıdır.
 Lisans modeli netleştiğinde bu bölüm güncellenecektir.
+
+

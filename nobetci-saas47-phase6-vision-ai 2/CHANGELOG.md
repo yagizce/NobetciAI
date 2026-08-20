@@ -1116,3 +1116,5 @@ Bazıları (Button, Badge, EmptyState) Risk Analizi ve Dashboard sayfalarında k
 - Netlify Functions, `netlify.toml` build ayarları
 - PWA (manifest, service worker) — `/public` altında değişmeden duruyor
 - Dark/Light tema — `localStorage`'da saklanmaya devam ediyor, artık yalnızca Header'da
+
+
