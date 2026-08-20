@@ -1,6 +1,7 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useRiskDetections } from "./useRiskDetections.js";
 import { useVisionFindings } from "./useVisionFindings.js";
+import { saveRiskDetectionPhoto } from "../../../services/riskDetectionPhotoService.js";
 import { useCompanyOrgLists } from "../fineKinney/useCompanyOrgLists.js";
 import { useToast } from "../../../contexts/ToastContext.jsx";
 import { useSubmitGuard } from "../../../hooks/useSubmitGuard.js";
@@ -9,11 +10,11 @@ import RiskDetectionForm from "./RiskDetectionForm.jsx";
 import RiskDetectionCard from "./RiskDetectionCard.jsx";
 import RiskDetectionFilters from "./RiskDetectionFilters.jsx";
 import VisionFindingsPanel from "./VisionFindingsPanel.jsx";
-import Button from "../../../components/ui/Button.jsx";
+import PhotoCaptureButtons from "./PhotoCaptureButtons.jsx";
 import ToggleSwitch from "../../../components/ui/ToggleSwitch.jsx";
 import EmptyState from "../../../components/EmptyState.jsx";
 import Loading from "../../../components/Loading.jsx";
-import { Plus, ShieldAlert, Camera, ImageIcon } from "../../../components/icons/index.jsx";
+import { ShieldAlert } from "../../../components/icons/index.jsx";
 
 const SUMMARY_ITEMS = [
   { key: "newCount", label: "Yeni", tone: "pending" },
@@ -51,8 +52,6 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
   } = useVisionFindings();
 
   const [formOpen, setFormOpen] = useState(false);
-  const photoInputRef = useRef(null);
-  const galleryInputRef = useRef(null);
 
   const departmentNameById = useMemo(() => {
     const map = {};
@@ -73,16 +72,22 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
   const [guardedHandleManualAdd, isSubmitting] = useSubmitGuard(handleManualAdd);
 
   // Phase 6 — onaylanan (approved=true) Vision AI bulgularının her biri AYRI bir Risk
-  // Tespiti kaydına dönüşür (bkz. VisionFindingsPanel.jsx). Fotoğraf ve yapılandırılmış
-  // alanlar (açıklama/önerilen önlem/etkilenenler/mevzuat referansı/güven skoru) her
-  // kayda taşınır — bkz. types/index.js → RiskDetection için Phase 6 alanları.
+  // Tespiti kaydına dönüşür (bkz. VisionFindingsPanel.jsx). Yapılandırılmış alanlar
+  // (açıklama/önerilen önlem/etkilenenler/mevzuat referansı/güven skoru) her kayda
+  // taşınır — bkz. types/index.js → RiskDetection için Phase 6 alanları.
+  //
+  // DEPOLAMA OPTİMİZASYONU: fotoğraf her bulgu kaydına AYRI AYRI gömülmez — bir kez
+  // `riskDetectionPhotos` store'una kaydedilir, tüm bulgular aynı `photoId`'yi paylaşır
+  // (bkz. riskDetectionPhotoService.js, RiskDetectionCard.jsx →
+  // useRiskDetectionPhotoUrl.js). Önceden 3 bulgu = fotoğrafın 3 katı yer kaplıyordu.
   async function handleConfirmFindings(location, departmentId) {
     const approved = findings.filter((f) => f.approved);
     try {
+      const photo = photoDataUrl ? await saveRiskDetectionPhoto(photoDataUrl) : null;
       for (const f of approved) {
         await addDetection(f.category, location, "photo", departmentId, {
           hazardNote: f.description,
-          photoDataUrl,
+          photoId: photo?.id || null,
           description: f.description,
           recommendedAction: f.recommendedAction,
           affected: f.affected,
@@ -123,11 +128,7 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
     }
   }
 
-  async function handlePhotoFile(e) {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // aynı dosyanın tekrar seçilebilmesi için input'u sıfırla
-    if (!file) return;
-
+  async function handlePhotoFile(file) {
     const { valid, error } = await validateImageFile(file);
     if (!valid) {
       showToast(error, "error");
@@ -167,26 +168,13 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
         </div>
       )}
 
-      {/* Mobil iyileştirme (Phase 6): iki ayrı buton — "Fotoğraf Çek" doğrudan kamerayı
-          açar (capture="environment"), "Galeriden Seç" ise dosya seçiciyi capture
-          olmadan açarak bazı mobil tarayıcılarda kamera zorlaması yerine doğrudan
-          galeriye erişim sağlar. Yeni bir kamera SİSTEMİ değil, iki standart <input
-          type="file"> varyantı. */}
-      <div className="flex items-center justify-end gap-2 mb-3 flex-wrap">
-        <button onClick={() => photoInputRef.current?.click()} disabled={analyzing} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full disabled:opacity-50"
-          style={{ background: theme.surfaceAlt, color: theme.accent, border: `1px solid ${theme.accent}` }}>
-          <Camera style={{ fontSize: "13px" }} /> Fotoğraf Çek
-        </button>
-        <button onClick={() => galleryInputRef.current?.click()} disabled={analyzing} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full disabled:opacity-50"
-          style={{ background: theme.surfaceAlt, color: theme.accent, border: `1px solid ${theme.accent}` }}>
-          <ImageIcon style={{ fontSize: "13px" }} /> Galeriden Seç
-        </button>
-        <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoFile} style={{ display: "none" }} />
-        <input ref={galleryInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
-        <Button size="sm" onClick={() => (formOpen ? handleCancelForm() : openManualForm())} className="flex items-center gap-1.5">
-          <Plus style={{ fontSize: "13px" }} sw={2.5} /> Yeni Tespit Ekle
-        </Button>
-      </div>
+      <PhotoCaptureButtons
+        theme={theme}
+        analyzing={analyzing}
+        formOpen={formOpen}
+        onPhotoFile={handlePhotoFile}
+        onToggleForm={() => (formOpen ? handleCancelForm() : openManualForm())}
+      />
 
       {formOpen && analyzing && (
         <div className="rounded-xl border px-3.5 py-4 mb-4" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>

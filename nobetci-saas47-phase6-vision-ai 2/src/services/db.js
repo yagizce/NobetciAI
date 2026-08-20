@@ -1,9 +1,17 @@
 const DB_NAME = "nobetci-isg";
-const DB_VERSION = 11; // v11: trainingCourseSettings store eklendi (eğitim son tarihi hatırlatması)
+// v12: riskDetectionPhotos store eklendi. Phase 6/Vision AI v1'de bir fotoğraftan
+// birden fazla tehlike bulgusu onaylanınca (bkz. RiskDetectionPanel.jsx →
+// handleConfirmFindings) her bulgu ayrı bir RiskDetection kaydı oluyordu, ama fotoğraf
+// HER kayda ayrı ayrı (tam base64) gömülüyordu — 3 bulgulu tek bir fotoğraf 3 kat yer
+// kaplıyordu. Artık fotoğraf bir kez bu store'a kaydediliyor, ilgili RiskDetection
+// kayıtları yalnızca `photoId` referansı tutuyor (bkz. riskDetectionPhotoService.js).
+// Eski `photoDataUrl` alanı (artık üretilmeyen, kaldırılmış tek-tespit fotoğraf akışının geçmiş
+// kayıtlar için) hâlâ destekleniyor — geriye dönük uyumluluk bozulmadı.
+const DB_VERSION = 12;
 // Export edilir: backupService.js gibi "tüm store'ları dolaş" ihtiyacı olan kodlar bu
 // listeyi TEKRAR TANIMLAMAK yerine buradan alır — yeni bir store eklendiğinde (bkz.
 // DB_VERSION artışı) yedekleme kodunun ayrıca güncellenmesi gerekmez, otomatik kapsar.
-export const STORES = ["equipment", "notifications", "risks", "fineKinney", "documents", "periodicChecks", "auditLog", "companies", "branches", "departments", "employees", "systemNotifications", "trainingCompletions", "trainingProgress", "riskDetections", "trainingCourseSettings"];
+export const STORES = ["equipment", "notifications", "risks", "fineKinney", "documents", "periodicChecks", "auditLog", "companies", "branches", "departments", "employees", "systemNotifications", "trainingCompletions", "trainingProgress", "riskDetections", "trainingCourseSettings", "riskDetectionPhotos"];
 
 // REFACTOR: Bağlantı önbelleği — saveData/loadAllData/deleteData her çağrıldığında
 // önceden `indexedDB.open()` YENİDEN çalıştırılıyordu (her okuma/yazma kendi bağlantısını

@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { validateBackup } from "./backupService.js";
+import { validateBackup, estimateBackupSizeBytes } from "./backupService.js";
 
 describe("validateBackup", () => {
   test("geçerli bir yedek nesnesi için valid: true döner", () => {
@@ -71,5 +71,27 @@ describe("validateBackup", () => {
   test("dizi içinde geçersiz (obje olmayan) bir eleman varsa geçersiz sayılır", () => {
     const result = validateBackup({ formatVersion: 1, data: { departments: [null, "metin"] } });
     assert.equal(result.valid, false);
+  });
+});
+
+describe("estimateBackupSizeBytes", () => {
+  test("boş bir yedek için küçük ama sıfır olmayan bir boyut döner", () => {
+    const size = estimateBackupSizeBytes({ formatVersion: 1, exportedAt: "2026-01-01T00:00:00.000Z", data: {} });
+    assert.ok(size > 0 && size < 200, `beklenmeyen boyut: ${size}`);
+  });
+
+  test("daha fazla veri, daha büyük boyut üretir (monoton artış)", () => {
+    const small = estimateBackupSizeBytes({ formatVersion: 1, data: { employees: [{ id: 1 }] } });
+    const large = estimateBackupSizeBytes({ formatVersion: 1, data: { employees: Array.from({ length: 100 }, (_, i) => ({ id: i, fullName: "Test Kişi " + i })) } });
+    assert.ok(large > small);
+  });
+
+  test("gerçekçi bir base64 fotoğraf alanı boyutu doğru şekilde yansıtır (bkz. MAX_BACKUP_SIZE_BYTES kontrolü)", () => {
+    // ~300KB'lık sahte bir base64 fotoğraf — BackupSection.jsx'teki oversized akışının
+    // dayandığı varsayımı doğrular: fotoğraflar toplam boyutu belirgin şekilde artırır.
+    const fakePhotoDataUrl = "data:image/jpeg;base64," + "A".repeat(300 * 1024);
+    const withoutPhoto = estimateBackupSizeBytes({ formatVersion: 1, data: { riskDetectionPhotos: [] } });
+    const withPhoto = estimateBackupSizeBytes({ formatVersion: 1, data: { riskDetectionPhotos: [{ id: "p1", dataUrl: fakePhotoDataUrl }] } });
+    assert.ok(withPhoto - withoutPhoto >= 300 * 1024);
   });
 });

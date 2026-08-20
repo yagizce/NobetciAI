@@ -2,9 +2,10 @@ import { useState, useRef } from "react";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useToast } from "../../contexts/ToastContext.jsx";
 import { useLocalStorage } from "../../hooks/useLocalStorage.js";
-import { buildFullBackup, validateBackup, restoreFullBackup, downloadBackupFile } from "../../services/backupService.js";
+import { buildFullBackup, validateBackup, restoreFullBackup, downloadBackupFile, estimateBackupSizeBytes } from "../../services/backupService.js";
 import Button from "../../components/ui/Button.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
+import Modal from "../../components/ui/Modal.jsx";
 import { Download, Upload, AlertTriangle } from "../../components/icons/index.jsx";
 
 /**
@@ -13,8 +14,12 @@ import { Download, Upload, AlertTriangle } from "../../components/icons/index.js
  * kurtarma yolu yoktu. `backupService.js`'in üzerine kurulu, tüm mantık orada — bu bileşen
  * yalnızca dosya seçimi/onay akışını yönetir.
  */
-const MAX_BACKUP_SIZE_BYTES = 25 * 1024 * 1024; // 25MB — tam veri + gömülü görseller (logo vb.) içerebileceği için CSV'den daha yüksek
+const MAX_BACKUP_SIZE_BYTES = 25 * 1024 * 1024; // 25MB — hem geri yükleme (yüklenen dosya) hem de indirme (bkz. handleDownload) tarafında AYNI sınır uygulanır.
 const STALE_BACKUP_DAYS = 30;
+
+function formatMB(bytes) {
+  return (bytes / 1024 / 1024).toFixed(1);
+}
 
 // HARDENING (acil öncelik takibi): önceden "en son ne zaman yedek alındı" bilgisi
 // HİÇBİR YERDE tutulmuyordu — bir kullanıcı aylarca yedek almadan devam edebilir ve
@@ -34,13 +39,26 @@ export default function BackupSection() {
   const { showToast } = useToast();
   const fileInputRef = useRef(null);
   const [pendingRestore, setPendingRestore] = useState(null); // doğrulanmış, onay bekleyen yedek
+  const [oversizedBackup, setOversizedBackup] = useState(null); // { backup, sizeBytes } — bkz. handleDownload
   const [busy, setBusy] = useState(false);
   const { lastBackupAt, setLastBackupAt, daysSince, isStale } = useLastBackupInfo();
 
+  // BUG FIX/HARDENING: önceden buildFullBackup() sonucu boyutu HİÇ kontrol edilmeden
+  // doğrudan indiriliyordu. Phase 6'dan beri fotoğraflar da tam yedeğe dahil olduğu için
+  // (bkz. backupService.js → buildFullBackup notu), biriken fotoğraflarla bir kullanıcı
+  // kendi ürettiği yedeği MAX_BACKUP_SIZE_BYTES sınırını aştığı için ileride bu cihaza
+  // GERİ YÜKLEYEMİYORDU — tam da bu özelliğin var olma sebebi olan senaryoda sessizce
+  // kilitleniyordu. Artık indirmeden ÖNCE boyut kontrol edilir; sınırı aşarsa kullanıcıya
+  // açıkça seçenek sunulur (fotoğrafsız indir / yine de tam indir / vazgeç).
   async function handleDownload() {
     setBusy(true);
     try {
       const backup = await buildFullBackup();
+      const sizeBytes = estimateBackupSizeBytes(backup);
+      if (sizeBytes > MAX_BACKUP_SIZE_BYTES) {
+        setOversizedBackup({ backup, sizeBytes });
+        return;
+      }
       downloadBackupFile(backup);
       setLastBackupAt(new Date().toISOString());
       showToast("Yedek indirildi.", "success");
@@ -50,6 +68,30 @@ export default function BackupSection() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleDownloadWithoutPhotos() {
+    setBusy(true);
+    try {
+      const backup = await buildFullBackup({ includePhotos: false });
+      downloadBackupFile(backup, { labelSuffix: "fotografsiz" });
+      setLastBackupAt(new Date().toISOString());
+      setOversizedBackup(null);
+      showToast("Fotoğraflar hariç tutularak yedek indirildi (tüm risk/eğitim/kontrol verisi dahil).", "success");
+    } catch (err) {
+      console.error("Yedek indirilemedi:", err);
+      showToast("Yedek oluşturulamadı. Yerel verileri kontrol edip tekrar deneyin.", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleDownloadAnyway() {
+    if (!oversizedBackup) return;
+    downloadBackupFile(oversizedBackup.backup);
+    setLastBackupAt(new Date().toISOString());
+    setOversizedBackup(null);
+    showToast("Yedek indirildi — ancak bu dosya bu cihazın geri yükleme sınırının üzerinde, ileride bu cihazda geri yüklenemeyebilir.", "error");
   }
 
   function handleFileSelected(e) {
@@ -139,6 +181,24 @@ export default function BackupSection() {
         onConfirm={handleConfirmRestore}
         onCancel={() => setPendingRestore(null)}
       />
+
+      {/* Yedek MAX_BACKUP_SIZE_BYTES sınırını aştığında (bkz. handleDownload) — kullanıcı
+          asla sessizce "geri yüklenemeyecek bir yedek" ile baş başa bırakılmaz, üç net
+          seçenek sunulur. */}
+      <Modal open={Boolean(oversizedBackup)} onClose={() => setOversizedBackup(null)} title="Yedek çok büyük">
+        <p className="text-sm mb-3" style={{ color: theme.textMuted }}>
+          Yedeğiniz {oversizedBackup && formatMB(oversizedBackup.sizeBytes)}MB — bu cihazın geri
+          yükleme sınırı {formatMB(MAX_BACKUP_SIZE_BYTES)}MB. Büyüklüğün nedeni muhtemelen
+          Vision AI ile analiz edilen fotoğraflar. Fotoğraflar hariç indirirseniz tüm
+          risk/eğitim/kontrol verisi yine de eksiksiz yedeklenir, yalnızca fotoğraflar
+          dışarıda kalır.
+        </p>
+        <div className="flex flex-col gap-2">
+          <Button onClick={handleDownloadWithoutPhotos} disabled={busy}>Fotoğrafsız İndir (önerilir)</Button>
+          <Button variant="secondary" onClick={handleDownloadAnyway} disabled={busy}>Yine de Tam İndir (fotoğraflı)</Button>
+          <Button variant="secondary" onClick={() => setOversizedBackup(null)} disabled={busy}>Vazgeç</Button>
+        </div>
+      </Modal>
     </div>
   );
 }

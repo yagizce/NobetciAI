@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { analyzePhotoForHazards } from "../../../services/visionAnalysisService.js";
+import { compressImageToDataUrl } from "../../../utils/imageCompression.js";
 
 const MAX_FIELD_LENGTH = 500; // HARDENING: FineKinneyForm.jsx'teki aynı gerekçe — bu alanlar da Fine-Kinney'e köprüleniyor.
 
@@ -31,12 +32,24 @@ export function useVisionFindings() {
     setError(null);
     setFindings([]);
     try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("Dosya okunamadı"));
-        reader.readAsDataURL(file);
-      });
+      // DEPOLAMA OPTİMİZASYONU: ham dosya (telefon kamerası tipik olarak 3-5MB) yerine
+      // küçültülmüş/sıkıştırılmış bir data URL kullanılıyor — bu hem önizlemede hem de
+      // onaylandığında IndexedDB'ye TEK SEFER yazılacak fotoğrafta kullanılır (bkz.
+      // RiskDetectionPanel.jsx → handleConfirmFindings, riskDetectionPhotoService.js).
+      // Sıkıştırma başarısız olursa (ör. eski bir tarayıcı) ham dosyaya geri dönülür —
+      // analiz akışı bu yüzden tamamen durmaz.
+      let dataUrl;
+      try {
+        dataUrl = await compressImageToDataUrl(file);
+      } catch (compressionErr) {
+        console.warn("Fotoğraf sıkıştırılamadı, ham dosya kullanılıyor:", compressionErr);
+        dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("Dosya okunamadı"));
+          reader.readAsDataURL(file);
+        });
+      }
       setPhotoDataUrl(dataUrl);
 
       const results = await analyzePhotoForHazards(file);

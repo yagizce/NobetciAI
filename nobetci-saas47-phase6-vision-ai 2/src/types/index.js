@@ -254,14 +254,15 @@
  * @property {string} category - constants/riskDetection.js → RISK_DETECTION_CATEGORIES key
  * @property {string} location - Serbest metin konum bilgisi (örn. "Depo B — Giriş")
  * @property {string|number|null} departmentId
- * @property {"manual"|"simulated"|"photo"} source - "simulated": demo modunda sistemin ürettiği örnek tespit (gerçek kamera değil); "photo": kullanıcının kendi telefonuyla çektiği fotoğrafın AI analizi (bkz. usePhotoDetection.js)
+ * @property {"manual"|"simulated"|"photo"} source - "simulated": demo modunda sistemin ürettiği örnek tespit (gerçek kamera değil); "photo": fotoğraf tabanlı AI analizinden gelen tespit (Phase 6 — bkz. riskDetection/useVisionFindings.js)
  * @property {string} detectedAt - ISO zaman damgası, ilk görülme
  * @property {string} lastSeenAt - ISO zaman damgası, en son görülme
  * @property {number} occurrenceCount - Aynı kategori+konum kombinasyonu tekrar tespit edildikçe artar (biriktirme — yeni satır açılmaz)
  * @property {"new"|"reviewing"|"converted"|"dismissed"} status
  * @property {string} dismissReason - Yalnızca status "dismissed" ise anlamlı
  * @property {string} [hazardNote] - Yalnızca source "photo" ise anlamlı; AI'nin fotoğrafta gördüğünü açıklayan kısa not
- * @property {string|null} [photoDataUrl] - Yalnızca source "photo" ise dolu; analiz edilen fotoğrafın base64 data URL'i
+ * @property {string|null} [photoDataUrl] - LEGACY/inline biçim: eski tek-tespit fotoğraf akışı (Phase 9, artık kaldırıldı) tarafından üretilen geçmiş kayıtlar için. Hiçbir güncel akış bu alanı ARTIK YAZMIYOR (yalnızca okuma/geriye dönük uyumluluk) — Phase 6 çoklu-bulgu akışı bunun yerine `photoId` kullanır.
+ * @property {string|null} [photoId] - Phase 6 depolama optimizasyonu: fotoğraf `riskDetectionPhotos` store'unda BİR KEZ saklanır (bkz. services/riskDetectionPhotoService.js), aynı fotoğraftan türeyen tüm bulgular bu id'yi paylaşır. Görüntülemek için bkz. riskDetection/useRiskDetectionPhotoUrl.js
  * @property {string} [description] - Phase 6/Vision AI v1: bkz. services/visionAnalysisService.js → VisionFinding. Yalnızca source "photo" (yeni akış) ise dolu.
  * @property {string} [recommendedAction] - Phase 6: AI'nin önerdiği önlem — yalnızca öneri, Fine-Kinney'e köprülendiğinde `action` alanına ön dolgu olarak taşınır (bkz. RiskDetectionCard.jsx)
  * @property {string} [affected] - Phase 6: etkilenen kişiler — Fine-Kinney'e köprülendiğinde `affected` alanına ön dolgu olarak taşınır

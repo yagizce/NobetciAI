@@ -3,8 +3,7 @@ import { RISK_DETECTION_CATEGORIES, MOCK_DETECTION_LOCATIONS } from "../../../co
 import { useCompanyOrgLists } from "../fineKinney/useCompanyOrgLists.js";
 import Button from "../../../components/ui/Button.jsx";
 
-// HARDENING: FineKinneyForm.jsx'teki aynı gerekçeyle (bkz. o dosyadaki not) — bu alanlar
-// da AI'ya (usePhotoDetection.js analiz akışı) ve Fine-Kinney'e köprüleniyor.
+// HARDENING: FineKinneyForm.jsx'teki aynı gerekçeyle (bkz. o dosyadaki not).
 const MAX_LOCATION_LENGTH = 300;
 const MAX_NOTE_LENGTH = 1000;
 
@@ -14,46 +13,33 @@ const MAX_NOTE_LENGTH = 1000;
  * konum) girebilmesi içindir. Bilinçli olarak Fine-Kinney formu kadar detaylı DEĞİL —
  * bu yalnızca bir triage kaydı, ayrıntı Fine-Kinney'e dönüştürülünce girilir.
  *
- * `initialCategory`/`initialNote`/`photoDataUrl` doluysa (bkz. usePhotoDetection.js),
- * form AI'nin fotoğraftan çıkardığı öneriyle önceden doldurulmuş açılır — kullanıcı
- * yine de kategoriyi/notu değiştirebilir, konum ise AI tarafından bilinemediği için
- * (fiziksel yer adı) her zaman elle girilir.
+ * Fotoğraf tabanlı tespit artık ayrı bir akış (bkz. VisionFindingsPanel.jsx — Phase 6
+ * Vision AI v1); bu form yalnızca saf manuel girişten sorumlu.
  *
  * @param {{
  *   theme: object,
- *   onSubmit: (category: string, location: string, departmentId: string|null, extra?: {hazardNote?: string, photoDataUrl?: string, source?: string}) => void,
+ *   onSubmit: (category: string, location: string, departmentId: string|null, extra?: {hazardNote?: string, source?: string}) => void,
  *   onCancel: () => void,
  *   isSubmitting?: boolean,
- *   initialCategory?: string|null, initialNote?: string|null, photoDataUrl?: string|null,
  * }} props
  */
-export default function RiskDetectionForm({ theme, onSubmit, onCancel, isSubmitting = false, initialCategory = null, initialNote = null, photoDataUrl = null }) {
+export default function RiskDetectionForm({ theme, onSubmit, onCancel, isSubmitting = false }) {
   const { departments } = useCompanyOrgLists();
-  const [category, setCategory] = useState(initialCategory || RISK_DETECTION_CATEGORIES[0].value);
+  const [category, setCategory] = useState(RISK_DETECTION_CATEGORIES[0].value);
   const [location, setLocation] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [hazardNote, setHazardNote] = useState(initialNote || "");
+  const [hazardNote, setHazardNote] = useState("");
 
   function handleSubmit() {
     if (!location.trim()) return;
     onSubmit(category, location.trim(), departmentId || null, {
       hazardNote: hazardNote.trim(),
-      photoDataUrl: photoDataUrl || undefined,
-      source: photoDataUrl ? "photo" : "manual",
+      source: "manual",
     });
   }
 
   return (
     <div className="rounded-xl border px-3.5 py-3 mb-4" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
-      {photoDataUrl && (
-        <div className="flex items-start gap-2.5 mb-3 rounded-lg border px-2.5 py-2" style={{ borderColor: theme.border, background: theme.surface }}>
-          <img src={photoDataUrl} alt="Analiz edilen fotoğraf" className="w-14 h-14 rounded-md object-cover shrink-0" />
-          <p className="text-[10.5px]" style={{ color: theme.textFaint }}>
-            🤖 AI önerisi aşağıda dolduruldu — gözden geçirip düzenleyebilir, konumu girmen gerekiyor.
-          </p>
-        </div>
-      )}
-
       <div className="grid gap-2 mb-2 sm:grid-cols-2">
         <select value={category} onChange={(e) => setCategory(e.target.value)}
           className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }}>

@@ -63,7 +63,20 @@ export function useRiskDetections(initialSearch = "") {
       status: "new",
       dismissReason: "",
       hazardNote: extra.hazardNote || "",
+      // Bu alan yalnızca kaldırılmış eski tek-tespit fotoğraf akışının ürettiği geçmiş
+      // kayıtlar için (geriye dönük uyumluluk) — Phase 6 çoklu bulgu akışı artık `photoId`
+      // kullanıyor (bkz. riskDetectionPhotoService.js), fotoğrafı her bulgu kaydına
+      // AYRI AYRI gömmüyor. İkisi birlikte gelmez: extra ya photoDataUrl ya da photoId taşır.
       photoDataUrl: extra.photoDataUrl || null,
+      photoId: extra.photoId || null,
+      // BUG FIX: Phase 6 Vision AI alanları önceden buraya HİÇ yazılmıyordu — RiskDetectionCard.jsx
+      // bu alanları gösterecek şekilde güncellenmişti ama addDetection() extra'dan yalnızca
+      // hazardNote/photoDataUrl okuyordu, geri kalanı sessizce kaybediliyordu.
+      description: extra.description || "",
+      recommendedAction: extra.recommendedAction || "",
+      affected: extra.affected || "",
+      legislationRef: extra.legislationRef || "",
+      confidenceScore: typeof extra.confidenceScore === "number" ? extra.confidenceScore : null,
     };
     await saveRiskDetection(fresh);
     setDetections((prev) => [fresh, ...prev]);

@@ -17,7 +17,7 @@ frontend koduna asla yazılmaz.
 | Başlangıç Fine-Kinney puanı | `fineKinney/FineKinneyForm.jsx` (`useInitialRiskScore.js` → `riskService.scoreRisk()`) | Yalnızca tehlike+risk metninden, henüz P/M/Ş seçilmemişken önlem öncesi başlangıç puan önerisi üretir |
 | Bağlama Duyarlı AI Copilot | `features/chat/ChatPanel.jsx` (`constants/chatContexts.js`) | Fine-Kinney/Risk Tespiti/Periyodik Kontrol/Mevzuat ekranlarından "AI'ya Sor" ile girildiğinde asistan o bağlama göre sistem promptu + karşılama + önerilen sorular kullanır |
 | Doküman içeriği üretimi | `documents/DocumentGenerator.jsx` (`documentService.js` → `generateDocumentDraft()`) | Belge türü+başlıktan düzenlenmeye hazır ilk taslak üretir; `DocumentDetailDrawer.jsx`'te gözden geçirilip düzenlenir |
-| Fotoğraftan Tehlike Tespiti | `riskDetection/RiskDetectionPanel.jsx` (`usePhotoDetection.js`) | Kullanıcının kendi telefonuyla çektiği fotoğrafı 6 kategoriden birine sınıflandırır + kısa not üretir; Risk Tespiti formunu ön doldurur. Kamera KURULUMU değil — bkz. Phase 9.2 |
+| Fotoğraftan Çoklu Tehlike Tespiti (Vision AI v1) | `riskDetection/RiskDetectionPanel.jsx` (`useVisionFindings.js`, `services/visionAnalysisService.js`) | Kullanıcının kendi telefonuyla çektiği/galeriden seçtiği fotoğraftan BİRDEN FAZLA yapılandırılmış tehlike bulgusu (tehlike/açıklama/kategori/önerilen önlem/etkilenenler/mevzuat referansı/güven skoru) üretir; kullanıcı her bulguyu tek tek onaylar/düzenler (bkz. `VisionFindingsPanel.jsx`). Kamera KURULUMU değil, Phase 6 kapsamı — bkz. aşağıdaki "Bilinçli Sınır" notu. Sabit kamera entegrasyonu ayrı, bkz. Phase 9.2 |
 | Bilgi Kütüphanesi "AI'ya Sor" | `knowledge-center/KnowledgeAIAssistant.jsx` | Soruyu ilgili dokümanlara daraltıp (anahtar kelime eşleştirmesi) AI'ye bağlam verir, kaynak dokümanı gösterir — bkz. "RAG-lite" aşağıda |
 
 ### Güvenlik Önlemi: Artık Risk Önerisi
@@ -28,12 +28,24 @@ tarafından düzenlenebilir alanlara yazılır — hiçbir zaman sessizce/geri d
 uygulanmaz. Gelecekteki tüm AI-önerisi özellikleri bu ilkeyi izler:
 **AI önerir, insan onaylar.**
 
+### Bilinçli Sınır: Vision AI v1 Bugün MOCK
+
+Yukarıdaki tablodaki "Fotoğraftan Çoklu Tehlike Tespiti" satırı, **gerçek bir Vision AI
+API'sine bağlı DEĞİL** — `services/visionAnalysisService.js` bilinçli olarak bir mock
+adapter kullanıyor (dosya adı/boyutuna göre deterministik, gerçekçi görünen bulgular
+üretir). Bu tablodaki diğer tüm AI özellikleri (Chat, Fine-Kinney önerisi, Doküman
+üretimi vb.) gerçek Anthropic API'sine bağlıyken, bu biri bilinçli olarak değil —
+ROADMAP.md Phase 6 kapsamı gereği. Adapter arayüzü gerçek bir sağlayıcıya
+(Anthropic/OpenAI Vision) geçilebilecek şekilde tasarlandı; geçiş adımları o dosyanın
+başında yazılı. Bu, aşağıdaki "Planlanan Genişlemeler" listesindeki bir sonraki adım.
+
 ## Hazır Altyapı, Henüz Bağlanmamış
 
-- **Risk ek dosyaları (fotoğraf/PDF/Word/Excel)** — Sprint 5A'da eklenen mock altyapı,
-  her ek dosyayı `{ id, name, type, addedAt, addedBy }` şeklinde tutar. Bu veri şekli,
-  ileride bir AI Vision servisi devreye girdiğinde **değişmeden** kullanılabilecek
-  şekilde tasarlandı.
+- **Fotoğraf saklama altyapısı Phase 6'da genişledi.** Fotoğraflar artık ayrı bir
+  `riskDetectionPhotos` IndexedDB store'unda (dedup + sıkıştırma ile) saklanıyor, bkz.
+  `services/riskDetectionPhotoService.js`. Bu, ileride bir gerçek AI Vision servisi
+  devreye girdiğinde **değişmeden** kullanılabilecek şekilde tasarlandı — yalnızca
+  `visionAnalysisService.js`'teki `activeAdapter` değişecek.
 
 ## Bilgi Kütüphanesi "AI'ya Sor" — RAG-lite
 
@@ -55,11 +67,15 @@ bu, gerçek backend'e geçişten (Phase 7) sonra, kullanıcı onayıyla değerle
 
 ## Planlanan Genişlemeler
 
-1. **Phase 9.2 — gerçek sabit kamera entegrasyonu.** Kullanıcının kendi fotoğraf
+1. **Gerçek bir Vision AI sağlayıcısına bağlanma (Anthropic/OpenAI Vision).**
+   `services/visionAnalysisService.js`'teki mock adapter'ın yerini gerçek bir API
+   çağrısı alacak — adapter arayüzü buna hazır, geri kalan uygulama (onay akışı, Risk
+   Tespiti/Fine-Kinney köprüsü) DEĞİŞMEDEN kalacak. ROADMAP.md Phase 6'nın kalan kısmı.
+2. **Phase 9.2 — gerçek sabit kamera entegrasyonu.** Kullanıcının kendi fotoğraf
    yüklemesinden farklı olarak, işyerlerine kurulacak sabit kameralardan canlı/otomatik
    tespit. Bu, fiziksel kurulum gerektirdiği için mobil-öncelikli geliştirmenin
    kapsamı dışında tutuluyor.
-2. **Vektör tabanlı gerçek RAG** — yukarıda açıklandığı gibi, Phase 7'ye bağlı.
+3. **Vektör tabanlı gerçek RAG** — yukarıda açıklandığı gibi, Phase 7'ye bağlı.
 
 ## Açık Soru: Offline AI Davranışı
 

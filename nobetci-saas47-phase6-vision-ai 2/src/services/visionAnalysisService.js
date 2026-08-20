@@ -1,8 +1,7 @@
 // visionAnalysisService — Phase 6 / Vision AI v1. Bir fotoğraftan YAPISAL, ÇOKLU
-// tehlike bulgusu üretir. Bu, `usePhotoDetection.js`'in ürettiği tek-kategori+not
-// önerisinden BİLİNÇLİ olarak ayrı ve daha zengin bir çıktı — o akış dokunulmadan
-// duruyor (bkz. riskDetection/usePhotoDetection.js), bu servis Risk Tespiti panelindeki
-// "Fotoğrafla Tespit Et" akışının Phase 6 sürümünü besler.
+// tehlike bulgusu üretir. Bu, eski (artık kaldırılmış) tek-tespit fotoğraf akışının
+// tek-kategori+not önerisinden daha zengin bir çıktı — bu servis Risk Tespiti
+// panelindeki "Fotoğrafla Tespit Et" akışını besler.
 //
 // ÖNEMLİ — ROADMAP.md Phase 6 kapsamı gereği bugün GERÇEK bir Vision AI API'sine
 // BAĞLI DEĞİL. Bilinçli olarak mock/adapter yapısı kullanılıyor. Adapter arayüzü,

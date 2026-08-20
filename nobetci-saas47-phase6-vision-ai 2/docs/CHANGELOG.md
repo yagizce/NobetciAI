@@ -9,7 +9,102 @@ yanındaki `· Phase X` etiketi, o sürümün [ROADMAP.md](./ROADMAP.md)'deki ha
 karşılık geldiğini gösterir — sprint bazlı özet için [SPRINTS.md](./SPRINTS.md)'e
 bakın.
 
-## [Risk Temizliği Sprinti — Bilinen Riskler] · Phase 1
+## [Yedekleme — Boyut Sınırı Kilitlenmesi Düzeltildi] · Phase 6
+
+### Düzeltilen
+
+- **🔴 Kritik: yedek indirme ile geri yükleme arasında asimetrik boyut sınırı.**
+  `BackupSection.jsx`, geri yüklenen dosyalarda `MAX_BACKUP_SIZE_BYTES` (25MB) sınırı
+  uyguluyordu, ama `buildFullBackup()`'ın ürettiği İNDİRİLEN yedeğin boyutu hiç kontrol
+  edilmiyordu. Phase 6'dan beri fotoğraflar (`riskDetectionPhotos`) otomatik olarak tam
+  yedeğe dahil olduğu için, biriken Vision AI fotoğraflarıyla bir kullanıcı kendi
+  ürettiği yedeği ileride bu cihaza GERİ YÜKLEYEMEZ hale gelebiliyordu — tam da bu
+  özelliğin var olma sebebi olan senaryoda (telefon kaybolur, yedek gerekir) sessiz bir
+  kilitlenme riskiydi.
+
+### Eklenen
+
+- `backupService.js` → `buildFullBackup({ includePhotos })`: fotoğrafları hariç tutarak
+  daha küçük bir yedek üretme seçeneği (yalnızca `riskDetectionPhotos` atlanır, diğer
+  TÜM uyum-kritik veri — Fine-Kinney, çalışan, eğitim, periyodik kontrol — eksiksiz kalır).
+- `backupService.js` → `estimateBackupSizeBytes()`: saf/test edilebilir boyut tahmini.
+- `BackupSection.jsx`: indirmeden ÖNCE boyut kontrol edilir; sınır aşılırsa kullanıcıya
+  üç net seçenek sunulur — Fotoğrafsız İndir (önerilir) / Yine de Tam İndir / Vazgeç.
+  Hiçbir durumda kullanıcı "geri yüklenemeyecek bir yedek" ile sessizce baş başa
+  bırakılmaz.
+
+### Test Kapsamı
+
+- 3 yeni test eklendi (275 → 278): `estimateBackupSizeBytes` için, gerçekçi bir base64
+  fotoğraf senaryosu dahil.
+
+
+
+### Test Kapsamı
+
+- 54 yeni test eklendi (221 → 275): `accidentFreeStreak`, `attentionItems`,
+  `trainingComplianceGaps`, `legislationRiskLinker`, `executiveSummary`,
+  `departmentRiskTrend`, `departmentDetail`. Bunlar dashboard/Patron Modu/Departman Isı
+  Haritası'ndaki sayıları besleyen dosyalardı, önceden testsizdi. `src/utils/` klasörü
+  artık %100 test kapsamında (tüm `.js` dosyalarının eşleşen `.test.js`'i var).
+
+
+
+### Kaldırılan
+
+- **`usePhotoDetection.js` silindi.** Phase 6'daki `useVisionFindings.js`/
+  `visionAnalysisService.js` geçişinden sonra hiçbir kod bu hook'u import etmiyordu
+  (yalnızca yorumlarda anılıyordu) — doğrulanmış ölü kod.
+- **`PHOTO_DETECTION_PROMPT` / `parsePhotoDetection` kaldırıldı** (`systemPrompt.js`) —
+  yalnızca silinen `usePhotoDetection.js` tarafından kullanılıyordu. İlgili testler de
+  (`systemPrompt.test.js`) kaldırıldı.
+- **`RiskDetectionForm.jsx` sadeleştirildi** — artık kullanılmayan
+  `initialCategory`/`initialNote`/`photoDataUrl` prop'ları ve fotoğraf önizleme bloğu
+  kaldırıldı; form yalnızca saf manuel giriş akışından sorumlu (fotoğraf tabanlı akış
+  zaten ayrı, bkz. `VisionFindingsPanel.jsx`).
+
+### Değişen
+
+- **`RiskDetectionPanel.jsx` bölündü.** Fotoğraf çek/galeriden seç butonları + gizli
+  `<input>`'lar yeni `PhotoCaptureButtons.jsx`'e taşındı — davranış değişikliği yok,
+  yalnızca sorumluluk ayrımı.
+- **`docs/AI_ROADMAP.md` Phase 6'yı yansıtacak şekilde güncellendi** — eski tek-tespit
+  fotoğraf akışı satırı kaldırıldı, Vision AI v1'in bugün mock olduğu netleştirildi,
+  "Planlanan Genişlemeler" listesine gerçek Vision API'ye bağlanma maddesi eklendi.
+
+
+
+### Düzeltilen
+
+- **Kritik veri kaybı bug'ı: Vision AI Phase 6 alanları hiç kaydedilmiyordu.**
+  `RiskDetectionCard.jsx`, `description`/`recommendedAction`/`affected`/`legislationRef`/
+  `confidenceScore` alanlarını gösterecek şekilde güncellenmişti, ama
+  `useRiskDetections.js` → `addDetection()` bu alanları `extra`'dan hiç okumuyordu —
+  sessizce kayboluyorlardı. Artık tüm alanlar kayda yazılıyor.
+
+### Değişen
+
+- **Fotoğraf depolama optimizasyonu.** Bir fotoğraftan birden fazla tehlike bulgusu
+  onaylandığında (Phase 6 çoklu bulgu akışı), fotoğraf artık HER kayda ayrı ayrı
+  gömülmüyor — yeni `riskDetectionPhotos` store'una BİR KEZ kaydediliyor, ilgili
+  kayıtlar yalnızca `photoId` referansı taşıyor (bkz. `riskDetectionPhotoService.js`,
+  `useRiskDetectionPhotoUrl.js` — okuma tarafında modül-seviyesi önbellek de var).
+  Eski `photoDataUrl` (inline) biçimi geriye dönük uyumlu, `usePhotoDetection.js`'in
+  tek-tespit akışı değişmedi.
+- **Fotoğraf sıkıştırma.** Kamera/galeriden gelen fotoğraflar (`imageCompression.js`,
+  canvas tabanlı, yeni bağımlılık yok) analiz/önizleme ve depolama öncesi 1600px uzun
+  kenar + %80 JPEG kalitesine küçültülüyor — tipik 4-5MB'lık bir fotoğrafı genelde
+  200-500KB'a indiriyor.
+- `db.js` → `DB_VERSION` 12'ye çıktı (yeni `riskDetectionPhotos` store).
+
+### Test Kapsamı
+
+- 52 yeni test eklendi (174 → 226): `visionAnalysisService`, `imageCompression`
+  (`computeScaledDimensions` — saf fonksiyon), `safetyScore`, `employeeNameMatch`,
+  `fileValidation` (magic-byte doğrulama, minimal FileReader polyfill ile), `authService`
+  (mock oturum akışı, minimal localStorage polyfill ile — üretim kodu değişmedi).
+
+
 
 Bu sprint, önceki turlarda "Bilinen Risk" olarak dokümante edilip ertelenen 4 maddeyi
 tek tek ele aldı. 3'ü çözüldü, 1'i (gerçek backend/auth gerektirdiği için) hâlâ

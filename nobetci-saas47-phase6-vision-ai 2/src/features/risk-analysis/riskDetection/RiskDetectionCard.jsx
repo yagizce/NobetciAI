@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getDetectionCategoryLabel, getDetectionStatusStyle } from "../../../constants/riskDetection.js";
 import { useDetectionAIDraft } from "./useDetectionAIDraft.js";
+import { useRiskDetectionPhotoUrl } from "./useRiskDetectionPhotoUrl.js";
 import Button from "../../../components/ui/Button.jsx";
 import { Camera, Sparkles, ChevronRight, Trash2 } from "../../../components/icons/index.jsx";
 
@@ -29,6 +30,10 @@ function timeAgoShort(iso) {
 export default function RiskDetectionCard({ detection, theme, departmentName, onUpdateStatus, onDelete, onSendToFineKinney }) {
   const [aiExpanded, setAiExpanded] = useState(false);
   const { loading: aiLoading, error: aiError, draft, generateDraft } = useDetectionAIDraft(detection);
+  // Phase 6 depolama optimizasyonu: fotoğraf artık her zaman detection.photoDataUrl
+  // içinde gömülü olmayabilir (bkz. useRiskDetectionPhotoUrl.js) — çoklu bulgu akışında
+  // yalnızca photoId taşınır, gerçek data URL burada IndexedDB'den (önbellekli) çözülür.
+  const photoUrl = useRiskDetectionPhotoUrl(detection.photoDataUrl, detection.photoId);
   const statusStyle = getDetectionStatusStyle(detection.status, theme);
   const isOpen = detection.status === "new" || detection.status === "reviewing";
 
@@ -67,8 +72,8 @@ export default function RiskDetectionCard({ detection, theme, departmentName, on
     <div className="rounded-xl border px-3.5 py-3" style={{ borderColor: theme.border, background: theme.surface }}>
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex items-start gap-2 min-w-0">
-          {detection.photoDataUrl && (
-            <img src={detection.photoDataUrl} alt="Tespit fotoğrafı" className="w-9 h-9 rounded-md object-cover shrink-0" />
+          {photoUrl && (
+            <img src={photoUrl} alt="Tespit fotoğrafı" className="w-9 h-9 rounded-md object-cover shrink-0" />
           )}
           <p className="text-sm font-semibold leading-snug" style={{ color: theme.textPrimary }}>{getDetectionCategoryLabel(detection.category)}</p>
         </div>
