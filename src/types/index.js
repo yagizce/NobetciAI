@@ -6,7 +6,7 @@
  * @typedef {Object} SystemNotification
  * @property {string|number} id
  * @property {string|null} companyId
- * @property {"riskCreated"|"criticalRisk"|"trainingDue"|"periodicCheckDue"|"employeeAdded"} type
+ * @property {"riskCreated"|"criticalRisk"|"trainingDue"|"periodicCheckDue"|"employeeAdded"|"backupStale"} type
  * @property {string} title
  * @property {string} message
  * @property {boolean} read

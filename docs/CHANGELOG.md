@@ -9,7 +9,54 @@ yanındaki `· Phase X` etiketi, o sürümün [ROADMAP.md](./ROADMAP.md)'deki ha
 karşılık geldiğini gösterir — sprint bazlı özet için [SPRINTS.md](./SPRINTS.md)'e
 bakın.
 
-## [Yedekleme — Boyut Sınırı Kilitlenmesi Düzeltildi] · Phase 6
+## [Depolama Görünürlüğü — Cihaz Depolama Göstergesi] · Phase 6
+
+### Eklenen
+
+- **🟡 Ayarlar sayfasına depolama kullanım göstergesi eklendi.** Önceden kullanıcının
+  tarayıcı depolama limitine ne kadar yaklaştığına dair hiçbir görünürlüğü yoktu — ilk
+  sinyali bir yazma işlemi gerçekten patlayınca (`QuotaExceededError`) alıyordu.
+  `navigator.storage.estimate()` (Storage API) kullanılarak yeni bir bağımlılık
+  eklenmeden yaklaşık kullanım/kota gösteriliyor; %70 ve üzerinde "Yedekleme'den bir
+  yedek indirip eski fotoğrafları temizlemeyi düşünebilirsiniz" notu çıkıyor.
+- `storageEstimateService.js`: `isStorageEstimateSupported()` (özellik algılama —
+  desteklenmiyorsa gösterge SESSİZCE gizlenir, hata göstermez), `getStorageUsageLevel()`
+  ve `formatStorageBytes()` (saf, test edilebilir).
+- `useStorageEstimate.js` hook'u + `StorageUsageIndicator.jsx` bileşeni.
+- Yeni `HardDrive` ikonu (mevcut inline SVG ikon setine eklendi, yeni paket yok).
+
+### Test Kapsamı
+
+- 8 yeni test eklendi (286 → 294): `storageEstimateService.test.js`.
+
+
+
+### Değişen
+
+- **🟡 "30 gündür yedek alınmadı" artık gerçek bir sistem/tarayıcı bildirimi.**
+  Önceden bu uyarı yalnızca kullanıcı Ayarlar sayfasını kendi isteğiyle ziyaret ederse
+  görünen pasif bir metindi — bildirim merkezine ya da tarayıcı bildirimlerine hiç
+  bağlı değildi, dolayısıyla sayfayı hiç açmayan bir kullanıcıya asla ulaşmıyordu.
+  Artık `useReminderScheduler.js`'in mevcut günlük tarama mekanizmasına (periyodik
+  kontrol/eğitim hatırlatmalarıyla AYNI desen) eklendi — role bağımsız çalışır, çünkü
+  Yedekleme bölümü hiçbir role kısıtlı değil.
+- Anahtar adı (`nobetci:lastBackupAt`) ve eşik gün sayısı (30), `BackupSection.jsx` ile
+  `useReminderScheduler.js` arasında kopyala-yapıştır yerine tek bir kaynaktan
+  (`constants/backup.js`) paylaşılıyor.
+
+### Eklenen
+
+- `constants/backup.js`: `isBackupStale()` / `daysSinceLastBackup()` (saf, test
+  edilebilir) + `readLastBackupAt()`.
+- `backupStale` bildirim tipi kayıtlara eklendi (`systemNotifications.js`,
+  `notificationPrefs.js` — kullanıcı Ayarlar'dan bu bildirimi kapatabilir, diğer
+  hatırlatma tipleriyle aynı şekilde).
+
+### Test Kapsamı
+
+- 8 yeni test eklendi (278 → 286): `constants/backup.test.js`.
+
+
 
 ### Düzeltilen
 

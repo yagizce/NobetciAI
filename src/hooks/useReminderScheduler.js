@@ -9,6 +9,7 @@ import { getOverdueOrDueSoonChecks } from "../constants/periodicCheck.js";
 import { getUpcomingTrainingDueReminders } from "../constants/trainingStatus.js";
 import { showLocalNotification } from "../services/notificationService.js";
 import { pushSystemNotification } from "../services/systemNotificationService.js";
+import { readLastBackupAt, isBackupStale, daysSinceLastBackup } from "../constants/backup.js";
 import { todayISO } from "../utils/dateUtils.js";
 
 const LAST_SCAN_STORAGE_KEY = "nobetci-last-reminder-scan";
@@ -29,6 +30,13 @@ const LAST_SCAN_STORAGE_KEY = "nobetci-last-reminder-scan";
  * (Not: expert/employer de teknik olarak "employeeName" olarak eğitim alabilir ama
  * bu MVP'de yalnızca employee rolü için eğitim hatırlatması tetiklenir — periyodik
  * kontrol hatırlatmasıyla karışmaması için roller net ayrıldı.)
+ *
+ * Yedekleme hatırlatması (`backupStale`) role BAĞIMSIZ çalışır — Ayarlar sayfasındaki
+ * `BackupSection.jsx` hiçbir role kısıtlı değil (bkz. Settings.jsx), dolayısıyla bu
+ * tarama da rolden bağımsız. HARDENING: önceden bu uyarı yalnızca kullanıcı Ayarlar
+ * sayfasını ZİYARET EDERSE görünen pasif bir metindi (bkz. BackupSection.jsx) — hiç
+ * ziyaret etmeyen bir kullanıcıya asla ulaşmıyordu. Artık diğer hatırlatmalarla aynı
+ * mekanizmayla (günlük tarama + gerçek bildirim) çalışıyor.
  */
 export function useReminderScheduler() {
   const { role } = useRole();
@@ -65,6 +73,20 @@ export function useReminderScheduler() {
           const message = `${r.courseTitle} — son tarih: ${r.dueDate}`;
           await showLocalNotification("trainingDue", title, message);
           await pushSystemNotification({ type: "trainingDue", title, message });
+        }
+      }
+
+      // Rolden bağımsız: bkz. dosya başındaki not.
+      if (!cancelled) {
+        const lastBackupAt = readLastBackupAt();
+        if (isBackupStale(lastBackupAt)) {
+          const days = daysSinceLastBackup(lastBackupAt);
+          const title = lastBackupAt ? "Yedek alma zamanı geldi" : "Hiç yedek alınmamış";
+          const message = lastBackupAt
+            ? `Son yedek ${days} gün önce alındı. Ayarlar > Yedekleme'den yeni bir yedek indirmeniz önerilir.`
+            : "Bu cihazda henüz hiç yedek alınmamış. Ayarlar > Yedekleme'den bir yedek indirin.";
+          await showLocalNotification("backupStale", title, message);
+          await pushSystemNotification({ type: "backupStale", title, message });
         }
       }
 

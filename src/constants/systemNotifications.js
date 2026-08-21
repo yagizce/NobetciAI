@@ -8,6 +8,7 @@ export const SYSTEM_NOTIFICATION_META = {
   trainingDue: { label: "Eğitim Hatırlatma", tone: "warning", emoji: "🟡" },
   periodicCheckDue: { label: "Periyodik Kontrol", tone: "warning", emoji: "🟡" },
   employeeAdded: { label: "Yeni Çalışan", tone: "success", emoji: "🟢" },
+  backupStale: { label: "Yedekleme Hatırlatma", tone: "warning", emoji: "🟡" },
 };
 
 export function getNotificationMeta(type) {

@@ -3,6 +3,7 @@ import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useToast } from "../../contexts/ToastContext.jsx";
 import { useLocalStorage } from "../../hooks/useLocalStorage.js";
 import { buildFullBackup, validateBackup, restoreFullBackup, downloadBackupFile, estimateBackupSizeBytes } from "../../services/backupService.js";
+import { LAST_BACKUP_STORAGE_KEY, isBackupStale, daysSinceLastBackup } from "../../constants/backup.js";
 import Button from "../../components/ui/Button.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Modal from "../../components/ui/Modal.jsx";
@@ -15,7 +16,6 @@ import { Download, Upload, AlertTriangle } from "../../components/icons/index.js
  * yalnızca dosya seçimi/onay akışını yönetir.
  */
 const MAX_BACKUP_SIZE_BYTES = 25 * 1024 * 1024; // 25MB — hem geri yükleme (yüklenen dosya) hem de indirme (bkz. handleDownload) tarafında AYNI sınır uygulanır.
-const STALE_BACKUP_DAYS = 30;
 
 function formatMB(bytes) {
   return (bytes / 1024 / 1024).toFixed(1);
@@ -28,10 +28,16 @@ function formatMB(bytes) {
 // "bu cihazda en son ne zaman tıklandı" bilgisi, taşınabilir/yedeklenmesi gereken
 // domain verisi değil; üstelik IndexedDB'de tutulsaydı ESKİ bir yedek geri
 // yüklendiğinde bu tarih de YANLIŞ ŞEKİLDE eski bir değere dönerdi.
+//
+// Anahtar adı ve eşik gün sayısı artık constants/backup.js'te TEK yerde tanımlı —
+// useReminderScheduler.js de aynı sabitleri kullanarak bu bilgiyi gerçek bir arka
+// plan bildirimine çeviriyor (bkz. o dosyadaki "backupStale" bloğu). Önceden bu uyarı
+// yalnızca kullanıcı Ayarlar sayfasını ZİYARET EDERSE görünüyordu — hiç ziyaret
+// etmeyen bir kullanıcıya asla ulaşmıyordu.
 function useLastBackupInfo() {
-  const [lastBackupAt, setLastBackupAt] = useLocalStorage("nobetci:lastBackupAt", null);
-  const daysSince = lastBackupAt ? Math.floor((Date.now() - new Date(lastBackupAt).getTime()) / (1000 * 60 * 60 * 24)) : null;
-  return { lastBackupAt, setLastBackupAt, daysSince, isStale: daysSince === null || daysSince >= STALE_BACKUP_DAYS };
+  const [lastBackupAt, setLastBackupAt] = useLocalStorage(LAST_BACKUP_STORAGE_KEY, null);
+  const daysSince = daysSinceLastBackup(lastBackupAt);
+  return { lastBackupAt, setLastBackupAt, daysSince, isStale: isBackupStale(lastBackupAt) };
 }
 
 export default function BackupSection() {

@@ -12,6 +12,7 @@ import { UserRound, Bell, Building2 } from "../components/icons/index.jsx";
 import Badge from "../components/ui/Badge.jsx";
 import CompanyManagementPanel from "../features/company/CompanyManagementPanel.jsx";
 import BackupSection from "../features/settings/BackupSection.jsx";
+import StorageUsageIndicator from "../features/settings/StorageUsageIndicator.jsx";
 import RouteGuard from "../components/RouteGuard.jsx";
 import ToggleSwitch from "../components/ui/ToggleSwitch.jsx";
 
@@ -123,6 +124,9 @@ export default function Settings() {
             Profil bilgilerini görüntüle →
           </Link>
         </div>
+
+        {/* Depolama */}
+        <StorageUsageIndicator />
 
         {/* Yedekleme */}
         <BackupSection />

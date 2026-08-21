@@ -6,6 +6,7 @@ export const DEFAULT_NOTIFICATION_PREFS = {
   taskAssigned: true,
   periodicCheckDue: true,
   trainingDue: true,
+  backupStale: true,
 };
 
 export const NOTIFICATION_PREF_LABELS = {
@@ -14,4 +15,5 @@ export const NOTIFICATION_PREF_LABELS = {
   taskAssigned: "Bana görev atandığında",
   periodicCheckDue: "Periyodik kontrol süresi yaklaşınca/geçince",
   trainingDue: "Eğitim son tarihi yaklaşınca/geçince",
+  backupStale: "Yedek alma zamanı geldiğinde",
 };
