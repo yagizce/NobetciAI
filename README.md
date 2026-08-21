@@ -13,16 +13,11 @@
 
 ---
 
-## Proje Tanıtımı
+Proje Tanıtımı
 
-**Nöbetçi**, işyerlerinin İş Sağlığı ve Güvenliği yükümlülüklerini kağıt ve dağınık
-Excel dosyalarından kurtarıp; risk değerlendirmesi, periyodik kontrol takibi, doküman
-yönetimi ve yapay zeka destekli danışmanlığı **tek bir dijital platformda** birleştiren
-kurumsal bir web uygulamasıdır.
+Nöbetçi, işyerlerinin İş Sağlığı ve Güvenliği (İSG) yükümlülüklerini kağıt tabanlı süreçlerden ve dağınık Excel dosyalarından kurtararak; risk değerlendirmesi, periyodik kontrol takibi, doküman yönetimi ve yapay zeka destekli danışmanlık hizmetlerini tek bir dijital platformda birleştiren kurumsal bir web uygulamasıdır.
 
-Proje, tek kullanıcılı bir prototipten **çok kiracılı (multi-tenant) SaaS** ürününe
-kademeli olarak dönüştürülmektedir. Mimari kararların tamamı bu dönüşüm göz önünde
-bulundurularak alınır.
+Proje, tek kullanıcılı bir prototipten çok kiracılı (multi-tenant) bir SaaS ürününe kademeli olarak dönüştürülmektedir. Alınan tüm mimari kararlar bu dönüşüm hedefi göz önünde bulundurularak şekillendirilmektedir.
 
 ## Platform Hakkında
 
@@ -34,7 +29,7 @@ Nöbetçi, üç kullanıcı rolünü tek çatı altında hizmet verecek şekilde
 | 🏢 **İşveren** | Firma genelini yönetir, KPI ve performansı izler, onaylar |
 | 👷 **Çalışan** | Ramak kala/tehlike bildirimi gönderir, eğitimlerini takip eder |
 
-Hedef kitle; kendi İSG uzmanı bulunmayan küçük/orta ölçekli işletmeler, birden fazla
+Hedef kitle; İlk başta küçük/orta ölçekli işletmeler, birden fazla
 firmayı yöneten OSGB'ler ve saha güvenliğini merkezi olarak takip etmek isteyen
 işverenlerdir. Uygulama **mobil öncelikli** tasarlanmıştır — sahada, telefonla
 kullanılabilir olması bir seçenek değil, temel gerekliliktir.
