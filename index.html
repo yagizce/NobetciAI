@@ -2,10 +2,19 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Nöbetçi — İSG Yönetim Platformu</title>
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#F2B705" />
+  <!-- NATIVE APP HİSSİ: bu üç etiket olmadan bile PWA yüklenebilir (manifest yeterli),
+       ama iOS'ta ana ekrana eklendiğinde adres çubuğu/Safari kromu olmadan tam ekran
+       açılmasını ve durum çubuğunun uygulama içeriğiyle aynı hizada (saydam) görünmesini
+       SADECE bu meta etiketleri sağlar — manifest.json'daki display:standalone Android'i
+       kapsar ama iOS bu üçünü ayrıca ister. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Nöbetçi" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
   <link rel="icon" href="/icon-192.png" />
   <!-- Tailwind via CDN (JIT) — keeps existing design language without adding a CSS build step -->

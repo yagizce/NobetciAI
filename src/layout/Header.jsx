@@ -31,8 +31,16 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3"
-      style={{ background: theme.header, borderBottom: `1px solid ${theme.border}` }}
+      className="sticky top-0 z-30 flex items-center gap-3 px-4 pb-3"
+      style={{
+        background: theme.header,
+        borderBottom: `1px solid ${theme.border}`,
+        // Ana ekrana eklenmiş PWA'da (index.html'deki apple-mobile-web-app-status-bar-style
+        // "black-translucent") durum çubuğu saydamlaşıp içeriğin üstüne biner — bu padding
+        // olmadan menü/logo çentiğin/saatin altında kalırdı. max() sayesinde normal tarayıcı
+        // sekmesinde (env() = 0) eski 12px (py-3) padding aynen korunuyor.
+        paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+      }}
     >
       {/* PHONE FRAME (bkz. App.jsx): menü butonu ve logo artık her zaman gösteriliyor —
           önceden `md:hidden` ile gerçek masaüstü genişliğinde gizlenip yerini kalıcı

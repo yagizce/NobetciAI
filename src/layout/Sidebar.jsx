@@ -29,7 +29,10 @@ export default function Sidebar({ mobileOpen, onClose }) {
 
   const content = (
     <div className="h-full flex flex-col" style={{ background: theme.header, borderRight: `1px solid ${theme.border}` }}>
-      <div className="flex items-center justify-between px-4 py-4" style={{ borderBottom: `1px solid ${theme.border}` }}>
+      <div
+        className="flex items-center justify-between px-4 pb-4"
+        style={{ borderBottom: `1px solid ${theme.border}`, paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+      >
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: theme.accent }}>
             <HardHat style={{ fontSize: "16px", color: theme.onAccent }} sw={2.5} />

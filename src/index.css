@@ -1,6 +1,28 @@
-body {
+html, body {
+  height: 100%;
   margin: 0;
   font-family: Inter, sans-serif;
+  /* NATIVE APP HİSSİ 1/3: iOS/Android'de sayfa sonuna gelince oluşan "lastik gibi
+     esneme" (rubber-band) efekti, arkadaki tarayıcı kromunu/beyaz boşluğu ortaya
+     çıkarır — bu, "web sitesindeyiz" hissi veren en büyük ipucudur. Kapatıyoruz. */
+  overscroll-behavior-y: none;
+  /* NATIVE APP HİSSİ 2/3: dokunmatik ekranlarda linke/butona basınca beliren gri
+     highlight kutusu tarayıcıya özgüdür, native uygulamalarda yoktur. */
+  -webkit-tap-highlight-color: transparent;
+  /* Bounce sırasında (tam kapatılamadığı cihazlarda) arkada görünecek renk site
+     beyazı değil, uygulamanın açık tema arka planıyla eşleşsin. */
+  background: #EDEAE2;
+}
+
+/* NATIVE APP HİSSİ 3/3: Tailwind CDN'in ürettiği min-h-screen/h-screen sınıfları
+   100vh kullanır — mobilde adres çubuğu gizlenip göründükçe 100vh değeri değişir ve
+   sayfa her seferinde zıplar (native uygulamalarda olmayan bir "web" belirtisi).
+   Destekleyen tarayıcılarda (Safari 15.4+, Chrome 108+) dvh adres çubuğu durumundan
+   bağımsız sabit kalır. @supports ile sadece destekleyen tarayıcılarda ezilir, eski
+   tarayıcılarda mevcut 100vh davranışı hiç bozulmaz. */
+@supports (height: 100dvh) {
+  .min-h-screen { min-height: 100dvh; }
+  .h-screen { height: 100dvh; }
 }
 
 /* MOBİL DÜZELTME: Uygulama genelinde form alanları (input/select/textarea) Tailwind'in
