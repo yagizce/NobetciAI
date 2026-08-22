@@ -7,6 +7,51 @@
 
 ---
 
+## Şu An Açık Olan Konular (21 Ağustos 2026 itibarıyla)
+
+> Bu bölüm, farklı bir hesap/oturumdan devam edilirse (ör. yeni bir e-postayla veya
+> Claude Code'a geçilirse) o oturumun sıfırdan tahmin etmek zorunda kalmaması için
+> yazıldı — CHANGELOG.md tamamlanan işleri kronolojik olarak listeler, burası ise
+> **şu an açık/bekleyen** konuları listeler. Bir madde tamamlandığında buradan
+> silinmeli (CHANGELOG.md'ye zaten kendi kaydı düşer).
+
+**Mühendislik incelemesi — öncelik sırasına konmuş, kısmen tamamlandı:**
+Depolama/yedekleme/satış odaklı bir kod incelemesi yapıldı, bulgular önceliklendirildi:
+1. ✅ Yedekleme boyut sınırı kilitlenmesi — çözüldü (`backupService.js`, `BackupSection.jsx`)
+2. ✅ Yedekleme hatırlatması pasif metinden gerçek bildirime taşındı (`useReminderScheduler.js`)
+3. ✅ Depolama kullanım göstergesi eklendi (`StorageUsageIndicator.jsx`, Storage API)
+4. 🔲 **Denetim Dosyası'na (Audit Package) fotoğraf kanıtı ekleme** — en yüksek satış
+   etkisi olarak değerlendirildi (`auditPackageExport.js` şu an yalnızca metin/tablo
+   basıyor, Phase 6'daki risk fotoğraflarını hiç kullanmıyor). **Henüz yapılmadı.**
+5. 🔲 Mock Vision AI'nin satış demolarında şeffaf sunulması (mesajlaşma/konumlandırma
+   önerisi) — henüz ele alınmadı.
+6. 🔲 Denetim Dosyası ve Fine-Kinney export'unun `window.open` tabanlı print-window
+   kullanması (mobilde popup engelleme riski) — henüz ele alınmadı.
+
+**Vercel deployment:** Kullanıcı bir `npm error ENOENT package.json` hatası aldı,
+kaynağını birlikte araştırdık (Root Directory ayarı boş/doğruydu, repo kökünde
+`package.json` gerçekten vardı) — muhtemelen eski/stale bir build logu olduğu
+sonucuna varıldı, kullanıcı "hallettim" dedi ama kesin kök neden doğrulanmadı.
+Benzer bir hata tekrar çıkarsa: önce en son commit'in gerçekten deploy edildiğini
+(stale log ihtimali), sonra Root Directory ayarını kontrol et.
+
+**Supabase migration (Phase 7) henüz başlamadı.** Kullanıcı Supabase projesini
+"bugün" açacağını söylemişti ama bu konuşmada henüz SQL şeması yapıştırılmadı, key
+alınmadı. `docs/backend-migration/` altındaki taslak dosyalar (şema SQL, RLS
+politikaları, `supabaseDataProvider.draft.js`) hazır ama aktif değil. Bu geçiş
+`@supabase/supabase-js` bağımlılığı gerektirir — kullanıcının açık onayı olmadan
+eklenmemeli (bkz. aşağıdaki "Yapay Zeka Yaklaşımı" bölümü, "yeni bir sağlayıcı/
+kütüphane eklenmez" ilkesi).
+
+**Ortam notu:** Kullanıcı telefondan bilgisayara geçiş yapıyor, Claude Code
+kullanmayı planlıyor. Bu konuşmadaki tüm doğrulamalar (test suite, syntax kontrolü,
+import/export taraması) bir **sandbox'ta, `npm install` çalıştırılamadan** yapıldı —
+gerçek bir `vite build`/`npm test` hiç denenmedi. Bilgisayarda/Claude Code'da ilk iş
+olarak `npm install && npm run build && npm test` çalıştırıp gerçek bir doğrulama
+yapmak faydalı olur.
+
+---
+
 ## Projenin Amacı
 
 **Nöbetçi**, işyerlerinin İş Sağlığı ve Güvenliği (İSG) yükümlülüklerini kağıt ve

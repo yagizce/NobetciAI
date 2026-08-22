@@ -9,7 +9,30 @@ yanındaki `· Phase X` etiketi, o sürümün [ROADMAP.md](./ROADMAP.md)'deki ha
 karşılık geldiğini gösterir — sprint bazlı özet için [SPRINTS.md](./SPRINTS.md)'e
 bakın.
 
-## [Depolama Görünürlüğü — Cihaz Depolama Göstergesi] · Phase 6
+## [Telefon Çerçevesi — Masaüstünde de Mobil Görünüm] · Faz Dışı (UI)
+
+### Değişen
+
+- **Uygulama artık masaüstü tarayıcıda bile telefon genişliğinde, ortalanmış bir
+  çerçeve içinde gösteriliyor** (`App.jsx`, `max-w-[430px]`, `sm:` eşiğinde devreye
+  girer — gerçek telefon ekranlarında hiçbir görsel etki yok, mevcut davranış
+  korunuyor). Arka plan koyu bir "masa" rengiyle dolduruluyor.
+- **Teknik not:** Yalnızca dar bir sarmalayıcı eklemek YETERLİ DEĞİLDİ — Tailwind'in
+  `sm:`/`md:`/`lg:` kırılma noktaları görsel genişliğe değil gerçek tarayıcı penceresi
+  genişliğine bakar. Bu yüzden `Sidebar.jsx`'teki kalıcı masaüstü kenar çubuğu
+  (`hidden md:block`, 240px) ve `Header.jsx`'teki masaüstüne özel öğeler (`md:hidden`
+  menü butonu, `hidden lg:flex` rol değiştirici) kaldırıldı — artık HER ZAMAN mobil
+  çekmece/menü deseni kullanılıyor, pencere genişliğinden bağımsız tutarlı çalışıyor.
+  Kod taraması bu ikisi dışında başka hiçbir dosyada masaüstüne özel gezinme/chrome
+  davranışı olmadığını doğruladı (sayfa içi `grid-cols`/`hidden sm:` gibi içerik
+  düzeni sınıflarına dokunulmadı).
+- Header'daki rol değiştirici kaldırıldı — zaten Ayarlar sayfasında (`Settings.jsx`)
+  aynı özellik mevcut, kayıp bir işlevsellik yok.
+- `overflow-hidden`/yuvarlak köşe (bezel) efekti BİLİNÇLİ OLARAK kullanılmadı —
+  `Header.jsx`'in `sticky top-0` konumlandırması, herhangi bir üst elemanda
+  overflow olması durumunda kalıcı olarak bozulur.
+
+
 
 ### Eklenen
 

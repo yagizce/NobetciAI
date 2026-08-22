@@ -19,28 +19,41 @@ const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 
 export default function App() {
   return (
-    <Suspense fallback={<Loading label="Sayfa yükleniyor..." />}>
-      <Routes>
-        {/* Auth pages: no sidebar/header */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+    // PHONE FRAME: kullanıcı isteği üzerine (bkz. CHANGELOG.md) uygulama artık masaüstü
+    // tarayıcıda bile telefon genişliğinde, ortalanmış bir "çerçeve" içinde gösteriliyor.
+    // BİLİNÇLİ TASARIM KARARI: `sm:` (640px) eşiğinde devreye giriyor — gerçek telefon
+    // ekranlarında (< 640px) bu sarmalayıcının HİÇBİR görsel etkisi yok (max-width zaten
+    // doğal genişlikten geniş, hiçbir şey değişmez). Yükseklik/overflow'a KASITLI OLARAK
+    // dokunulmadı (overflow-hidden YOK) — Header.jsx (`sticky top-0`) position: sticky
+    // kullanıyor; bir üst elemanda overflow:hidden/scroll/auto olması sticky'yi kalıcı
+    // olarak bozar. Bu yüzden yuvarlak köşe/bezel efekti değil, sade bir genişlik
+    // sınırı + gölge tercih edildi.
+    <div className="min-h-screen w-full flex justify-center" style={{ background: "#1C1917" }}>
+      <div className="w-full sm:max-w-[430px] sm:shadow-2xl">
+        <Suspense fallback={<Loading label="Sayfa yükleniyor..." />}>
+          <Routes>
+            {/* Auth pages: no sidebar/header */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Main app shell: sidebar + header + page content */}
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="chat" element={<Chat />} />
-          <Route path="risk-analysis" element={<RiskAnalysis />} />
-          <Route path="documents" element={<Documents />} />
-          <Route path="legislation" element={<Legislation />} />
-          <Route path="knowledge-center" element={<KnowledgeCenter />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="profile" element={<Profile />} />
-        </Route>
+            {/* Main app shell: sidebar + header + page content */}
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="chat" element={<Chat />} />
+              <Route path="risk-analysis" element={<RiskAnalysis />} />
+              <Route path="documents" element={<Documents />} />
+              <Route path="legislation" element={<Legislation />} />
+              <Route path="knowledge-center" element={<KnowledgeCenter />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="profile" element={<Profile />} />
+            </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </div>
+    </div>
   );
 }

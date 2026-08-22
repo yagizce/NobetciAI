@@ -13,6 +13,17 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Ayarlar", icon: Settings, emoji: "⚙️" },
 ];
 
+/**
+ * PHONE FRAME (bkz. App.jsx): uygulama artık masaüstünde de her zaman telefon
+ * genişliğinde bir çerçeve içinde render oluyor. Bu yüzden kalıcı/geniş bir masaüstü
+ * kenar çubuğu ARTIK HİÇBİR ZAMAN anlamlı değil — önceden `hidden md:block` ile
+ * gerçek tarayıcı genişliği ≥768px olduğunda görünen ayrı bir "masaüstü" varyantı
+ * vardı, ama o kırılma noktası ÇERÇEVENİN görsel genişliğine değil GERÇEK pencere
+ * genişliğine bakıyordu — geniş bir masaüstü penceresinde bu, 430px'lik çerçevenin
+ * içine 240px'lik bir kenar çubuğu sıkıştırıp görünümü bozardı. Artık TEK bir
+ * varyant var: her zaman kayan çekmece (mobil deseni), pencere genişliğinden
+ * bağımsız olarak tutarlı çalışır.
+ */
 export default function Sidebar({ mobileOpen, onClose }) {
   const { theme } = useTheme();
 
@@ -25,7 +36,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
           </div>
           <span className="font-[Oswald] text-[15px] uppercase tracking-wide" style={{ color: theme.textPrimary }}>Nöbetçi</span>
         </div>
-        <button onClick={onClose} className="md:hidden p-1.5 -m-1.5 rounded-lg" aria-label="Kapat">
+        <button onClick={onClose} className="p-1.5 -m-1.5 rounded-lg" aria-label="Kapat">
           <X style={{ fontSize: "18px", color: theme.textMuted }} />
         </button>
       </div>
@@ -56,18 +67,12 @@ export default function Sidebar({ mobileOpen, onClose }) {
     </div>
   );
 
-  return (
-    <>
-      {/* Desktop: fixed sidebar */}
-      <aside className="hidden md:block w-60 shrink-0 h-screen sticky top-0">{content}</aside>
+  if (!mobileOpen) return null;
 
-      {/* Mobile: slide-in drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-          <div className="absolute left-0 top-0 h-full w-64">{content}</div>
-        </div>
-      )}
-    </>
+  return (
+    <div className="fixed inset-0 z-40">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute left-0 top-0 h-full w-64">{content}</div>
+    </div>
   );
 }
