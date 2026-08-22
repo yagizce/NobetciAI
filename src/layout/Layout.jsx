@@ -37,6 +37,10 @@ export default function Layout() {
   //   BottomTabBar asla kaymaz. Bu, hem ChatPanel.jsx'in `h-full` ile beklediği sabit
   //   yüksekliği doğru şekilde verir HEM DE önceki "sticky + tüm sayfa kayar" modelinden
   //   çok daha az kırılgandır (sticky'nin doğru scroll bağlamını bulmasına bağımlı değil).
+  // - overflow-x-hidden (main): index.css'teki html/body kuralıyla aynı mantık — main
+  //   içindeki bir kart/rozet/tablo viewport'tan piksel taşırsa, main'in kendisi yana
+  //   kaymasın; sadece tasarlanan yatay alanlar (.overflow-x-auto filtre/sekme
+  //   çubukları — bkz. index.css) kendi içinde kaymaya devam eder.
   // - overscroll-contain + WebkitOverflowScrolling: main artık kendi scroll kutusu
   //   olduğu için, index.css'te html/body'ye uygulanan lastik-esnemesi engelleme
   //   (overscroll-behavior-y:none) buraya miras kalmaz — aynı korumayı burada da
@@ -48,7 +52,7 @@ export default function Layout() {
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <Header onMenuClick={() => setMobileNavOpen(true)} pendingCount={pendingCount} />
         <main
-          className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-contain"
+          className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           {/* main.jsx'teki tam ekran ErrorBoundary'den AYRI: bu, yalnızca aktif sayfanın

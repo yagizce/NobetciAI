@@ -5,6 +5,13 @@ html, body, #root {
 html, body {
   margin: 0;
   font-family: Inter, sans-serif;
+  /* KAYDIRMA SAĞLAMLAŞTIRMASI 1: bir öğe (rozet, sabit genişlikli kart, negatif margin
+     vb.) viewport'tan bir piksel bile taşsa, tarayıcı TÜM SAYFAYI yana kaydırılabilir
+     yapar — mobilde "gezinirken birden sağa kayıyor" hissinin en sık nedeni budur.
+     Kasıtlı yatay kaydırma alanları (aşağıdaki .overflow-x-auto — filtre/sekme
+     çubukları) KENDİ İÇİNDE hâlâ tam çalışır; bu kural sadece SAYFANIN BÜTÜNÜNÜN yana
+     kaymasını engeller, iç içe scroll kutularını etkilemez. */
+  overflow-x: hidden;
   /* NATIVE APP HİSSİ 1/3: iOS/Android'de sayfa sonuna gelince oluşan "lastik gibi
      esneme" (rubber-band) efekti, arkadaki tarayıcı kromunu/beyaz boşluğu ortaya
      çıkarır — bu, "web sitesindeyiz" hissi veren en büyük ipucudur. Kapatıyoruz. */
@@ -15,6 +22,41 @@ html, body {
   /* Bounce sırasında (tam kapatılamadığı cihazlarda) arkada görünecek renk site
      beyazı değil, uygulamanın açık tema arka planıyla eşleşsin. */
   background: #EDEAE2;
+}
+
+/* KAYDIRMA SAĞLAMLAŞTIRMASI 2: uygulama genelinde 14 farklı yerde (filtre çipleri,
+   sekme şeritleri — bkz. ChatPanel, FineKinneyFilters, DocumentsPage vb.) aynı
+   `overflow-x-auto` deseni tek tek kullanılıyor. Tek tek her dosyayı değiştirmek
+   yerine TEK bir global kuralla hepsine birden: (a) eski iOS'ta momentum/"parmakla
+   fırlatma" kaydırmasını garantiliyor, (b) çirkin/kalın tarayıcı kaydırma çubuğunu
+   gizliyor (dokunmatik kaydırma AYNEN çalışmaya devam ediyor — sadece görsel şerit
+   kayboluyor, native uygulamalardaki gibi). Dikey scroll alanlarının (ör. <main>)
+   kaydırma çubuğu KASITLI OLARAK gizlenmedi — masaüstü önizlemesinde fare kullanan
+   biri için "daha aşağıda içerik var" ipucu olarak faydalı, sadece mobilde zaten
+   görünmez (işletim sistemi kendi ince/soluk çubuğunu otomatik kullanır). */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Filtre/sekme çubuğunun en soluna/sağına gelindiğinde kaydırma tarayıcının kenar
+     jestine (iOS Safari / Android Chrome'un "kenardan kaydır = geri git" hareketi)
+     sızmasın diye — aksi halde bir çip listesini sona kadar kaydırmaya çalışan
+     kullanıcı, yanlışlıkla sayfadan geri gidebilirdi. */
+  overscroll-behavior-x: contain;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+/* KAYDIRMA SAĞLAMLAŞTIRMASI 3: <main> için Layout.jsx'te ayrıca eklenenle aynı
+   momentum-kaydırma düzeltmesi — burada GENEL kural olarak, uygulamadaki DİĞER dikey
+   kaydırma kutularına da (Sidebar.jsx'teki menü listesi, GlobalSearchBar.jsx'teki
+   sonuç açılır penceresi, Modal/Drawer içerikleri — hepsi `overflow-y-auto` kullanıyor)
+   tek seferde uygulanıyor. Kaydırma çubuğu burada BİLİNÇLİ OLARAK gizlenmedi (yatay
+   çubuklardan farklı olarak) — dikey listelerde "daha fazla içerik var" ipucu olarak
+   faydalı, mobilde zaten işletim sistemi kendi ince/soluk çubuğunu kullanıyor. */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* NATIVE APP HİSSİ 3/3: Tailwind CDN'in ürettiği min-h-screen/h-screen sınıfları
