@@ -112,8 +112,14 @@ export default function ChatPanel({ contextId: initialContextId }) {
     reader.readAsDataURL(file);
   }
 
+  // ÖNCEDEN: h-[calc(100vh-64px)] — tüm tarayıcı yüksekliğini varsayıyordu. PhoneFrame
+  // içinde (bkz. PhoneFrame.jsx) bu, çerçeve ~800px olsa bile sohbet panelinin tam
+  // tarayıcı boyu kadar taşmasına, dolayısıyla mesaj kutusunun ekran dışına çıkmasına
+  // yol açardı. Layout.jsx'teki <main>, Header/BottomTabBar arasında kalan alanı zaten
+  // flex-1 ile TANIMLI bir yükseklik olarak veriyor (hem mobilde hem çerçevede) —
+  // h-full bu alanı birebir dolduruyor, taşma riski yok.
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]" style={{ background: theme.bg }}>
+    <div className="flex flex-col h-full" style={{ background: theme.bg }}>
       <div className="flex items-center justify-between px-4 py-2 border-b shrink-0" style={{ borderColor: theme.border, background: theme.header }}>
         {activeContext ? (
           <div className="flex items-center gap-1.5 text-[10.5px] font-semibold px-2.5 py-1 rounded-full" style={{ background: theme.surfaceAlt, color: theme.accent, border: `1px solid ${theme.accent}` }}>

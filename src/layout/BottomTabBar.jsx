@@ -14,11 +14,14 @@ const TABS = [
  * kayan çekmece (Sidebar.jsx) tek başına bir web sitesi menüsü gibi hissettirir,
  * native uygulamalarda (Instagram, Gmail vb.) birincil gezinme hep alttadır.
  *
- * `position: fixed` DEĞİL `sticky bottom-0` kullanıldı — aynı Header.jsx'teki
- * `sticky top-0` numarası: fixed, gerçek tarayıcı penceresine göre konumlanır ve
- * masaüstünde App.jsx'teki 430px'lik telefon çerçevesinin dışına taşıp tam
- * genişlik kaplardı. sticky, içinde bulunduğu flex sütununun genişliğini miras
- * alır — çerçeve dar olduğunda dar, telefonda tam genişlik.
+ * Layout.jsx'teki nihai kaydırma modeli gereği (bkz. Layout.jsx'teki not) bu bar hiç
+ * KAYMAZ — Header ile birlikte sabit kalır, aradaki <main> kendi içinde kayar. `sticky
+ * bottom-0` bu yüzden aslında hiçbir zaman "yapışma" anına girmez (kayan bir bağlamın
+ * içinde değil), ama zararsızdır ve bırakıldı: `position:fixed` KULLANILMADI çünkü
+ * fixed, gerçek tarayıcı penceresine göre konumlanır ve masaüstünde PhoneFrame.jsx'teki
+ * telefon çerçevesinin dışına taşıp tam genişlik kaplardı; sticky ise içinde bulunduğu
+ * flex sütununun genişliğini miras alır — çerçeve dar olduğunda dar, telefonda tam
+ * genişlik olur.
  *
  * Sona eklendiği (flex-col'da <main>'den SONRA) için normal akışta kendi yerini
  * ayırır — <main>'in son içeriğinin üstüne binmez, ekstra bottom-padding hilesine

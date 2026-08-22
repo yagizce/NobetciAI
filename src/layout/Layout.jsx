@@ -22,13 +22,35 @@ export default function Layout() {
   const MORE_ROUTES = ["/risk-analysis", "/legislation", "/knowledge-center", "/settings"];
   const isMoreActive = MORE_ROUTES.some((r) => location.pathname.startsWith(r));
 
+  // NİHAİ KAYDIRMA MODELİ (hem mobilde hem PhoneFrame'de AYNI, tek bir davranış):
+  // Header ve BottomTabBar SABİT kalır, aralarındaki <main> KENDİ İÇİNDE kayar.
+  // - min-h-screen frame-fill: frame-fill, PhoneFrame.jsx'in JS ile <html>'e eklediği
+  //   `.app-framed` sınıfı ÜZERİNDEN (bkz. index.css) devreye girer — gerçek masaüstünde
+  //   (fare + ≥640px) bu kök artık gerçek tarayıcı yüksekliğini (100dvh) değil,
+  //   PhoneFrame'in kendi ekran kutusunun yüksekliğini dolduruyor. Gerçek bir telefonda
+  //   (dokunmatik, genişlik/yön fark etmez — bkz. PhoneFrame.jsx'teki yatay-telefon
+  //   hata düzeltmesi notu) `.app-framed` hiç eklenmez, min-h-screen (100dvh) aynen sürer.
+  // - min-h-0 (kolon + main) + main'deki overflow-y-auto: flexbox'ın "flex-1 verilen bir
+  //   öğe içeriği daha büyükse küçülmez" tuzağını (min-height:auto varsayılanı) devre
+  //   dışı bırakır — main artık HER ZAMAN Header/BottomTabBar arası kalan sabit alanı
+  //   kaplar, sayfa ne kadar uzun olursa olsun SADECE main'in içi kayar, Header/
+  //   BottomTabBar asla kaymaz. Bu, hem ChatPanel.jsx'in `h-full` ile beklediği sabit
+  //   yüksekliği doğru şekilde verir HEM DE önceki "sticky + tüm sayfa kayar" modelinden
+  //   çok daha az kırılgandır (sticky'nin doğru scroll bağlamını bulmasına bağımlı değil).
+  // - overscroll-contain + WebkitOverflowScrolling: main artık kendi scroll kutusu
+  //   olduğu için, index.css'te html/body'ye uygulanan lastik-esnemesi engelleme
+  //   (overscroll-behavior-y:none) buraya miras kalmaz — aynı korumayı burada da
+  //   ayrıca veriyoruz, yoksa mobilde main'in içinde tekrar "bounce" hissi dönerdi.
   return (
-    <div className="flex min-h-screen" style={{ background: theme.pageBg }}>
+    <div className="flex min-h-screen frame-fill" style={{ background: theme.pageBg }}>
       <AppSwitcherPrivacyGuard />
       <Sidebar mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <Header onMenuClick={() => setMobileNavOpen(true)} pendingCount={pendingCount} />
-        <main className="flex-1 min-w-0">
+        <main
+          className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-contain"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {/* main.jsx'teki tam ekran ErrorBoundary'den AYRI: bu, yalnızca aktif sayfanın
               içeriğini sarar — bir sayfa çökse bile sidebar/header hayatta kalır, tam
               sayfa yenilemeye gerek kalmadan menüden başka bir sayfaya geçilebilir.

@@ -1,5 +1,8 @@
-html, body {
+html, body, #root {
   height: 100%;
+}
+
+html, body {
   margin: 0;
   font-family: Inter, sans-serif;
   /* NATIVE APP HİSSİ 1/3: iOS/Android'de sayfa sonuna gelince oluşan "lastik gibi
@@ -41,6 +44,19 @@ html, body {
   input, select, textarea {
     font-size: 16px;
   }
+}
+
+/* .frame-fill: PhoneFrame.jsx'in JS ile <html>'e ekleyip kaldırdığı `.app-framed`
+   sınıfı VARSA (gerçek fare/trackpad + ≥640px masaüstü) bu öğe telefon çerçevesinin
+   kendi yüksekliğini doldurur; YOKSA (dokunmatik herhangi bir cihaz — geniş/yatay
+   telefon dahil) hiçbir kısıtlama uygulanmaz, mobildeki gibi normal min-h-screen akışı
+   sürer. Tailwind'in salt genişliğe bakan `sm:` yerine bunu kullanmamızın sebebi:
+   yatay telefonlar (örn. iPhone Pro Max yatay ~930px) 640px eşiğini kolayca geçer ve
+   sm: bunu "masaüstü" sanıp gerçek telefonun içine yanlışlıkla iç içe bir çerçeve
+   göstermeye çalışırdı — bkz. PhoneFrame.jsx'teki ayrıntılı not. */
+html.app-framed .frame-fill {
+  min-height: 0;
+  height: 100%;
 }
 
 @keyframes fadeIn {
