@@ -9,10 +9,7 @@ import { getActiveCompany } from "../services/companyService.js";
 import { validateImageFile } from "../utils/fileValidation.js";
 import { UserRound, Camera } from "../components/icons/index.jsx";
 import Loading from "../components/Loading.jsx";
-import Badge from "../components/ui/Badge.jsx";
 import PasswordChangeSection from "../features/profile/PasswordChangeSection.jsx";
-
-const SUBSCRIPTION_LABELS = { trial: "Deneme Sürümü", pro: "Pro", enterprise: "Kurumsal" };
 
 function formatLastLogin(iso) {
   if (!iso) return "—";
@@ -91,10 +88,6 @@ export default function Profile() {
             <span className="text-sm text-right" style={{ color: theme.textPrimary }}>{value}</span>
           </div>
         ))}
-        <div className="flex justify-between items-center pt-2 mt-1" style={{ borderTop: `1px solid ${theme.border}` }}>
-          <span className="text-xs" style={{ color: theme.textFaint }}>Abonelik</span>
-          <Badge tone={user.subscription === "trial" ? "warning" : "success"}>{SUBSCRIPTION_LABELS[user.subscription]}</Badge>
-        </div>
       </div>
 
       <div className="mb-4">
