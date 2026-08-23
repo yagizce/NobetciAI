@@ -14,8 +14,8 @@
 // buraya geri eklenebilir; DATABASE_PLAN.md'deki companyId yapısı zaten buna hazır.
 
 export const ALL_ROLES = [
-  { id: "expert", emoji: "🦺", label: "İSG Uzmanı" },
   { id: "employer", emoji: "👨‍💼", label: "İşveren" },
+  { id: "expert", emoji: "🦺", label: "İSG Uzmanı" },
   { id: "employee", emoji: "👷", label: "Çalışan" },
 ];
 

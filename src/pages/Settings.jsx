@@ -147,14 +147,6 @@ export default function Settings() {
           </p>
         </div>
 
-        {/* Abonelik — placeholder, deferred */}
-        <div className="rounded-xl border px-4 py-4 opacity-60" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Abonelik</p>
-            <Badge tone="neutral">Yakında</Badge>
-          </div>
-          <p className="text-[11px] mt-1" style={{ color: theme.textFaint }}>Abonelik yönetimi daha sonra eklenecek.</p>
-        </div>
       </div>
     </div>
   );

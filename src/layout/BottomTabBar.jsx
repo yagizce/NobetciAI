@@ -2,10 +2,15 @@ import { NavLink } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { Home, MessageSquare, FileText, UserRound, Menu } from "../components/icons/index.jsx";
 
+// NOT: Bir önceki sürümde Panel/Profil bilinçli olarak kaldırılıp Risk Analizi/Ayarlar
+// ile değiştirilmişti (Dashboard zaten Header logosunda, Profil zaten çekmecede diye).
+// Kullanıcı bunu açıkça geri aldı — Dashboard ve Profil'in alt çubukta DOĞRUDAN da
+// durmasını istiyor, sadece isim/etiket güncellemesiyle: "Panel" → "Dashboard",
+// "Belgeler" → "Dökümanlar".
 const TABS = [
-  { to: "/dashboard", label: "Panel", icon: Home },
+  { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/chat", label: "AI Sohbet", icon: MessageSquare },
-  { to: "/documents", label: "Belgeler", icon: FileText },
+  { to: "/documents", label: "Dökümanlar", icon: FileText },
   { to: "/profile", label: "Profil", icon: UserRound },
 ];
 

@@ -16,9 +16,11 @@ export default function Layout() {
   const pendingCount = notifications.filter((n) => n.status !== "approved").length;
   const location = useLocation();
   useReminderScheduler();
-  // Alt sekme çubuğunda kendi sekmesi olmayan rotalar (Risk Analizi, Mevzuat, Bilgi
-  // Kütüphanesi, Ayarlar) "Diğer" sekmesi altında toplanıyor — o rotalardayken "Diğer"
-  // sekmesi de aktif renkte görünsün diye kontrol ediliyor.
+  // Alt sekme çubuğunda kendi sekmesi olmayan rotalar "Diğer" sekmesi altında
+  // toplanıyor — o rotalardayken "Diğer" sekmesi de aktif renkte görünsün diye kontrol
+  // ediliyor. Dashboard ve Profil artık YENİDEN BottomTabBar.jsx'te kendi doğrudan
+  // sekmesine sahip (kullanıcı isteği üzerine geri alındı), o yüzden burada değiller;
+  // Risk Analizi, Mevzuat, Bilgi Kütüphanesi, Ayarlar hâlâ sadece çekmecede.
   const MORE_ROUTES = ["/risk-analysis", "/legislation", "/knowledge-center", "/settings"];
   const isMoreActive = MORE_ROUTES.some((r) => location.pathname.startsWith(r));
 

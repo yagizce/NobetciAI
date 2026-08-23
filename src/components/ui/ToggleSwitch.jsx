@@ -10,7 +10,13 @@ export default function ToggleSwitch({ checked, onChange, theme }) {
       onClick={() => onChange(!checked)}
       role="switch"
       aria-checked={checked}
-      className="w-10 h-6 rounded-full relative transition-colors shrink-0"
+      // HATA DÜZELTMESİ: "işaretli" durumda topuz (span), 40px genişliğindeki kutunun
+      // sağına sadece 2px pay bırakacak şekilde kayıyor (translateX(18px) + 20px topuz
+      // = 38px). Topuzun kendi `shadow` gölgesinin bulanıklığı (blur) bu 2px'lik payı
+      // aşıp yuvarlak kutunun (`rounded-full`) dışına taşıyordu — "kutucuk dışına
+      // taşıma" hatası buydu. `overflow-hidden`, topuzun KENDİSİ matematiksel olarak
+      // kutunun içinde kalsa bile gölgesinin asla dışarı sızmamasını garanti ediyor.
+      className="w-10 h-6 rounded-full relative overflow-hidden transition-colors shrink-0"
       style={{ background: checked ? theme.accent : theme.border }}
     >
       <span
