@@ -5,25 +5,48 @@
  * @param {{ checked: boolean, onChange: (v: boolean) => void, theme: object }} props
  */
 export default function ToggleSwitch({ checked, onChange, theme }) {
+  // BU BİLEŞEN ARTIK TAMAMEN INLINE STİLLE ÖLÇÜLENDİRİLİYOR (Tailwind'in w-10/h-6/w-5/h-5
+  // sınıflarına değil) — konum matematiği daha önce de doğruydu (2px/18px, simetrik),
+  // ama kullanıcı hâlâ hem "kapalıyken solda değil" hem "taşıyor" bildirdi. Bunun tek
+  // makul açıklaması: `transform: translateX(...)` ile `top-0.5` (sadece dikey konumu
+  // belirtilen, yatay konumu BELİRTİLMEYEN) bir `position:absolute` öğenin "örtük
+  // başlangıç konumu"na güvenmekti — spesifikasyonda LTR için bunun sol kenar (0)
+  // olması gerekiyor, ama bazı mobil tarayıcı motorlarında güvenilmez olabiliyor.
+  // ŞİMDİ: `left` özelliği DOĞRUDAN ve AÇIKÇA veriliyor, hiçbir örtük/miras değere
+  // güvenilmiyor — bu, olası nedeni ne olursa olsun sorunu kesin olarak ortadan kaldırır.
+  const TRACK_W = 40;
+  const TRACK_H = 24;
+  const KNOB = 20;
+  const PAD = 2; // sol/sağ boşluk — kapalıyken ve açıkken BİREBİR AYNI
   return (
     <button
       onClick={() => onChange(!checked)}
       role="switch"
       aria-checked={checked}
-      // 40px'lik kutu (w-10), 20px'lik topuz (w-5): kapalıyken sol kenardan 2px,
-      // açıkken sağ kenardan 2px boşluk — translateX(2px) / translateX(18px) İKİ
-      // DURUMDA DA MATEMATİKSEL OLARAK BİREBİR AYNI (simetrik) boşluğu bırakıyor.
-      // ÖNCEKİ HATA: topuzun `shadow` gölgesinin bulanıklığı bu 2px'lik payı aşıp
-      // dışarı taşıyordu ("kutucuk dışına taşıma"). `overflow-hidden` eklemek bunu
-      // gizledi ama topuzun kendisini de kırpıp küçük/eksik gösterdi — YANLIŞ ÇÖZÜM,
-      // GERİ ALINDI. DOĞRU ÇÖZÜM: taşmanın kaynağı olan gölgeyi tamamen kaldırmak —
-      // artık hem kapalıyken hem açıkken topuz TAM ve EŞİT boşlukla görünüyor.
-      className="w-10 h-6 rounded-full relative transition-colors shrink-0"
-      style={{ background: checked ? theme.accent : theme.border }}
+      style={{
+        width: `${TRACK_W}px`,
+        height: `${TRACK_H}px`,
+        borderRadius: `${TRACK_H}px`,
+        position: "relative",
+        flexShrink: 0,
+        background: checked ? theme.accent : theme.border,
+        transition: "background-color 0.2s ease",
+        border: "none",
+        padding: 0,
+        cursor: "pointer",
+      }}
     >
       <span
-        className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-        style={{ transform: checked ? "translateX(18px)" : "translateX(2px)" }}
+        style={{
+          position: "absolute",
+          top: `${(TRACK_H - KNOB) / 2}px`,
+          left: checked ? `${TRACK_W - PAD - KNOB}px` : `${PAD}px`,
+          width: `${KNOB}px`,
+          height: `${KNOB}px`,
+          borderRadius: "9999px",
+          background: "#ffffff",
+          transition: "left 0.2s ease",
+        }}
       />
     </button>
   );
