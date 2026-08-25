@@ -1,5 +1,36 @@
 # Changelog
 
+## [Mobil Performans — Tailwind CDN → Build-Time, jsQR Global Script Kaldırıldı] — Bu güncelleme
+
+Kullanıcı isteği üzerine üç mobil performans darboğazı giderildi:
+
+1. **Tailwind CDN (`cdn.tailwindcss.com`) kaldırıldı.** Önceden her sayfa yüklemesinde
+   tarayıcıda çalışan bir JIT derleyiciydi; artık `tailwindcss`/`postcss`/`autoprefixer`
+   devDependency olarak eklendi (bkz. `tailwind.config.js`, `postcss.config.js`),
+   `src/index.css` başına `@tailwind base/components/utilities` eklendi. Build sırasında
+   sadece GERÇEKTEN kullanılan class'ları içeren statik/küçük bir CSS üretiliyor.
+   `tailwind.config.js` CDN'in varsayılan davranışını birebir koruyor — hiçbir özel
+   tema/renk eklenmedi (CDN sürümünde de özel config yoktu).
+2. **jsQR global script'ten dinamik import'a taşındı.** Önceden `index.html`'de HER
+   sayfada yükleniyordu, oysa yalnızca Dökümanlar → Ekipman Kayıtları sekmesindeki QR
+   tarayıcıda kullanılıyor. `jsqr` npm paketi eklendi, `DocumentsPage.jsx`'te
+   `window.jsQR` yerine `import("jsqr")` ile SADECE "QR Kod Tarayıcı Başlat"a
+   basıldığında indiriliyor.
+3. **Render'ı bloklayan script sırası ortadan kalktı.** Yukarıdaki iki değişiklik
+   sonucunda `index.html`'de artık `defer` eklenecek bir CDN script'i kalmadı —
+   Tailwind build-time'a taşındığı, jsQR talep üzerine yüklendiği için tek kalan script
+   (`type="module" src="/src/main.jsx"`) zaten HTML spesifikasyonu gereği örtük olarak
+   ertelenmiş (deferred) çalışıyor.
+
+### Doğrulama
+
+⚠️ Bu ortamda internet erişimi yok, bu yüzden `npm install`/`npm run build`/`npm test`
+BURADA çalıştırılamadı — config dosyaları elle, dikkatli bir statik inceleme (dinamik
+`className={\`...${x}...\`}` kalıplarının hepsi TAM/literal class string'leri kullanıyor,
+parça-parça birleştirme yok — bkz. grep taraması) sonucu hazırlandı. **Deploy'dan önce
+`npm install && npm run build` çalıştırılıp gerçekten hatasız derlendiği ve
+`npm test`'in geçtiği doğrulanmalı.**
+
 ## [NÖBETÇİ AI — Veri Mimarisi ve Kod Kalitesi Düzeltme] — Bu güncelleme
 
 Offline-first IndexedDB yapısı korunarak company-scoped servisler merkezileştirildi. Aktif firma seçimi için localStorage tabanlı fallback eklendi; eski tek-firma kayıtları uygulama açılışında companyId ile uyumlanıyor. Mevcut numeric/string id'ler korunuyor, yeni kayıtlar bağımlılıksız UUID helper'ı üzerinden oluşturuluyor.

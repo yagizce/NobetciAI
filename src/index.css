@@ -1,3 +1,12 @@
+/* Tailwind'i artık CDN'den (cdn.tailwindcss.com) DEĞİL, gerçek bir build adımından
+   (bkz. tailwind.config.js, postcss.config.js) alıyoruz — bu üç direktif, Vite build
+   sırasında PostCSS tarafından GERÇEKTEN kullanılan class'ları içeren statik CSS ile
+   değiştiriliyor. `@tailwind base`, CDN'in de otomatik uyguladığı Preflight reset'iyle
+   BİREBİR aynı (buton/input varsayılan padding/border sıfırlama vb.) — davranış değişmedi. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html, body, #root {
   height: 100%;
 }

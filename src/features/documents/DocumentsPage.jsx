@@ -37,6 +37,14 @@ export default function DocumentsPage() {
   const [scanResult, setScanResult] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  // PERFORMANS: jsQR önceden index.html'de HER sayfada global script olarak
+  // yükleniyordu (yalnızca burada, "Ekipman Kayıtları" sekmesinde kullanılmasına
+  // rağmen). Artık sadece bu sayfada kullanıcı "QR Kod Tarayıcı Başlat"a basınca
+  // (aşağıdaki startQRScan) dinamik import ile indiriliyor — Dashboard/Sohbet/Profil
+  // gibi diğer tüm sayfalar bu kütüphaneyi hiç indirmiyor. Çözümlenen fonksiyon bir
+  // ref'te tutuluyor çünkü scanQRLoop, requestAnimationFrame ile SENKRON/tekrarlı
+  // çağrılıyor — her karede yeniden `await import(...)` yapmak hem gereksiz hem yavaş.
+  const jsQRRef = useRef(null);
 
   // Rol değişip mevcut sekme artık görünmüyorsa, görünür ilk sekmeye dön.
   useEffect(() => {
@@ -45,27 +53,30 @@ export default function DocumentsPage() {
 
   function startQRScan() {
     if (navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then((stream) => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play();
-            scanQRLoop();
-          };
-        }
+      import("jsqr").then(({ default: jsQR }) => {
+        jsQRRef.current = jsQR;
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current.play();
+              scanQRLoop();
+            };
+          }
+        });
       });
     }
   }
 
   function scanQRLoop() {
-    if (canvasRef.current && videoRef.current && window.jsQR) {
+    if (canvasRef.current && videoRef.current && jsQRRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       ctx.drawImage(videoRef.current, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = window.jsQR(imageData.data, canvas.width, canvas.height);
+      const code = jsQRRef.current(imageData.data, canvas.width, canvas.height);
       if (code) {
         setScanResult(code.data);
         videoRef.current.srcObject?.getTracks().forEach((t) => t.stop());
