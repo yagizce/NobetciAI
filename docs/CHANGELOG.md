@@ -9,6 +9,17 @@ yanındaki `· Phase X` etiketi, o sürümün [ROADMAP.md](./ROADMAP.md)'deki ha
 karşılık geldiğini gösterir — sprint bazlı özet için [SPRINTS.md](./SPRINTS.md)'e
 bakın.
 
+## [Backend Planlama — Davet Linki, Hesap Türü Kısıtı] · Faz Dışı (Planlama)
+
+### Eklenen
+
+- `docs/backend-migration/` taslaklarına: davet linkiyle firma katılımı
+  (`company_invites` tablosu + `accept_invite()` RPC'si), hesap türü kısıtı
+  (İSG Uzmanı asla İşveren rolü alamaz), platform yöneticisi için firma sınırı
+  aşan rol atama yetkisi, ve yeni `supabaseAuthService.draft.js`.
+- ⚠️ Yalnızca planlama — `src/` dokunulmadı, uygulama hâlâ mock kimlik
+  doğrulama ile çalışıyor. Ayrıntı için kök dizindeki `CHANGELOG.md`.
+
 ## [Telefon Çerçevesi — Masaüstünde de Mobil Görünüm] · Faz Dışı (UI)
 
 ### Değişen

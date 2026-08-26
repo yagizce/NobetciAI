@@ -35,7 +35,44 @@ as $$
   select company_id from public.user_roles where user_id = auth.uid();
 $$;
 
--- Belirli bir yetkiye (permission key) sahip mi? — ince taneli yetki kontrolü
+-- KARAR (kullanıcıyla netleştirildi): platform yöneticisi (Nöbetçi ekibi),
+-- işverenin onayı olmadan HERHANGİ bir firmada rol atayabilsin — "işveren
+-- uğraşmak istemezse destek ekibi halleder" senaryosu. Bu, aşağıdaki
+-- user_roles/company_invites politikalarında company_id sınırını aşan TEK
+-- istisnadır; başka hiçbir tabloda kullanılmıyor (platform admin başka
+-- firmaların risk/doküman verisini GÖRMEZ, sadece rol yönetebilir).
+create or replace function public.is_platform_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select is_platform_admin from public.users where id = auth.uid()), false);
+$$;
+
+-- auth.uid()'nin belirli bir firmada belirli bir role (role KEY'i, id değil —
+-- çağıran taraf için daha okunaklı) sahip olup olmadığı. company_invites INSERT
+-- politikasında ("yalnızca o firmanın employer/expert'i davet oluşturabilir")
+-- ve ileride user_roles yönetim ekranında kullanılmak üzere.
+create or replace function public.user_has_company_role(target_company_id uuid, role_key text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and ur.company_id = target_company_id
+      and r.key = role_key
+  );
+$$;
+
+
 -- için (bkz. DATABASE_PLAN.md → Permissions/RolePermissions). Bugün uygulama
 -- yalnızca rol bazlı kontrol yapıyor (permissions.js); bu fonksiyon, ileride
 -- "risk.approve" gibi ince taneli izinlere geçilirse hazır olsun diye eklendi,
@@ -70,6 +107,7 @@ alter table public.roles enable row level security;
 alter table public.permissions enable row level security;
 alter table public.role_permissions enable row level security;
 alter table public.user_roles enable row level security;
+alter table public.company_invites enable row level security;
 alter table public.companies enable row level security;
 alter table public.branches enable row level security;
 alter table public.departments enable row level security;
@@ -100,9 +138,18 @@ alter table public.ai_history enable row level security;
 create policy users_select_own on public.users
   for select using (id = auth.uid());
 create policy users_update_own on public.users
-  for update using (id = auth.uid());
--- INSERT: Supabase Auth trigger'ı (auth.users → public.users) tarafından
--- yapılması önerilir, bu yüzden burada ayrı bir insert politikası TANIMLANMADI.
+  for update using (id = auth.uid())
+  with check (id = auth.uid());
+-- account_type DEĞİŞTİRİLEMEZ (bkz. DATABASE_PLAN.md → "Hesap Türü Kısıtı") —
+-- bunu RLS'in with check'inde DEĞİL, supabase-schema-draft.sql'deki
+-- `prevent_account_type_change` trigger'ında zorunlu kılıyoruz. Sebep: with
+-- check içinde "eski değer neydi" diye aynı tabloya subquery atmak (UPDATE
+-- sırasında hangi satırın görüldüğü net değil) belirsiz/güvenilmez davranabilir;
+-- bir BEFORE UPDATE trigger'da OLD/NEW karşılaştırması net ve garantilidir.
+-- INSERT: ayrıca bir politika TANIMLANMADI — public.handle_new_user() trigger'ı
+-- (bkz. supabase-schema-draft.sql) auth.users'a kayıt olduğunda SECURITY DEFINER
+-- ile bu satırı zaten RLS'i atlayarak oluşturuyor; normal bir kullanıcının
+-- public.users'a DOĞRUDAN insert yapmasına hiçbir zaman gerek/izin yok.
 
 -- =============================================================================
 -- roles / permissions / role_permissions — sabit/referans veri.
@@ -117,17 +164,128 @@ create policy role_permissions_select_authenticated on public.role_permissions
   for select using (auth.role() = 'authenticated');
 
 -- =============================================================================
--- user_roles — bir kullanıcı yalnızca KENDİ firma-rol atamalarını görebilir.
--- Yazma (kimin hangi firmada hangi rolde olduğunu değiştirme) BİLEREK buraya
--- açık bırakılmadı — bu, "firma yöneticisi kullanıcı ekler/çıkarır" akışı
--- kurulduğunda ayrı bir INSERT/DELETE politikasıyla (yalnızca o firmada zaten
--- 'employer'/'admin' rolü olanlar için) eklenmelidir. Bugün TASLAK aşamasında
--- kasıtlı olarak yalnızca okuma var — DEVELOPMENT_RULES.md → "emin olmadığın
--- konularda varsayım yapma" ilkesi gereği, kimin kullanıcı ekleyebileceği
--- ayrı bir üründe kararı gerektirir.
+-- user_roles — okuma: yalnızca kendi kaydın. Yazma (INSERT/UPDATE/DELETE):
+-- ÖNCEKİ TASLAKTA BİLEREK BOŞTU ("kimin kullanıcı ekleyebileceği ayrı bir ürün
+-- kararı gerektirir" notu vardı) — kullanıcıyla netleşti (bkz. DATABASE_PLAN.md
+-- → Roles → "Rol Yükseltme Kuralı"): o firmada zaten 'employer' rolü olan biri
+-- BAŞKASININ rolünü değiştirebilir/atayabilir; platform yöneticisi (bkz.
+-- is_platform_admin()) firma sınırı olmadan her yerde yapabilir. NOT: normal
+-- kullanıcı (Çalışan olarak katılan) buradan KENDİ rolünü asla değiştiremez —
+-- "kendi kendine yükselme" burada da engelleniyor (with check'te user_id kontrolü
+-- YOK, sadece "işlemi yapan employer mi" kontrolü var — yani X, Y'nin rolünü
+-- değiştirebilir ama X kendi rolünü değiştiremez, çünkü X zaten 'employer'
+-- değilse policy'den geçemez, employer'sa da company_invites akışı zaten dışarıdan
+-- birini eklemek için var, kendi rolünü değiştirmesi ayrı bir client-side
+-- kısıtlamayla (Ayarlar ekranında kendi satırının düzenlenememesi) desteklenmelidir.
 -- =============================================================================
 create policy user_roles_select_own on public.user_roles
   for select using (user_id = auth.uid());
+
+create policy user_roles_write_employer on public.user_roles
+  for all using (
+    public.user_has_company_role(company_id, 'employer')
+    or public.is_platform_admin()
+  )
+  with check (
+    public.user_has_company_role(company_id, 'employer')
+    or public.is_platform_admin()
+  );
+
+-- =============================================================================
+-- company_invites — davet oluşturma yalnızca o firmanın employer/expert'ine
+-- (uzman da meslektaş davet edebilsin — işveren rolü DEĞİL, bkz.
+-- check_user_role_account_type trigger'ı zaten expert'in employer rolü almasını
+-- engelliyor, o yüzden burada ayrıca kısıtlamaya gerek yok). Daveti SADECE
+-- oluşturan kişi veya platform admin görebilir/iptal edebilir (silebilir).
+--
+-- ÖNEMLİ: davet edilen kişi (henüz hiçbir firmaya üye değil, dolayısıyla
+-- user_company_ids() boş döner) bu tabloyu SELECT ile OKUYAMAZ — okumasına da
+-- gerek yok, davet kabulü aşağıdaki accept_invite() RPC'si üzerinden, token'ı
+-- BİLDİĞİ için (linkte taşınıyor) yapılır, tabloyu taramasına gerek kalmaz.
+-- =============================================================================
+create policy company_invites_select on public.company_invites
+  for select using (
+    created_by = auth.uid()
+    or public.is_platform_admin()
+  );
+
+create policy company_invites_insert on public.company_invites
+  for insert with check (
+    (
+      public.user_has_company_role(company_id, 'employer')
+      or public.user_has_company_role(company_id, 'expert')
+      or public.is_platform_admin()
+    )
+    and created_by = auth.uid()
+  );
+
+create policy company_invites_delete on public.company_invites
+  for delete using (
+    created_by = auth.uid()
+    or public.is_platform_admin()
+  );
+-- UPDATE (used_at/used_by işaretleme) BİLEREK açık bırakılmadı — bunu normal bir
+-- RLS politikasıyla değil, aşağıdaki accept_invite() fonksiyonuyla (SECURITY
+-- DEFINER, yani RLS'i bilerek atlıyor) yapıyoruz. Sebep: davet kabul eden kişi
+-- henüz o firmanın üyesi değil, normal bir UPDATE politikasıyla bu adımı
+-- yaptıramayız — token doğrulama + user_roles ekleme + used_at işaretleme TEK
+-- atomik işlem olmalı, yoksa yarıda kesilirse (örn. iki kişi aynı anda aynı
+-- token'ı kullanmaya çalışırsa) tutarsız durum oluşur.
+
+-- -----------------------------------------------------------------------------
+-- accept_invite(token) — davet linkine tıklayıp kayıt/giriş TAMAMLANDIKTAN
+-- SONRA (yani auth.uid() artık dolu) çağrılır. SECURITY DEFINER: token
+-- doğrulaması ve user_roles/company_invites yazımı için RLS'i BİLEREK atlıyor
+-- — fonksiyonun İÇİNDE kendi doğrulamasını (token geçerli mi, süresi dolmuş mu,
+-- kullanılmış mı, e-posta eşleşiyor mu) yapıyor, bu yüzden güvenlik RLS'e değil
+-- bu fonksiyonun mantığına taşınıyor. `raise exception` ile başarısız senaryoları
+-- AÇIKÇA reddediyor (sessizce hiçbir şey yapmamak yerine).
+-- -----------------------------------------------------------------------------
+create or replace function public.accept_invite(invite_token text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  inv record;
+  caller_email text;
+begin
+  if auth.uid() is null then
+    raise exception 'Davet kabul etmek için giriş yapmış olmanız gerekir.';
+  end if;
+
+  select * into inv from public.company_invites where token = invite_token;
+
+  if inv is null then
+    raise exception 'Geçersiz davet linki.';
+  end if;
+  if inv.used_at is not null then
+    raise exception 'Bu davet linki daha önce kullanılmış.';
+  end if;
+  if inv.expires_at < now() then
+    raise exception 'Bu davetin süresi dolmuş, yeni bir davet isteyin.';
+  end if;
+
+  -- Davet belirli bir e-postaya gönderildiyse, kabul eden kişinin GİRİŞ YAPTIĞI
+  -- hesabın e-postası eşleşmeli (linki başkasına yönlendirip onun hesabıyla
+  -- kabul etmesi engellensin).
+  if inv.email is not null then
+    select email into caller_email from public.users where id = auth.uid();
+    if caller_email is distinct from inv.email then
+      raise exception 'Bu davet farklı bir e-posta adresi için oluşturulmuş.';
+    end if;
+  end if;
+
+  insert into public.user_roles (user_id, company_id, role_id)
+  values (auth.uid(), inv.company_id, inv.role_id)
+  on conflict (user_id, company_id, role_id) do nothing;
+
+  update public.company_invites
+    set used_at = now(), used_by = auth.uid()
+    where id = inv.id;
+end;
+$$;
 
 -- =============================================================================
 -- companies — yalnızca erişebildiğin firma(lar)ı görebilirsin. Yeni firma
@@ -270,9 +428,13 @@ create policy ai_history_insert on public.ai_history
 -- =============================================================================
 -- Uygulanmadan ÖNCE kontrol edilmesi gerekenler (bu taslağın kapsamadığı):
 --   1. "Firma oluşturma" akışı (companies INSERT + user_roles ilk kayıt,
---      TEK transaction'da) — Edge Function olarak ayrıca tasarlanmalı.
---   2. Kullanıcı davet/rol atama akışı (user_roles INSERT/DELETE) — kimin
---      kimi ekleyebileceği bir ürün kararı, burada varsayılmadı.
+--      TEK transaction'da) — Edge Function olarak ayrıca tasarlanmalı. Kayıt
+--      olan ilk kullanıcı otomatik 'employer' olur (bkz. DATABASE_PLAN.md);
+--      bu akış henüz burada YAZILMADI, yalnızca kural netleşti.
+--   2. ÇÖZÜLDÜ: kullanıcı davet/rol atama akışı — CompanyInvites tablosu +
+--      accept_invite() RPC'si + user_roles_write_employer politikası (bkz.
+--      yukarısı). Kimin kimi ekleyebileceği netleşti: o firmanın employer'ı
+--      (veya platform admin), token tabanlı tek-kullanımlık davet linkiyle.
 --   3. Storage bucket politikaları (risk_attachments.storage_path,
 --      risk_detections.photo_storage_path, knowledge_documents.storage_path,
 --      companies.logo_url) — bu dosya yalnızca Postgres tablo RLS'ini kapsar,
@@ -280,4 +442,7 @@ create policy ai_history_insert on public.ai_history
 --   4. ÇÖZÜLDÜ: documents/risk_detections/system_notifications/
 --      training_course_settings artık DATABASE_PLAN.md'de modellendi ve
 --      şema+RLS taslaklarına eklendi (bkz. Sonraki Öneriler takibi).
+--   5. Davet linkinin GÖNDERİLMESİ (e-posta/SMS) bu taslağın kapsamı DIŞINDA —
+--      kullanıcıyla netleşti: uygulama otomatik göndermiyor, işveren linki
+--      kopyalayıp kendisi paylaşıyor (WhatsApp/SMS/e-posta, kendi tercihi).
 -- =============================================================================

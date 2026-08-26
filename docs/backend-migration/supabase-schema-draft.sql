@@ -61,8 +61,73 @@ create table public.users (
   avatar_url text,
   title text,
   status text not null default 'active' check (status in ('active', 'inactive')),
+  -- KARAR (kullanıcıyla netleştirildi): kayıtta seçilir, DEĞİŞTİRİLEMEZ (uygulama
+  -- kodunda bu alana update izni verilmez — bkz. RLS taslağı). "expert" olan bir
+  -- kullanıcıya hiçbir firmada 'employer' rolü atanamaz (bkz. aşağıdaki
+  -- check_user_role_account_type trigger'ı) — İSG uzmanı ile işveren aynı kişi
+  -- olamaz kuralının veri seviyesindeki karşılığı.
+  account_type text not null check (account_type in ('employer', 'expert', 'employee')),
+  -- Yalnızca Nöbetçi ekibi için (varsayılan false, uygulama kayıt formundan asla
+  -- true olarak ayarlanamaz — yalnızca DB'den elle/destek sürecinde açılır).
+  -- "İşveren uğraşmak istemezse destek ekibi rol atamasını halleder" senaryosu
+  -- için RLS'te firma sınırını aşan tek istisna (bkz. is_platform_admin()).
+  is_platform_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- KARAR sonrası ZORUNLU HALE GELDİ: account_type `not null` olduğundan, kayıt
+-- (signup) anında `public.users` satırı bu bilgi olmadan oluşturulamaz. Supabase
+-- Auth'ta signup formu `supabase.auth.signUp({ email, password, options: { data:
+-- { full_name, account_type } } })` şeklinde çağrılırsa, bu bilgi `auth.users.
+-- raw_user_meta_data` içine otomatik yazılır — bu trigger onu okuyup
+-- `public.users` satırını OLUŞTURDUĞU anda kopyalar. Trigger olmazsa: auth.users'ta
+-- kayıt var ama public.users'ta yok → uygulama "profil bulunamadı" hatası verir.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.users (id, full_name, email, account_type)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
+    new.email,
+    -- account_type formdan gelmezse (beklenmeyen durum) 'employee' varsayılır —
+    -- en YETKİSİZ role düşmek, en GÜÇLÜ role (employer) yanlışlıkla düşmekten
+    -- her zaman daha güvenlidir.
+    coalesce(new.raw_user_meta_data ->> 'account_type', 'employee')
+  );
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- account_type DEĞİŞTİRİLEMEZ (bkz. DATABASE_PLAN.md → "Hesap Türü Kısıtı").
+-- RLS'in with check'i yerine BURADA (trigger'da) zorunlu kılınıyor — bkz.
+-- supabase-rls-policies-draft.sql → users_update_own notu, sebep açıklaması
+-- orada. is_platform_admin sütunu için AYRICA bir kısıt YOK (uygulama zaten
+-- bunu update politikasından hiç geçirmiyor, yalnızca elle/destek sürecinde
+-- Supabase Dashboard'dan service_role ile değişir — RLS/trigger'ı atlar).
+create or replace function public.prevent_account_type_change()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.account_type is distinct from old.account_type then
+    raise exception 'Hesap türü (account_type) kayıt sonrası değiştirilemez.';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger enforce_account_type_immutable
+  before update on public.users
+  for each row execute function public.prevent_account_type_change();
 
 -- Sabit/referans veri — uygulama kodunda constants/allRoles.js'nin karşılığı.
 create table public.roles (
@@ -95,6 +160,53 @@ create table public.user_roles (
   role_id uuid not null references public.roles (id) on delete restrict,
   created_at timestamptz not null default now(),
   unique (user_id, company_id, role_id)
+);
+
+-- KARAR: "expert" hesap türündeki bir kullanıcıya hiçbir firmada 'employer' rolü
+-- atanamaz — elle (Supabase Dashboard'dan bile) denense dahi reddedilir. Bu bir
+-- CHECK constraint DEĞİL (Postgres CHECK başka tabloya bakamaz), bu yüzden trigger
+-- kullanılıyor. `roles.key`'e bakmak için join gerektiğinden BEFORE INSERT/UPDATE
+-- fonksiyonu olarak yazıldı.
+create or replace function public.check_user_role_account_type()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target_account_type text;
+  target_role_key text;
+begin
+  select account_type into target_account_type from public.users where id = new.user_id;
+  select key into target_role_key from public.roles where id = new.role_id;
+
+  if target_account_type = 'expert' and target_role_key = 'employer' then
+    raise exception 'İSG Uzmanı hesap türündeki bir kullanıcıya İşveren rolü atanamaz.';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger enforce_user_role_account_type
+  before insert or update on public.user_roles
+  for each row execute function public.check_user_role_account_type();
+
+-- Karşılığı yok (mevcut uygulamada davet/katılım akışı henüz yok — mock-role
+-- sistemi). Bir firmaya yeni kişi eklemenin TEK yolu: bkz. DATABASE_PLAN.md →
+-- "CompanyInvites" → "Nasıl işler". Kullanıcılar kendi kendine bir firmaya
+-- katılamaz, her zaman geçerli bir davet token'ı üzerinden gelir.
+create table public.company_invites (
+  id uuid primary key default gen_random_uuid(),
+  token text not null unique default encode(gen_random_bytes(24), 'hex'),
+  company_id uuid not null references public.companies (id) on delete cascade,
+  role_id uuid not null references public.roles (id) on delete restrict,
+  email text, -- boşsa link herkese açık (yine de token bilmeyen katılamaz)
+  created_by uuid not null references public.users (id) on delete cascade,
+  expires_at timestamptz not null default (now() + interval '7 days'),
+  used_at timestamptz,
+  used_by uuid references public.users (id) on delete set null,
+  created_at timestamptz not null default now()
 );
 
 -- =============================================================================

@@ -1,5 +1,39 @@
 # Changelog
 
+## [Backend Planlama — Davet Linki, Hesap Türü Kısıtı, Rol Yetkisi] — Bu güncelleme
+
+⚠️ SADECE PLANLAMA — `docs/backend-migration/` dışına, `src/`'e HİÇBİR DOKUNMA
+YAPILMADI. Uygulama hâlâ %100 mock kimlik doğrulama + IndexedDB ile çalışıyor,
+bu çalışma yalnızca taslak SQL/JS dosyalarını genişletti.
+
+Kullanıcıyla netleşen kararlar taslaklara işlendi:
+- **Hesap türü kısıtı:** `public.users.account_type` (employer/expert/employee)
+  kayıtta seçilir, DEĞİŞTİRİLEMEZ (`prevent_account_type_change` trigger'ı).
+  `expert` hesap türüne hiçbir firmada `employer` rolü atanamaz
+  (`check_user_role_account_type` trigger'ı, RLS'i de kapsar).
+- **Davet linki akışı (yeni):** `company_invites` tablosu (token, firma, rol,
+  son kullanma tarihi, kullanıldı mı) + `accept_invite(token)` RPC fonksiyonu
+  (SECURITY DEFINER, token doğrulama + user_roles yazımı + used_at işaretlemeyi
+  TEK atomik işlemde yapar). İşveren/Uzman davet oluşturur, link'i kendisi
+  paylaşır (uygulama otomatik e-posta göndermiyor — bilinçli kapsam dışı).
+- **Rol yetkisi:** `user_roles` yazma politikası eklendi — bir firmanın
+  employer'ı o firmadaki rolleri atayabilir/değiştirebilir; **platform
+  yöneticisi (`is_platform_admin`) firma sınırı olmadan her yerde yapabilir**
+  ("işveren uğraşmak istemezse destek ekibi halleder" senaryosu).
+- **Kayıt anında profil oluşturma:** `handle_new_user()` trigger'ı, Supabase
+  Auth signup'ının `options.data`'sına konan `full_name`/`account_type`'ı
+  otomatik `public.users`'a kopyalar.
+- **Yeni draft dosyası:** `supabaseAuthService.draft.js` — mevcut
+  `src/services/authService.js` ile aynı 7 fonksiyon imzasını (+ 2 yeni:
+  `createCompanyInvite`, `acceptInvite`) koruyan gerçek Supabase Auth taslağı.
+
+### Doğrulama
+Yine bu ortamda internet yok — SQL dosyaları gerçek bir Postgres'e karşı
+ÇALIŞTIRILMADI, yalnızca yorum/string farkındalıklı bir parantez dengesi
+scripti ile sözdizimsel tutarlılık kontrol edildi. **Uygulanmadan önce gerçek
+bir Supabase projesinde (önce test/staging, asla doğrudan prod) çalıştırılıp
+doğrulanmalı.**
+
 ## [Mobil Performans — Tailwind CDN → Build-Time, jsQR Global Script Kaldırıldı] — Bu güncelleme
 
 Kullanıcı isteği üzerine üç mobil performans darboğazı giderildi:

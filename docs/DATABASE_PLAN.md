@@ -32,7 +32,10 @@ Sisteme giriş yapabilen her kişinin hesabı. Supabase Auth ile birebir eşleş
 tablo kimliği doğrudan `auth.users` kimliğidir.
 
 **Alanlar:** ad-soyad, e-posta, telefon, profil fotoğrafı, unvan, hesap durumu
-(aktif/pasif), oluşturulma tarihi.
+(aktif/pasif), **hesap türü** (`employer` | `expert` | `employee` — kayıt sırasında
+seçilir, SABİTTİR, bkz. aşağıdaki kısıt), **platform yöneticisi mi** (bool,
+varsayılan false — yalnızca Nöbetçi ekibi için, bkz. "Sistem Yöneticisi İstisnası"),
+oluşturulma tarihi.
 
 **İlişkiler:**
 - Bir Kullanıcı, `UserRoles` ilişki tablosu üzerinden **birden fazla Firmada
@@ -41,6 +44,16 @@ tablo kimliği doğrudan `auth.users` kimliğidir.
 - Bir Kullanıcı, en fazla bir Employee kaydına bağlanabilir (bir kullanıcı aynı
   zamanda bir personel kaydına karşılık gelebilir, ama her personelin hesabı
   olmak zorunda değildir).
+
+**Hesap Türü Kısıtı (KARAR — kullanıcıyla netleştirildi):** `account_type` kayıtta
+seçilir ve değiştirilemez. Bir kullanıcının `UserRoles` üzerinden **kaç firmaya**
+bağlanabileceğini SINIRLAMAZ (bir uzman istediği kadar firmada "uzman" rolüyle
+çalışabilir) — sadece **hangi role türüne girebileceğini** sınırlar:
+`account_type = 'expert'` olan bir kullanıcıya **hiçbir firmada `employer` rolü
+atanamaz** (elle bile atansa reddedilir — bkz. RLS taslağındaki
+`check_user_role_account_type` trigger'ı). Sebep: İSG uzmanı ile işveren aynı
+kişi olursa denetim/tarafsızlık açısından karışıklık yaratır; bu platform bunu
+veri seviyesinde engeller, sadece UI kuralı olarak bırakmaz.
 
 ### Roles
 
@@ -54,6 +67,14 @@ Sistem Yöneticisi). Referans/sabit veri niteliğindedir.
   ayrıca `companyId` taşır — bir kullanıcının rolü **firma bazlıdır**, global değildir.
 - `RolePermissions` ilişki tablosu üzerinden Permissions ile **çoka-çok** bağlanır.
 
+**Rol Yükseltme Kuralı (KARAR):** Bir firmaya "Çalışan" olarak katılan biri, o
+firmadaki mevcut bir "İşveren" tarafından "Uzman" veya ek "İşveren" rolüne elle
+yükseltilebilir (kullanıcı kendi kendine yükselemez — bkz. CompanyInvites, "Rol
+Yükseltme (kendi kendine değil)"). **İstisna:** platform yöneticisi (`is_platform_admin`),
+işverenin onayı olmadan da herhangi bir firmada rol atayabilir/değiştirebilir —
+"işveren uğraşmak istemezse destek ekibi halleder" senaryosu için (bkz. RLS
+taslağı → `is_platform_admin()`).
+
 ### Permissions
 
 İnce taneli yetki tanımları (örn. "risk oluşturma", "risk onaylama", "firma
@@ -63,6 +84,40 @@ yönetimi"). Referans/sabit veri niteliğindedir.
 
 **İlişkiler:**
 - `RolePermissions` ilişki tablosu üzerinden Roles ile **çoka-çok** bağlanır.
+
+### CompanyInvites
+
+Bir firmaya yeni kişi eklemenin TEK yolu — kullanıcılar kendi kendine bir firmaya
+"katılamaz", her zaman geçerli bir davet kaydı üzerinden gelir.
+
+**Alanlar:** tek kullanımlık token (rastgele/tahmin edilemez), ait olduğu firma,
+davet edilen kişiye önerilen rol, davet edilen e-posta (isteğe bağlı — boşsa link
+herkese açık ama yine de token bilmeyen katılamaz), daveti oluşturan kullanıcı,
+son kullanma tarihi (varsayılan 7 gün), kullanıldı mı / ne zaman kullanıldı.
+
+**Nasıl işler (KARAR — kullanıcıyla netleştirildi):**
+1. İşveren (veya yetkili Uzman) uygulama içinde "Yeni Kişi Davet Et" der, rol
+   seçer (varsayılan **Çalışan**) — bir davet kaydı oluşur, paylaşılabilir bir
+   link üretilir. Link işveren tarafından WhatsApp/SMS/e-posta ile **kendisi**
+   paylaşılır (uygulama otomatik e-posta göndermiyor — ayrı bir SMTP sağlayıcısı
+   gerektirir, kapsam dışı bırakıldı).
+2. Davet edilen kişi linke tıklar → normal kayıt formunu görür (e-posta alanı
+   davette belirtildiyse önceden dolu) → kendi şifresini belirler.
+3. Kayıt tamamlanır tamamlanmaz sistem OTOMATİK olarak o kullanıcıyı davetteki
+   firma + role ile `UserRoles`'a ekler — kullanıcının ayrıca bir şey yapmasına
+   gerek yok, işverenin de ayrıca elle onaylamasına gerek yok (davet zaten
+   işverenin bilinçli onayıydı).
+4. Token tek kullanımlıktır, kullanılınca kapanır; süresi dolan bir daveti
+   açan kişiye "bu davetin süresi dolmuş, yeni bir davet isteyin" gösterilir.
+
+**"Kendi kendine yükselme" kısıtıyla ilişkisi:** davet linkinin taşıdığı rol
+İŞVERENİN seçimidir (kullanıcının değil) — bu yüzden bir işveren davet ederken
+"Uzman" rolü seçmesi, daha önce konuşulan "kimse kendi kendine yükselemez"
+kuralını ÇİĞNEMEZ; kısıtladığımız şey davet edilenin kendi rolünü kendinin
+seçmesiydi, işverenin bilinçli olarak seçmesi değil.
+
+**İlişkiler:** Companies ile **çoka-bir**. Oluşturan kullanıcı (Users) ile
+**çoka-bir**.
 
 ---
 
