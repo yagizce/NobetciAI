@@ -74,6 +74,11 @@
  * @property {"ok"|"upcoming"|"overdue"} status - Hesaplanmış durum
  * @property {string} responsible - Sorumlu kişi
  * @property {string} notes
+ * @property {string|null} [qrCode] - QR Kod → Periyodik Kontrol entegrasyonu: üzerinde
+ *   QR etiketi olan bir ekipmana (yangın tüpü, elektrik panosu vb.) bağlıysa okunan QR
+ *   verisi. Elle oluşturulan kayıtlarda null/tanımsız kalır.
+ * @property {string|null} [photoId] - En son kontrolde eklenen fotoğraf referansı —
+ *   `periodicCheckPhotos` store'unda saklanır (bkz. services/periodicCheckPhotoService.js).
  */
 
 /**
@@ -180,6 +185,10 @@
  * @property {Array<{id:string|number,text:string,author:string,at:string}>} [notes] - Sprint 5A: serbest metin notlar
  * @property {Array<{id:string,event:string,detail:string,actor:string,at:string}>} [history] - Sprint 5A: Risk Geçmişi (timeline) olayları
  * @property {"draft"|"open"|"inReview"|"awaitingAction"|"completed"|"closed"} [workflowState] - Sprint 7.1: risk yaşam döngüsü durumu (bkz. constants/riskWorkflow.js). Legacy `status` alanından türetilir, henüz hiçbir UI'da gösterilmez.
+ * @property {string|null} [photoId] - Risk Tespiti'nden (Vision AI) köprülendiyse taşınan kanıt fotoğrafı referansı — `riskDetectionPhotos` store'unda saklanır (bkz. services/riskDetectionPhotoService.js). Denetim Dosyası'nda (auditPackageExport.js) kanıt olarak gösterilir.
+ * @property {string|null} [photoDataUrl] - LEGACY: photoId'den önceki inline fotoğraf biçimiyle köprülenmiş eski kayıtlar için.
+ * @property {string} [closureNote] - Kayıt "Kapandı" işaretlenirken girilen düzeltici faaliyet kanıt notu (bkz. FineKinneyForm.jsx → ClosureEvidenceFields).
+ * @property {string|null} [closurePhotoId] - Kapanış kanıtı fotoğrafı referansı — `closureEvidencePhotos` store'unda saklanır (bkz. services/closureEvidenceService.js).
  */
 
 /**
@@ -193,15 +202,6 @@
  * @property {string} date
  * @property {string|null} aiAnalysis
  * @property {string|null} expertNote
- */
-
-/**
- * @typedef {Object} Equipment
- * @property {string|number} id
- * @property {string|null} companyId
- * @property {string} name
- * @property {string|null} qr
- * @property {string} lastCheck
  */
 
 /**

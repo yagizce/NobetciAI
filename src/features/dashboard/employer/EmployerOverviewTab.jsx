@@ -4,6 +4,7 @@ import EmptyState from "../../../components/EmptyState.jsx";
 import DashboardWidget from "../../../components/DashboardWidget.jsx";
 import Badge from "../../../components/ui/Badge.jsx";
 import { useWidgetVisibility, DASHBOARD_WIDGETS } from "../../../hooks/useWidgetVisibility.js";
+import { timeAgo } from "../../../utils/dateUtils.js";
 import { ShieldAlert, Users, ClipboardList, ListChecks, Settings, X, Scale } from "../../../components/icons/index.jsx";
 import SafetyScoreCard from "./SafetyScoreCard.jsx";
 import ExecutiveSummaryCard from "./ExecutiveSummaryCard.jsx";
@@ -26,16 +27,6 @@ import OngoingTrainingsCard from "./OngoingTrainingsCard.jsx";
 import CriticalRisksCard from "./CriticalRisksCard.jsx";
 import { getActivityLink } from "../../../constants/activityLink.js";
 
-function timeAgo(iso) {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "az önce";
-  if (mins < 60) return `${mins} dk önce`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} sa önce`;
-  return `${Math.floor(hours / 24)} gün önce`;
-}
-
 /**
  * @param {{ theme: object, data: ReturnType<typeof import("./useEmployerDashboardData.js").useEmployerDashboardData> }} props
  */
@@ -43,7 +34,7 @@ export default function EmployerOverviewTab({ theme, data }) {
   const {
     employees, riskAnalyses, auditLog, metrics, fineKinneyEntries, periodicChecks, departments,
     safetyScore, weeklySummary, accidentFreeStreak, last30DayChange, trainingStats, ongoingTrainingItems, company,
-    notifications, trainingProgressRecords, trainingCompletionRecords,
+    notifications, trainingProgressRecords, trainingCompletionRecords, documents,
   } = data;
   const { isVisible, toggleWidget } = useWidgetVisibility();
   const [editMode, setEditMode] = useState(false);
@@ -56,9 +47,8 @@ export default function EmployerOverviewTab({ theme, data }) {
     { label: "Tamamlanan Eğitim", value: `${metrics.completedTrainings}/${metrics.totalTrainings}`, bg: theme.successBg, color: theme.successText },
     { label: "Son AI Analizleri", value: metrics.recentAiAnalyses, bg: theme.surfaceAlt, color: theme.textPrimary },
     { label: "Risk Kapanma Süresi", value: metrics.avgClosureDays !== null ? `${metrics.avgClosureDays} gün` : "—", bg: theme.surfaceAlt, color: theme.textPrimary },
-    { label: "Ortalama Risk Puanı", value: metrics.avgRiskScore, bg: theme.surfaceAlt, color: theme.textPrimary },
+    { label: "Ortalama Risk Puanı", value: fineKinneyEntries.length > 0 ? metrics.avgRiskScore : "—", bg: theme.surfaceAlt, color: theme.textPrimary },
     { label: "Aktif Düzeltici Faaliyet", value: metrics.activeCorrectiveActions, bg: theme.pendingBg, color: theme.pendingText },
-    { label: "Yaklaşan Denetimler", value: metrics.upcomingChecks, bg: theme.warnBg, color: theme.warnText },
   ];
 
   return (
@@ -166,7 +156,7 @@ export default function EmployerOverviewTab({ theme, data }) {
         {isVisible("auditPackage") && (
           <DashboardWidget theme={theme} title="Denetim Dosyası" icon={ListChecks}>
             <AuditPackageButton theme={theme} fineKinneyEntries={fineKinneyEntries} periodicChecks={periodicChecks}
-              trainingStats={trainingStats} companyName={company?.name} />
+              trainingStats={trainingStats} companyName={company?.name} documents={documents} />
           </DashboardWidget>
         )}
 

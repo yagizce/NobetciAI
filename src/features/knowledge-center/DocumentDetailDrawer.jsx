@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { getDocumentTypeLabel, getCategoryMeta, findRelatedDocuments } from "../../constants/knowledgeCenter.js";
 import { X, FileText, Star } from "../../components/icons/index.jsx";
 import Badge from "../../components/ui/Badge.jsx";
@@ -14,6 +15,18 @@ import Button from "../../components/ui/Button.jsx";
  * @param {{ doc: object|null, theme: object, onClose: () => void, allDocuments: object[], onOpenDocument: (doc: object) => void, isFavorite: boolean, onToggleFavorite: (id: number) => void }} props
  */
 export default function DocumentDetailDrawer({ doc, theme, onClose, allDocuments, onOpenDocument, isFavorite, onToggleFavorite }) {
+  // A11Y FIX (bkz. Modal.jsx'teki aynı not): Escape ile kapatma eklendi. Hook, erken
+  // `return null`'dan ÖNCE çağrılmalı (Rules of Hooks) — bu yüzden şart hook'un İÇİNE
+  // alındı.
+  useEffect(() => {
+    if (!doc) return;
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [doc, onClose]);
+
   if (!doc) return null;
   const categoryMeta = getCategoryMeta(doc.category);
   const relatedDocs = findRelatedDocuments(doc, allDocuments, 3);
@@ -22,6 +35,9 @@ export default function DocumentDetailDrawer({ doc, theme, onClose, allDocuments
     <div className="fixed inset-0 z-50 flex items-center justify-center px-2 sm:px-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={doc.title}
         className="relative w-full max-w-lg rounded-2xl p-4 sm:p-5 max-h-[90vh] overflow-y-auto"
         style={{ background: theme.surface, border: `1px solid ${theme.border}` }}
       >

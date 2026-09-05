@@ -23,7 +23,12 @@ export function useAiSuggestion(fetcher, options = {}) {
     setError(null);
     try {
       return await fetcher(...args);
-    } catch {
+    } catch (err) {
+      // Uygulama genelinde her catch bloğu teknik hatayı console.error ile loglar
+      // (bkz. Fine-Kinney/Risk Tespiti/Periyodik Kontroller hook'ları) — bu paylaşılan
+      // hook'ta bu adım eksikti, tutarlılık için eklendi. Kullanıcıya gösterilen mesaj
+      // değişmedi, yalnızca teknik detay artık konsolda da görünüyor.
+      console.error("AI önerisi alınamadı:", err);
       setError(errorMessage);
       return null;
     } finally {

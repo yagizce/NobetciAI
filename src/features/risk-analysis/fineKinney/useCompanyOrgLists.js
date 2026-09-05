@@ -27,6 +27,13 @@ export function useCompanyOrgLists() {
         setBranches(b);
         setLoaded(true);
       }
+    }).catch((err) => {
+      // BUG FIX (Sprint 8 polish): .catch() yoktu — konsola işlenmeyen bir promise
+      // reddi düşüyordu ve departman/şube dropdown'ları sessizce boş kalıyordu.
+      // `loaded` hiçbir tüketici tarafından okunmadığı için burada bir hata state'i
+      // eklemedim — yalnızca konsola düzgün loglanmasını sağladım.
+      console.error("Departman/şube listesi yüklenemedi:", err);
+      if (!cancelled) setLoaded(true);
     });
     return () => { cancelled = true; };
   }, []);

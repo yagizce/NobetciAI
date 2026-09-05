@@ -2,8 +2,11 @@ import { useState, useMemo, useEffect } from "react";
 import { useTheme } from "../../../contexts/ThemeContext.jsx";
 import { useToast } from "../../../contexts/ToastContext.jsx";
 import { useSubmitGuard } from "../../../hooks/useSubmitGuard.js";
+import { useQrScanner } from "../../../hooks/useQrScanner.js";
 import { usePeriodicChecks } from "./usePeriodicChecks.js";
 import { useCompanyOrgLists } from "../../risk-analysis/fineKinney/useCompanyOrgLists.js";
+import { todayISO } from "../../../utils/dateUtils.js";
+import { savePeriodicCheckPhoto } from "../../../services/periodicCheckPhotoService.js";
 import PeriodicCheckForm, { EMPTY_PERIODIC_CHECK_FORM } from "./PeriodicCheckForm.jsx";
 import PeriodicCheckCard from "./PeriodicCheckCard.jsx";
 import PeriodicCheckFilters from "./PeriodicCheckFilters.jsx";
@@ -13,8 +16,9 @@ import PeriodicCheckDetailDrawer from "./PeriodicCheckDetailDrawer.jsx";
 import Button from "../../../components/ui/Button.jsx";
 import EmptyState from "../../../components/EmptyState.jsx";
 import Loading from "../../../components/Loading.jsx";
+import ErrorState from "../../../components/ErrorState.jsx";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog.jsx";
-import { Plus, ListChecks, Calendar } from "../../../components/icons/index.jsx";
+import { Plus, ListChecks, Calendar, QrCode } from "../../../components/icons/index.jsx";
 
 const STATUS_ORDER = { overdue: 0, upcoming: 1, ok: 2 };
 
@@ -40,6 +44,18 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
   // — kullanıcının artık ekranda görmediği kayıtları yanlışlıkla toplu güncellemesini önler.
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  // QR Kod → Periyodik Kontrol entegrasyonu. Önceden DocumentsPage.jsx'teki ayrı
+  // "Ekipman Kayıtları" sekmesindeydi, Periyodik Kontroller'le hiç konuşmuyordu —
+  // taranan QR verisi bir yerde duruyordu ama hiçbir zaman kontrol geçmişiyle
+  // eşleşmiyordu. Artık tarama SONUCU doğrudan bu modülün kendi akışına giriyor:
+  // aynı QR daha önce bir kayda bağlandıysa o kaydın detayı açılır; ilk kez
+  // okutuluyorsa yeni kayıt formu QR'a önceden bağlanmış olarak açılır (isim yine de
+  // serbestçe değiştirilebilir — bkz. openNewFormFromQr).
+  const [qrPanelOpen, setQrPanelOpen] = useState(false);
+  const { videoRef, canvasRef, scanResult, startScan, resetScan } = useQrScanner({
+    onError: (msg) => showToast(msg, "error"),
+  });
 
   const sortedChecks = useMemo(
     () => [...checks].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]),
@@ -111,16 +127,51 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
     setForm({
       itemName: check.itemName, category: check.category, departmentId: check.departmentId ? String(check.departmentId) : "",
       lastCheckDate: check.lastCheckDate, intervalDays: check.intervalDays, responsible: check.responsible, notes: check.notes,
+      qrCode: check.qrCode ?? null, photoId: check.photoId ?? null, pendingPhotoDataUrl: null,
     });
     setEditingId(check.id);
     setFormOpen(true);
     setDetailCheck(null);
   }
 
+  // QR Kod → Periyodik Kontrol: tarama sonucu geldiğinde ya var olan kayda git ya da
+  // QR'a önceden bağlanmış yeni bir form aç. `allChecks` (filtrelenmemiş TÜM kayıtlar)
+  // kullanılıyor — kullanıcı bir filtre uygulamışken taradığı ekipman o an ekranda
+  // görünmeyebilir, yine de eşleşmeli.
+  useEffect(() => {
+    if (!scanResult) return;
+    setQrPanelOpen(false);
+    const existing = allChecks.find((c) => c.qrCode === scanResult);
+    if (existing) {
+      setDetailCheck(existing);
+      showToast("Bu QR zaten kayıtlı — kontrol detayı açıldı.", "success");
+    } else {
+      setForm({
+        ...EMPTY_PERIODIC_CHECK_FORM,
+        itemName: `Ekipman ${allChecks.length + 1}`,
+        lastCheckDate: todayISO(),
+        qrCode: scanResult,
+      });
+      setEditingId(null);
+      setFormOpen(true);
+      showToast("Yeni QR okundu — kaydı tamamlamak için formu doldurun.", "success");
+    }
+    resetScan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resetScan/showToast/allChecks
+    // her render'da yeniden oluşabilir; yalnızca scanResult DEĞİŞTİĞİNDE tetiklenmeli.
+  }, [scanResult]);
+
   async function handleSubmit() {
     if (!form.itemName.trim() || !form.lastCheckDate) return;
     try {
-      await saveCheck(form, editingId);
+      let toSave = form;
+      // Kapanış Kanıtı'ndaki (Fine-Kinney) AYNI desen: yeni seçilmiş bir fotoğraf varsa
+      // (henüz store'a yazılmadı) submit anında kalıcı hale getir.
+      if (form.pendingPhotoDataUrl) {
+        const saved = await savePeriodicCheckPhoto(form.pendingPhotoDataUrl);
+        toSave = { ...form, photoId: saved.id, pendingPhotoDataUrl: null };
+      }
+      await saveCheck(toSave, editingId);
       showToast(editingId ? "Kontrol güncellendi." : "Yeni periyodik kontrol eklendi.", "success");
       resetForm();
     } catch (err) {
@@ -153,17 +204,35 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
   }
 
   if (!loaded) return <Loading label="Periyodik kontroller yükleniyor..." />;
-  if (loadError) return <EmptyState icon={ListChecks} title="Periyodik kontroller yüklenemedi" description={loadError} />;
+  // UX FIX (loading/empty state cilası): gerçek hata durumu, "henüz veri yok" ile
+  // karıştırılmasın ve kullanıcıya "Tekrar Dene" imkanı sunulsun diye ErrorState'e alındı.
+  if (loadError) return <ErrorState title="Periyodik kontroller yüklenemedi" description={loadError} onRetry={() => window.location.reload()} />;
 
   return (
     <div>
       {allChecks.length > 0 && <PeriodicCheckSummaryCards theme={theme} stats={stats} />}
 
-      <div className="flex items-center justify-end mb-3">
+      <div className="flex items-center justify-end gap-2 mb-3">
+        <Button size="sm" variant="secondary" onClick={() => setQrPanelOpen((v) => !v)} className="flex items-center gap-1.5">
+          <QrCode style={{ fontSize: "13px" }} /> QR Okut
+        </Button>
         <Button size="sm" onClick={openNewForm} className="flex items-center gap-1.5">
           <Plus style={{ fontSize: "13px" }} sw={2.5} /> Yeni Kontrol Kaydı
         </Button>
       </div>
+
+      {qrPanelOpen && (
+        <div className="rounded-xl border px-3.5 py-3 mb-4 text-center" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
+          <p className="text-xs mb-2" style={{ color: theme.textMuted }}>
+            Ekipman üzerindeki QR etiketini kameraya gösterin. Daha önce kaydedilmiş bir QR ise doğrudan kaydına gidilir; yeni bir QR ise kayıt formu QR'a bağlı olarak açılır.
+          </p>
+          <button onClick={startScan} className="w-full max-w-sm py-2.5 rounded-lg border-2 font-semibold text-sm mx-auto block" style={{ borderColor: theme.accent, color: theme.accent }}>
+            Taramayı Başlat
+          </button>
+          <video ref={videoRef} style={{ display: "none" }} />
+          <canvas ref={canvasRef} style={{ display: "none" }} />
+        </div>
+      )}
 
       {formOpen && (
         <PeriodicCheckForm theme={theme} form={form} setForm={setForm} editingId={editingId} onSubmit={handleSubmit} onCancel={resetForm} />

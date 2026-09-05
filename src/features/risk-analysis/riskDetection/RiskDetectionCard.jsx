@@ -55,6 +55,11 @@ export default function RiskDetectionCard({ detection, theme, departmentName, on
       departmentId: detection.departmentId ?? "",
       action: detection.recommendedAction || "",
       affected: detection.affected || "",
+      // BUG FIX (aynı sınıf: departmentId'de olduğu gibi sessiz veri kaybı): tespitin
+      // kanıt fotoğrafı köprüye hiç taşınmıyordu. Denetim Dosyası'na fotoğraf kanıtı
+      // eklenebilmesi için Fine-Kinney kaydının kaynağa kadar iz sürebilmesi gerekiyor.
+      photoId: detection.photoId ?? null,
+      photoDataUrl: detection.photoDataUrl ?? null,
     });
   }
 
@@ -63,6 +68,8 @@ export default function RiskDetectionCard({ detection, theme, departmentName, on
     onSendToFineKinney(draft.hazard, draft.risk || "", {
       probability: draft.probability, frequency: draft.frequency, severity: draft.severity, action: draft.action,
       departmentId: detection.departmentId ?? "",
+      photoId: detection.photoId ?? null,
+      photoDataUrl: detection.photoDataUrl ?? null,
     });
   }
 
@@ -82,7 +89,7 @@ export default function RiskDetectionCard({ detection, theme, departmentName, on
         </span>
       </div>
 
-      <p className="text-xs mb-1.5" style={{ color: theme.textMuted }}>
+      <p className="text-xs mb-1.5 break-words" style={{ color: theme.textMuted }}>
         {detection.location}{departmentName ? ` • ${departmentName}` : ""}
       </p>
 

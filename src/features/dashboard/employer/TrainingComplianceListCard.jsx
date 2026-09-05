@@ -27,9 +27,9 @@ export default function TrainingComplianceListCard({ theme, employees, trainingP
       {gaps.map(({ employee, missingCourses }) => (
         <div key={employee.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
           <div className="flex items-center gap-1.5 mb-1">
-            <UserRound style={{ fontSize: "13px", color: theme.textMuted }} />
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{employee.fullName}</p>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto" style={{ background: theme.highRiskBg, color: theme.highRiskText }}>
+            <UserRound style={{ fontSize: "13px", color: theme.textMuted }} className="shrink-0" />
+            <p className="text-sm font-semibold min-w-0 flex-1 truncate" style={{ color: theme.textPrimary }}>{employee.fullName}</p>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto shrink-0" style={{ background: theme.highRiskBg, color: theme.highRiskText }}>
               {missingCourses.length} eksik
             </span>
           </div>

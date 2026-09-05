@@ -14,6 +14,7 @@ import PhotoCaptureButtons from "./PhotoCaptureButtons.jsx";
 import ToggleSwitch from "../../../components/ui/ToggleSwitch.jsx";
 import EmptyState from "../../../components/EmptyState.jsx";
 import Loading from "../../../components/Loading.jsx";
+import ErrorState from "../../../components/ErrorState.jsx";
 import { ShieldAlert } from "../../../components/icons/index.jsx";
 
 const SUMMARY_ITEMS = [
@@ -145,7 +146,9 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
   }
 
   if (!loaded) return <Loading label="Risk tespitleri yükleniyor..." />;
-  if (loadError) return <EmptyState icon={ShieldAlert} title="Risk tespitleri yüklenemedi" description={loadError} />;
+  // UX FIX (loading/empty state cilası): gerçek hata durumu, "henüz veri yok" ile
+  // karıştırılmasın ve kullanıcıya "Tekrar Dene" imkanı sunulsun diye ErrorState'e alındı.
+  if (loadError) return <ErrorState title="Risk tespitleri yüklenemedi" description={loadError} onRetry={() => window.location.reload()} />;
 
   return (
     <div>

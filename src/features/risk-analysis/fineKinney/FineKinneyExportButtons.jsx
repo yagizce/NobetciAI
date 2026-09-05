@@ -42,6 +42,7 @@ export default function FineKinneyExportButtons({ theme, entries }) {
   const [pdfError, setPdfError] = useState(null);
   const [excelLoading, setExcelLoading] = useState(false);
   const [excelError, setExcelError] = useState(null);
+  const [pdfPopupBlocked, setPdfPopupBlocked] = useState(false);
 
   async function handleExcelExport() {
     setExcelError(null);
@@ -71,7 +72,12 @@ export default function FineKinneyExportButtons({ theme, entries }) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      setExcelError("Excel dosyası oluşturulamadı: " + err.message);
+      // UX FIX (hata yönetimi cilası): önceden ham `err.message` (ExcelJS/tarayıcı
+      // kaynaklı, teknik/İngilizce olabilir — örn. "out of memory") doğrudan kullanıcıya
+      // gösteriliyordu. Teknik detay konsola taşındı, kullanıcıya sabit ve anlaşılır bir
+      // Türkçe mesaj gösteriliyor.
+      console.error("Excel dosyası oluşturulamadı:", err);
+      setExcelError("Excel dosyası oluşturulamadı. Lütfen tekrar deneyin.");
     } finally {
       setExcelLoading(false);
     }
@@ -79,6 +85,7 @@ export default function FineKinneyExportButtons({ theme, entries }) {
 
   async function handlePdfExport() {
     setPdfError(null);
+    setPdfPopupBlocked(false);
     setPdfLoading(true);
     let company = null;
     try {
@@ -155,7 +162,12 @@ export default function FineKinneyExportButtons({ theme, entries }) {
           </tr>`;
         }).join("")}</tbody>
       </table>`;
-    openPrintWindow("Fine-Kinney Risk Değerlendirmesi", body, style);
+    // UX FIX (hata yönetimi cilası): openPrintWindow popup engellendiğinde `false`
+    // döner ama bu değer önceden hiç okunmuyordu — kullanıcı butona basıyor, hiçbir şey
+    // olmuyor, hiçbir geri bildirim yok (Eğitim modülündeki aynı desenle — bkz.
+    // CoursePlayer.jsx handlePrintCertificate — tutarlı hale getirildi).
+    const opened = openPrintWindow("Fine-Kinney Risk Değerlendirmesi", body, style);
+    setPdfPopupBlocked(!opened);
   }
 
   const disabled = entries.length === 0;
@@ -183,6 +195,11 @@ export default function FineKinneyExportButtons({ theme, entries }) {
       {pdfError && (
         <div className="flex items-center gap-1.5 text-[10.5px]" style={{ color: theme.warnText }}>
           <AlertTriangle style={{ fontSize: "11px" }} /> {pdfError}
+        </div>
+      )}
+      {pdfPopupBlocked && (
+        <div className="flex items-center gap-1.5 text-[10.5px]" style={{ color: theme.warnText }}>
+          <AlertTriangle style={{ fontSize: "11px" }} /> Tarayıcınız yeni pencereyi engelledi. Lütfen bu site için pop-up izni verip tekrar deneyin.
         </div>
       )}
       {excelError && (

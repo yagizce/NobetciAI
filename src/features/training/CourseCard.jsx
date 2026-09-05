@@ -16,10 +16,10 @@ export default function CourseCard({ theme, course, dueDate, myProgress, myCompl
   return (
     <div className="rounded-lg border px-3.5 py-3" style={{ borderColor: theme.border, background: theme.surface }}>
       <div className="flex items-start justify-between gap-2 mb-1">
-        <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{course.title}</p>
-        {course.mandatory && <Badge tone="warning">Zorunlu</Badge>}
+        <p className="text-sm font-semibold min-w-0 break-words" style={{ color: theme.textPrimary }}>{course.title}</p>
+        {course.mandatory && <span className="shrink-0"><Badge tone="warning">Zorunlu</Badge></span>}
       </div>
-      <p className="text-xs mb-2.5" style={{ color: theme.textMuted }}>{course.description}</p>
+      <p className="text-xs mb-2.5 break-words" style={{ color: theme.textMuted }}>{course.description}</p>
 
       <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
         <Badge tone={status.tone}>{status.label}</Badge>

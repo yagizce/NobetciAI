@@ -9,6 +9,7 @@ import { getActiveCompany } from "../services/companyService.js";
 import { validateImageFile } from "../utils/fileValidation.js";
 import { UserRound, Camera } from "../components/icons/index.jsx";
 import Loading from "../components/Loading.jsx";
+import ErrorState from "../components/ErrorState.jsx";
 import PasswordChangeSection from "../features/profile/PasswordChangeSection.jsx";
 
 function formatLastLogin(iso) {
@@ -25,15 +26,24 @@ export default function Profile() {
   const [user, setUser] = useState(null);
   const [company, setCompany] = useState(null);
   const [photo, setPhoto] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
-    Promise.all([getCurrentUser(role), getActiveCompany()]).then(([currentUser, activeCompany]) => {
-      setUser(currentUser);
-      setCompany(activeCompany);
-      setPhoto(currentUser.photo);
-    });
+    Promise.all([getCurrentUser(role), getActiveCompany()])
+      .then(([currentUser, activeCompany]) => {
+        setUser(currentUser);
+        setCompany(activeCompany);
+        setPhoto(currentUser.photo);
+      })
+      .catch((err) => {
+        // BUG FIX (Sprint 8 polish): .catch() yoktu — hata durumunda `user` hiç
+        // set edilmiyor, sayfa SONSUZA KADAR "Profil yükleniyor..." gösteriyordu.
+        console.error("Profil yüklenemedi:", err);
+        setLoadError(err);
+      });
   }, [role]);
 
+  if (loadError) return <ErrorState title="Profil yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
   if (!user) return <Loading label="Profil yükleniyor..." />;
 
   async function handlePhotoUpload(e) {

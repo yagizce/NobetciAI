@@ -3,6 +3,7 @@ import { STATUS_OPTIONS, PRIORITY_OPTIONS, getPriorityMeta } from "../../../../.
 import Button from "../../../../../components/ui/Button.jsx";
 import Badge from "../../../../../components/ui/Badge.jsx";
 import EmptyState from "../../../../../components/EmptyState.jsx";
+import ConfirmDialog from "../../../../../components/ui/ConfirmDialog.jsx";
 import AIRegulationSuggestionsPanel from "./AIRegulationSuggestionsPanel.jsx";
 import { ListChecks, Trash2, Plus } from "../../../../../components/icons/index.jsx";
 import { clampPercent } from "../../../../../utils/numberGuards.js";
@@ -15,6 +16,10 @@ const EMPTY_ACTION = { title: "", description: "", responsible: "", dueDate: "",
 export default function CorrectiveActionsTab({ entry, theme, onAdd, onUpdate, onRemove }) {
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_ACTION);
+  // UX FIX (Risk Yönetimi cilası — silme güvenliği): bkz. AttachmentsTab.jsx'teki aynı not
+  // — önceden onaysız tek tıkla siliniyordu, uygulamanın diğer tüm silme akışlarıyla
+  // tutarlı hale getirildi.
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const actions = entry.correctiveActions || [];
 
   function submit() {
@@ -75,7 +80,7 @@ export default function CorrectiveActionsTab({ entry, theme, onAdd, onUpdate, on
               <div key={a.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{a.title}</p>
-                  <button onClick={() => onRemove(a.id)} aria-label="Sil"><Trash2 style={{ fontSize: "13px", color: theme.emergencyText }} /></button>
+                  <button onClick={() => setConfirmRemoveId(a.id)} aria-label="Sil"><Trash2 style={{ fontSize: "13px", color: theme.emergencyText }} /></button>
                 </div>
                 {a.description && <p className="text-[11.5px] mb-1.5" style={{ color: theme.textMuted }}>{a.description}</p>}
                 <p className="text-[11px] mb-1.5" style={{ color: theme.textFaint }}>
@@ -102,6 +107,16 @@ export default function CorrectiveActionsTab({ entry, theme, onAdd, onUpdate, on
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmRemoveId !== null}
+        title="Faaliyeti sil"
+        message="Bu düzeltici faaliyeti silmek istediğine emin misin? Bu işlem geri alınamaz."
+        confirmLabel="Sil"
+        danger
+        onConfirm={() => { onRemove(confirmRemoveId); setConfirmRemoveId(null); }}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
     </div>
   );
 }

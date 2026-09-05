@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { AlertTriangle } from "../../components/icons/index.jsx";
 
 /**
  * Zorunlu eğitim videosu için "ileri sarma" (seek-ahead) engelli player. Saf HTML5
@@ -26,6 +27,11 @@ export default function NoSkipVideoPlayer({ theme, videoUrl, initialPositionSeco
   const resumeAppliedRef = useRef(false);
   const [progressPercent, setProgressPercent] = useState(0);
   const [fullyWatched, setFullyWatched] = useState(false);
+  // UX FIX (Eğitim cilası): video URL'si yüklenemezse (bozuk bağlantı, ağ hatası vb.)
+  // önceden hiçbir hata durumu yoktu — kullanıcı sadece siyah, boş bir kutu görüyordu,
+  // hiçbir açıklama yoktu. Native <video>'nun `onError` olayı yakalanarak anlaşılır bir
+  // Türkçe mesaj gösteriliyor.
+  const [videoError, setVideoError] = useState(false);
 
   function saveProgress(video) {
     if (!video || !video.duration || !onProgress) return;
@@ -87,29 +93,42 @@ export default function NoSkipVideoPlayer({ theme, videoUrl, initialPositionSeco
   return (
     <div>
       <div className="rounded-xl overflow-hidden mb-2" style={{ background: "#000" }}>
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          controls
-          controlsList="nodownload"
-          onLoadedMetadata={handleLoadedMetadata}
-          onTimeUpdate={handleTimeUpdate}
-          onSeeking={handleSeeking}
-          onPause={handlePause}
-          onEnded={handleEnded}
-          className="w-full"
-          style={{ maxHeight: "360px" }}
-        />
+        {videoError ? (
+          <div className="w-full flex flex-col items-center justify-center gap-1.5 py-10 px-4 text-center">
+            <AlertTriangle style={{ fontSize: "24px", color: theme.warnText }} />
+            <p className="text-xs font-semibold" style={{ color: "#fff" }}>Video yüklenemedi</p>
+            <p className="text-[10.5px]" style={{ color: theme.textFaint }}>İnternet bağlantınızı kontrol edip sayfayı yenileyin.</p>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            controls
+            controlsList="nodownload"
+            onLoadedMetadata={handleLoadedMetadata}
+            onTimeUpdate={handleTimeUpdate}
+            onSeeking={handleSeeking}
+            onPause={handlePause}
+            onEnded={handleEnded}
+            onError={() => setVideoError(true)}
+            className="w-full"
+            style={{ maxHeight: "360px" }}
+          />
+        )}
       </div>
-      <div className="flex items-center justify-between mb-1">
-        <div className="h-1.5 rounded-full overflow-hidden flex-1 mr-2" style={{ background: theme.surfaceAlt }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: theme.accent }} />
-        </div>
-        <span className="text-[10.5px] font-semibold shrink-0" style={{ color: theme.textMuted }}>%{progressPercent}</span>
-      </div>
-      <p className="text-[10.5px]" style={{ color: theme.textFaint }}>
-        {fullyWatched ? "Video tamamlandı — sınava geçebilirsiniz." : "İleri sarma kapalıdır; sınava geçmek için videonun tamamını izlemeniz gerekir."}
-      </p>
+      {!videoError && (
+        <>
+          <div className="flex items-center justify-between mb-1">
+            <div className="h-1.5 rounded-full overflow-hidden flex-1 mr-2" style={{ background: theme.surfaceAlt }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: theme.accent }} />
+            </div>
+            <span className="text-[10.5px] font-semibold shrink-0" style={{ color: theme.textMuted }}>%{progressPercent}</span>
+          </div>
+          <p className="text-[10.5px]" style={{ color: theme.textFaint }}>
+            {fullyWatched ? "Video tamamlandı — sınava geçebilirsiniz." : "İleri sarma kapalıdır; sınava geçmek için videonun tamamını izlemeniz gerekir."}
+          </p>
+        </>
+      )}
     </div>
   );
 }

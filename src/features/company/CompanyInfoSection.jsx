@@ -76,16 +76,25 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
       phone: form.phone.trim(),
       email: form.email.trim(),
     };
-    const persisted = await saveCompany(saved);
-    setCompany(persisted);
-    onCompanyLoaded(persisted);
-    showToast(company ? "Firma bilgileri güncellendi." : "Firma oluşturuldu.", "success");
-    logActivity({
-      actor: getRoleLabel(role) || role,
-      action: company ? "Firma bilgileri güncellendi" : "Firma oluşturuldu",
-      details: saved.name,
-      entityType: "company",
-    });
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
+    // (örn. depolama alanı erişilemez) kullanıcıya hiçbir geri bildirim verilmiyordu,
+    // buton tekrar aktif oluyordu ama hiçbir açıklama yoktu. Diğer form modülleriyle
+    // (Çalışanlar, Şubeler, Departmanlar) tutarlı hale getirildi.
+    try {
+      const persisted = await saveCompany(saved);
+      setCompany(persisted);
+      onCompanyLoaded(persisted);
+      showToast(company ? "Firma bilgileri güncellendi." : "Firma oluşturuldu.", "success");
+      logActivity({
+        actor: getRoleLabel(role) || role,
+        action: company ? "Firma bilgileri güncellendi" : "Firma oluşturuldu",
+        details: saved.name,
+        entityType: "company",
+      });
+    } catch (err) {
+      console.error("Firma bilgileri kaydedilemedi:", err);
+      showToast("Firma bilgileri kaydedilemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+    }
   }
   // HARDENING: özellikle burada önemli — çift tıklama korunmazsa iki AYRI firma kaydı
   // oluşabilir (uygulamanın geri kalanı tek-firma varsayımıyla çalışıyor, bkz.

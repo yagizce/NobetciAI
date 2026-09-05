@@ -36,8 +36,12 @@ export default function ConfirmDialog({ open, title = "Emin misiniz?", message, 
       <p className="text-sm mb-4" style={{ color: theme.textMuted }}>{message}</p>
       <div className="flex gap-2">
         <Button variant="secondary" onClick={onCancel} disabled={confirming} className="flex-1">{cancelLabel}</Button>
-        <Button variant={danger ? "danger" : "primary"} onClick={handleConfirm} disabled={confirming} className="flex-1">
-          {confirming ? "..." : confirmLabel}
+        <Button variant={danger ? "danger" : "primary"} onClick={handleConfirm} disabled={confirming} aria-busy={confirming} className="flex-1">
+          {/* A11Y FIX: "..." tek başına ekran okuyucu için (ve görsel olarak da) çok az
+              bilgi veriyordu — uygulamanın geri kalanındaki "Kaydediliyor...",
+              "Siliniyor..." gibi anlaşılır Türkçe yükleniyor metinleriyle tutarlı hale
+              getirildi. */}
+          {confirming ? "İşleniyor..." : confirmLabel}
         </Button>
       </div>
     </Modal>

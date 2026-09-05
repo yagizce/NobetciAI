@@ -43,7 +43,7 @@ export default function CourseQuiz({ theme, quiz, passingScorePercent, onSubmit 
           const selected = answers[q.id];
           return (
             <div key={q.id}>
-              <p className="text-sm font-medium mb-1" style={{ color: theme.textPrimary }}>{qi + 1}. {q.question}</p>
+              <p className="text-sm font-medium mb-1 break-words" style={{ color: theme.textPrimary }}>{qi + 1}. {q.question}</p>
               {isMulti && (
                 <p className="text-[10.5px] mb-1.5" style={{ color: theme.textFaint }}>Birden fazla seçenek işaretleyebilirsiniz.</p>
               )}
@@ -54,7 +54,7 @@ export default function CourseQuiz({ theme, quiz, passingScorePercent, onSubmit 
                     <button
                       key={oi}
                       onClick={() => (isMulti ? toggleMulti(q, oi) : selectSingle(q, oi))}
-                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg border"
+                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg border break-words"
                       style={
                         isSelected
                           ? { background: theme.accent, color: theme.onAccent, borderColor: theme.accent }

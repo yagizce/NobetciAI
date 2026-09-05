@@ -7,6 +7,7 @@ import { getEmployees } from "../../../services/employeeService.js";
 import { getFineKinneyEntries } from "../../../services/riskService.js";
 import { getPeriodicChecks } from "../../../services/periodicCheckService.js";
 import { getAuditLog } from "../../../services/auditService.js";
+import { getDocuments } from "../../../services/documentService.js";
 import { getFineKinneyRiskLevel } from "../../../constants/fineKinney.js";
 import { EDUCATION_MODULES } from "../../../constants/education.js";
 import { TRAINING_COURSES } from "../../../constants/trainingCourses.js";
@@ -31,6 +32,7 @@ export function useEmployerDashboardData() {
   const [fineKinneyEntries, setFineKinneyEntries] = useState([]);
   const [periodicChecks, setPeriodicChecks] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [trainingProgress, setTrainingProgress] = useState([]);
   const [trainingCompletionRecords, setTrainingCompletionRecords] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -43,10 +45,10 @@ export function useEmployerDashboardData() {
       setCompany(c);
       if (c) {
         try {
-          const [b, d, e, fk, pc, log, tp, tc] = await Promise.all([
+          const [b, d, e, fk, pc, log, tp, tc, docs] = await Promise.all([
             getBranches(c.id), getDepartments(c.id), getEmployees(c.id),
             getFineKinneyEntries(), getPeriodicChecks(), getAuditLog(),
-            getTrainingProgress(), getTrainingCompletions(),
+            getTrainingProgress(), getTrainingCompletions(), getDocuments(),
           ]);
           if (cancelled) return;
           setBranches(b);
@@ -57,6 +59,7 @@ export function useEmployerDashboardData() {
           setAuditLog(log);
           setTrainingProgress(tp);
           setTrainingCompletionRecords(tc);
+          setDocuments(docs);
         } catch (e) {
           // IndexedDB engellenmiş olabilir (örn. gizli sekme/depolama izni yok) — Dashboard
           // burada çökmek yerine ErrorState gösterebilsin diye hatayı state'e taşıyoruz.
@@ -177,7 +180,7 @@ export function useEmployerDashboardData() {
   );
 
   return {
-    company, branches, departments, employees, fineKinneyEntries, periodicChecks, auditLog, notifications,
+    company, branches, departments, employees, fineKinneyEntries, periodicChecks, auditLog, notifications, documents,
     riskAnalyses, metrics, safetyScore, weeklySummary, accidentFreeStreak, trainingStats, ongoingTrainingItems,
     trainingCompletionRecords, trainingProgressRecords: trainingProgress, last30DayChange, loaded, error,
   };

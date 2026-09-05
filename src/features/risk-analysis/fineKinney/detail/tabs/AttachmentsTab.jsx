@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ATTACHMENT_TYPES } from "../../../../../constants/fineKinney.js";
 import Button from "../../../../../components/ui/Button.jsx";
 import EmptyState from "../../../../../components/EmptyState.jsx";
+import ConfirmDialog from "../../../../../components/ui/ConfirmDialog.jsx";
 import { Paperclip, ImageIcon, FileText, Trash2 } from "../../../../../components/icons/index.jsx";
 
 // Sprint 5A #3: şimdilik yalnızca mock meta veri (ad + tür) saklanır — gerçek dosya
@@ -17,6 +18,11 @@ export default function AttachmentsTab({ entry, theme, onAdd, onRemove }) {
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState("photo");
+  // UX FIX (Risk Yönetimi cilası — silme güvenliği): önceden "Sil" tek tıkla, hiçbir
+  // onay olmadan kalıcı olarak siliyordu — uygulamanın geri kalanındaki (risk kaydı,
+  // departman, çalışan, şube, belge, periyodik kontrol) HER silme akışının aksine.
+  // Aynı, zaten kurulu ConfirmDialog deseniyle tutarlı hale getirildi.
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const attachments = entry.attachments || [];
 
   function submit() {
@@ -75,12 +81,22 @@ export default function AttachmentsTab({ entry, theme, onAdd, onRemove }) {
                   <p className="text-sm font-medium truncate" style={{ color: theme.textPrimary }}>{a.name}</p>
                   <p className="text-[10.5px]" style={{ color: theme.textFaint }}>{a.addedBy} • {new Date(a.addedAt).toLocaleDateString("tr-TR")}</p>
                 </div>
-                <button onClick={() => onRemove(a.id)} aria-label="Sil"><Trash2 style={{ fontSize: "13px", color: theme.emergencyText }} /></button>
+                <button onClick={() => setConfirmRemoveId(a.id)} aria-label="Sil"><Trash2 style={{ fontSize: "13px", color: theme.emergencyText }} /></button>
               </div>
             );
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmRemoveId !== null}
+        title="Dosyayı sil"
+        message="Bu dosyayı riskten kaldırmak istediğine emin misin? Bu işlem geri alınamaz."
+        confirmLabel="Sil"
+        danger
+        onConfirm={() => { onRemove(confirmRemoveId); setConfirmRemoveId(null); }}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
     </div>
   );
 }

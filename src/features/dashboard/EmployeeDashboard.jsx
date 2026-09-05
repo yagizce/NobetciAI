@@ -4,6 +4,7 @@ import { EDUCATION_MODULES } from "../../constants/education.js";
 import { computeAccidentFreeStreak } from "../../utils/accidentFreeStreak.js";
 import { MOCK_USERS } from "../../constants/mockUsers.js";
 import EmptyState from "../../components/EmptyState.jsx";
+import Loading from "../../components/Loading.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import { Bell, ListChecks, BookOpen } from "../../components/icons/index.jsx";
 import StreakCounterCard from "./StreakCounterCard.jsx";
@@ -18,7 +19,7 @@ const CURRENT_EMPLOYEE_NAME = MOCK_USERS.employee?.name || "Çalışan";
  * @param {{ theme: object }} props
  */
 export default function EmployeeDashboard({ theme }) {
-  const { notifications } = useIsgData();
+  const { notifications, loaded: notificationsLoaded } = useIsgData();
 
   const myNotifications = useMemo(() => notifications.filter((n) => n.worker === CURRENT_EMPLOYEE_NAME), [notifications]);
   const myTasks = useMemo(() => myNotifications.filter((n) => n.status === "approved"), [myNotifications]);
@@ -53,7 +54,12 @@ export default function EmployeeDashboard({ theme }) {
           <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
             <Bell style={{ fontSize: "14px" }} /> Bildirimlerim
           </p>
-          {myNotifications.length === 0 ? (
+          {/* UX FIX (loading/empty state cilası): bildirimler context'te ayrı yükleniyor —
+              `loaded` kontrol edilmeden ilk render'da "Henüz bildirimin yok" kısa süreliğine
+              yanlışlıkla gösterilebiliyordu. */}
+          {!notificationsLoaded ? (
+            <Loading label="Bildirimler yükleniyor..." />
+          ) : myNotifications.length === 0 ? (
             <EmptyState icon={Bell} title="Henüz bildirimin yok" description="Risk Analizi sayfasından yeni bildirim oluşturabilirsin." />
           ) : (
             <div className="grid gap-2">
@@ -77,7 +83,9 @@ export default function EmployeeDashboard({ theme }) {
         <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
           <ListChecks style={{ fontSize: "14px" }} /> Kendisine Atanmış Görevler
         </p>
-        {myTasks.length === 0 ? (
+        {!notificationsLoaded ? (
+          <Loading label="Görevler yükleniyor..." />
+        ) : myTasks.length === 0 ? (
           <EmptyState icon={ListChecks} title="Atanmış görev yok" description="Bir bildirimin onaylanıp göreve dönüştüğünde burada görünecek." />
         ) : (
           <div className="grid gap-2 md:grid-cols-2">

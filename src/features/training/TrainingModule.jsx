@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useToast } from "../../contexts/ToastContext.jsx";
 import { TRAINING_COURSES } from "../../constants/trainingCourses.js";
 import { MOCK_USERS } from "../../constants/mockUsers.js";
 import { useTrainingCompletions } from "./useTrainingCompletions.js";
@@ -8,6 +9,7 @@ import CoursePlayer from "./CoursePlayer.jsx";
 import ParticipantListPanel from "./ParticipantListPanel.jsx";
 import DashboardWidget from "../../components/DashboardWidget.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import { Calendar } from "../../components/icons/index.jsx";
 
 /**
@@ -25,23 +27,31 @@ import { Calendar } from "../../components/icons/index.jsx";
  * @param {{ theme: object, role: "expert"|"employer"|"employee" }} props
  */
 export default function TrainingModule({ theme, role }) {
-  const { completions, progress, loaded, recordCompletion, recordProgress } = useTrainingCompletions();
+  const { showToast } = useToast();
+  const { completions, progress, loaded, error, recordCompletion, recordProgress } = useTrainingCompletions();
   const [activeCourse, setActiveCourse] = useState(null);
   const [expandedParticipants, setExpandedParticipants] = useState(null);
   const [courseSettings, setCourseSettings] = useState([]);
 
   useEffect(() => {
-    getTrainingCourseSettings().then(setCourseSettings);
+    getTrainingCourseSettings().then(setCourseSettings).catch((err) => console.error("Eğitim son tarihleri yüklenemedi:", err));
   }, []);
 
   const dueDateFor = (courseId) => courseSettings.find((s) => String(s.courseId || s.id) === String(courseId))?.dueDate || "";
 
   async function handleDueDateChange(courseId, dueDate) {
-    const saved = await saveTrainingCourseDueDate(courseId, dueDate || null);
-    setCourseSettings((prev) => {
-      const rest = prev.filter((s) => String(s.courseId || s.id) !== String(courseId));
-      return dueDate ? [...rest, saved] : rest;
-    });
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
+    // kullanıcı tarihi değiştirmiş gibi görünüyor ama hiçbir geri bildirim almıyordu.
+    try {
+      const saved = await saveTrainingCourseDueDate(courseId, dueDate || null);
+      setCourseSettings((prev) => {
+        const rest = prev.filter((s) => String(s.courseId || s.id) !== String(courseId));
+        return dueDate ? [...rest, saved] : rest;
+      });
+    } catch (err) {
+      console.error("Eğitim son tarihi kaydedilemedi:", err);
+      showToast("Son tarih kaydedilemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+    }
   }
 
   const employeeName = MOCK_USERS[role]?.name || MOCK_USERS.employee.name;
@@ -51,6 +61,7 @@ export default function TrainingModule({ theme, role }) {
   const myProgressFor = (courseId) => progress.find((p) => p.courseId === courseId && p.employeeName === employeeName) || null;
 
   if (!loaded) return <Loading label="Eğitimler yükleniyor..." />;
+  if (error) return <ErrorState title="Eğitim verileri yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
 
   return (
     <div>

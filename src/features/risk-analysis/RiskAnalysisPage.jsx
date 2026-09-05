@@ -15,6 +15,7 @@ import { showLocalNotification } from "../../services/notificationService.js";
 import { Plus, ShieldAlert, BarChart3, Bell, ClipboardList, Camera } from "../../components/icons/index.jsx";
 import Button from "../../components/ui/Button.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
+import Loading from "../../components/Loading.jsx";
 import NotificationCard from "./NotificationCard.jsx";
 import FineKinneyModule from "./FineKinneyModule.jsx";
 import AuditLogPanel from "./AuditLogPanel.jsx";
@@ -28,7 +29,7 @@ function roleLabel(role) {
 }
 
 function NotificationCenterTab({ theme, role }) {
-  const { notifications, addNotification, updateNotification } = useIsgData();
+  const { notifications, loaded: notificationsLoaded, addNotification, updateNotification } = useIsgData();
   const { showToast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [desc, setDesc] = useState("");
@@ -99,9 +100,14 @@ function NotificationCenterTab({ theme, role }) {
         </div>
       )}
 
-      {visibleNotifications.length === 0 && (
+      {/* UX FIX (loading/empty state cilası): bildirimler context'te ayrı yükleniyor —
+          `loaded` kontrol edilmeden ilk render'da "Henüz bildirim yok" kısa süreliğine
+          yanlışlıkla gösterilebiliyordu. */}
+      {!notificationsLoaded ? (
+        <Loading label="Bildirimler yükleniyor..." />
+      ) : visibleNotifications.length === 0 ? (
         <EmptyState icon={ShieldAlert} title="Henüz bildirim yok" description="Yeni bir bildirim oluşturduğunuzda burada görünecek." />
-      )}
+      ) : null}
 
       <div className="grid gap-2.5 md:grid-cols-2">
         {visibleNotifications.map((n) => (

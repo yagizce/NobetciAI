@@ -1,5 +1,151 @@
 # Changelog
 
+## [Denetim Öncesi Hazırlık Checklist'i] — Bu güncelleme
+
+Denetim odaklı iyileştirme serisinin dördüncü ve son parçası. Önceki üç parça
+(fotoğraf kanıtı, zorunlu belge taraması, kapanış kanıtı) burada tek bir ekranda
+birleşiyor: müfettiş gelmeden önce "eksik sayılabilecek her şey" tek bakışta görünüyor.
+
+**Yeni dosyalar:**
+- `utils/auditReadiness.js` → `getAuditReadinessChecklist()`: dört kategoriyi
+  birleştirir — (1) zorunlu belge eksikleri, (2) termini geçmiş açık Fine-Kinney
+  kayıtları, (3) termini geçmiş periyodik kontroller, (4) kanıtsız kapatılmış kayıtlar
+  (Kanıt Zorunluluğu özelliğinden ÖNCEki eski kapanışlar için).
+  **Not:** `utils/attentionItems.js`'ten FARKLI bir fonksiyon — o yalnızca
+  `entry.correctiveActions[]` alt-listesini kontrol ediyor, kaydın kendi ÜST SEVİYE
+  `dueDate`/`status`'unu hiç kontrol etmiyordu. Bu, mevcut bir kapsam boşluğuydu;
+  `attentionItems.js` dokunulmadan (paylaşılan/başka yerlerde kullanılan bir util,
+  büyük bir refactor riski taşımadan) burada ayrıca kapatıldı.
+- `features/dashboard/employer/AuditReadinessChecklist.jsx`: varsayılan kapalı özet
+  satırı ("Denetime Hazırsınız" / "N eksik bulundu") + genişletilebilir detay listesi.
+
+**Değişenler:**
+- `AuditPackageButton.jsx`: eski dar kapsamlı "eksik zorunlu belge" uyarı satırı
+  kaldırıldı (checklist bunu zaten kapsıyor, tekrar önlendi); `AuditReadinessChecklist`
+  dosya oluşturma alanının üstüne eklendi. Yeni veri akışı gerekmedi — bileşen zaten
+  `documents`/`fineKinneyEntries`/`periodicChecks` alıyordu.
+
+### Doğrulama
+Yine statik kod okumasıyla doğrulandı. Kullanıma almadan önce: kasıtlı olarak
+(a) bir zorunlu belgeyi eksik bırak, (b) termini geçmiş bir risk kaydı oluştur,
+(c) eski/kanıtsız kapatılmış bir kayıt varsa, checklist'in hepsini doğru kategoriyle
+listelediğini doğrula; sonra hepsini düzelt, "Denetime Hazırsınız" durumuna döndüğünü
+doğrula.
+
+---
+
+## [Düzeltici Faaliyet Kanıt Zorunluluğu] — Bu güncelleme
+
+Denetim odaklı iyileştirme serisinin üçüncü parçası. Bir Fine-Kinney kaydı "Kapandı"
+işaretlenirken artık bir not veya fotoğraftan en az biri zorunlu — böylece "kapandı"
+denilen her kayıt, denetimde gösterilebilecek somut bir kanıtla birlikte geliyor.
+
+**Yeni dosyalar:**
+- `services/closureEvidenceService.js`: `riskDetectionPhotoService.js` ile birebir
+  aynı desen (ayrı store + companyScoped + firma kontrolsüz tekil okuma).
+- `features/risk-analysis/fineKinney/ClosureEvidenceFields.jsx`: not alanı + kamera/
+  galeri fotoğraf seçimi + önizleme, yalnızca UI (zorunluluk mantığı formda).
+
+**Değişenler:**
+- `db.js`: `DB_VERSION` 12 → 13, yeni `closureEvidencePhotos` store'u `STORES`'a eklendi.
+- `types/index.js`: `FineKinneyEntry`'e `closureNote`/`closurePhotoId` eklendi.
+- `FineKinneyForm.jsx`: `form.status === "done"` iken `ClosureEvidenceFields`
+  gösteriliyor; not/fotoğraf yoksa Kaydet/Güncelle butonu devre dışı kalıyor. Fotoğraf
+  seçimi anında sıkıştırılıp (compressImageToDataUrl) yalnızca `pendingClosurePhotoDataUrl`
+  olarak form state'inde tutuluyor — closureEvidenceService'e henüz YAZILMIYOR (form
+  iptal edilirse depoda öksüz kayıt kalmasın diye).
+- `FineKinneyModule.jsx` → `handleSubmit`: `pendingClosurePhotoDataUrl` varsa submit
+  anında `saveClosureEvidencePhoto` ile kalıcı hale getirilip `closurePhotoId`'ye
+  çevriliyor. `openEditForm`: mevcut kayıttan closureNote/closurePhotoId'yi forma taşıyor.
+- `useFineKinneyEntries.js` → `saveEntry`: departmentId/branchId ile aynı desende
+  kalıcı kayda yazılıyor, düzenlemede korunuyor.
+- `auditPackageExport.js` → `resolveEntryPhoto`: artık ÖNCE kapanış kanıtına, yoksa
+  tehlike fotoğrafına bakıyor (denetçi için asıl önemli olan giderildiğinin kanıtı).
+
+**Kapsam dışı bırakılan (bilinçli):** Sprint 5A'daki `correctiveActions` alt-listesi
+(bir kayda bağlı BİRDEN FAZLA düzeltici faaliyet) bu zorunluluğun kapsamına alınmadı —
+yalnızca kaydın ANA `status` alanı kontrol ediliyor. Var olan öksüz fotoğraf temizliği
+(bir kayıt silindiğinde/fotoğrafı değiştirildiğinde eski `closureEvidencePhotos`
+kaydının silinmesi) de kapsam dışı — `riskDetectionPhotos` için de aynı sınırlama
+zaten kabul edilmişti, tutarlılık için aynı karar korundu.
+
+### Doğrulama
+Yine statik kod okumasıyla doğrulandı, gerçek tarayıcı testi YAPILMADI. Kullanıma
+almadan önce: bir kaydı "Kapandı" yapmaya çalış, not/fotoğraf girmeden kaydetmenin
+engellendiğini doğrula; sonra bir fotoğraf ekleyip kaydet, Denetim Dosyası'nda o
+kaydın kanıt fotoğrafının (artık kapanış fotoğrafı) göründüğünü doğrula.
+
+## [Denetim Dosyası — Eksik Zorunlu Belge Taraması] — Bu güncelleme
+
+Denetim odaklı iyileştirme serisinin ikinci parçası. Risk Değerlendirme Raporu ve
+Acil Durum Planı gibi temel belgelerin sistemde olup olmadığı artık otomatik
+kontrol ediliyor.
+
+**Yeni dosyalar:**
+- `constants/mandatoryDocuments.js`: baseline (temel) zorunlu belge listesi —
+  bilinçli olarak yalnızca 2 belgeyle sınırlı (Risk Değerlendirme Raporu, Acil Durum
+  Planı). Dosya içinde açık bir uyarı var: bu HUKUKİ TAM LİSTE DEĞİL, sektöre/tehlike
+  sınıfına göre ek zorunluluklar olabilir.
+- `utils/mandatoryDocumentsCheck.js` → `getMandatoryDocumentStatus()`: her tür için
+  "ok" (tamamlanmış kaydı var) / "draftOnly" (yalnızca taslağı var) / "missing"
+  (hiç kaydı yok) durumunu döner.
+
+**Değişenler:**
+- `useEmployerDashboardData.js`: `documents` artık diğer dashboard verileriyle
+  birlikte tek seferde yükleniyor (önceden bu hook belgeleri hiç çekmiyordu).
+- `EmployerOverviewTab.jsx`: `documents`'ı `AuditPackageButton`'a iletiyor.
+- `AuditPackageButton.jsx`: dosya oluşturulmadan önce, eksik/taslak zorunlu belge
+  varsa widget üzerinde uyarı satırı gösteriyor (işveren denetimden önce fark etsin).
+- `auditPackageExport.js`: yeni "Zorunlu Belge Durumu" bölümü + özet satırında
+  eksik/taslak sayısı — Fine-Kinney tablosundan ÖNCE, dosyanın en üstünde.
+
+### Doğrulama
+Yine `node_modules`/build ortamı yok — statik kod okumasıyla doğrulandı. Kullanıma
+almadan önce: Belgeler modülünde bilerek "Acil Durum Planı" oluşturmadan Denetim
+Dosyası'nı aç, uyarının hem widget'ta hem dosyada göründüğünü doğrula; sonra belgeyi
+"completed" olarak ekleyip durumun "Mevcut"a döndüğünü doğrula.
+
+## [Denetim Dosyası — Fotoğraf Kanıtı] — Bu güncelleme
+
+Denetim odaklı iyileştirme serisinin ilk parçası (kullanıcı isteği: "denetimcilerin
+bakacağı, işverenin işini kolaylaştıracak, maliyet azaltıcı"). Phase 6 Vision AI ile
+tespit edilen tehlike fotoğrafları artık Denetim Dosyası'na kadar ulaşıyor.
+
+**Bulunan kök sorun:** Risk Tespiti'nden ("Sahaya İn" / "AI ile Taslak Oluştur")
+Fine-Kinney'e köprülenen kayıtlarda `photoId`/`photoDataUrl` hiç taşınmıyordu —
+`departmentId` için daha önce düzeltilen "sessiz veri kaybı" ile aynı sınıftan bir
+bug (bkz. RiskDetectionCard.jsx). Fotoğraf sistemde duruyordu ama hiçbir yerde
+gösterilmiyordu.
+
+**Değişenler:**
+- `RiskDetectionCard.jsx` → `handleSendManual`/`handleSendAiDraft`: `photoId`/
+  `photoDataUrl` artık `extra` içinde köprüleniyor.
+- `FineKinneyModule.jsx` → `openDraftForm`: bu alanları forma taşıyor.
+- `FineKinneyForm.jsx` → `EMPTY_FINE_KINNEY_FORM`: varsayılan alanlar eklendi.
+- `useFineKinneyEntries.js` → `saveEntry`: `departmentId`/`branchId` ile aynı desende
+  kalıcı kayda yazılıyor, düzenlemede korunuyor.
+- `types/index.js` → `FineKinneyEntry` typedef'i güncellendi.
+- `auditPackageExport.js`: yeni `resolveEntryPhoto()` — `photoId` varsa
+  `riskDetectionPhotoService`'ten (IndexedDB), `photoDataUrl` varsa (legacy) doğrudan
+  çözülüyor; tüm fotoğraflar popup açılmadan ÖNCE `Promise.all` ile paralel
+  çözümleniyor (aynı desen: `FineKinneyExportButtons.jsx` → `handlePdfExport`'ta
+  `getPrimaryCompany` için zaten kullanılıyordu). Risk tablosuna 56×56px küçük
+  resim içeren yeni bir "Kanıt" sütunu eklendi.
+- `AuditPackageButton.jsx`: `handleGenerate` async'e çevrildi.
+
+**Kapsam dışı bırakılan (bilinçli):** Manuel girilen Fine-Kinney kayıtlarında hâlâ
+gerçek dosya eki yok — `attachments` alanı Sprint 5A'dan beri mock/metadata-only.
+Bu ayrı, daha büyük bir iş (gerçek dosya depolama) ve bu sprintin kapsamına
+alınmadı; "Kanıt" sütunu bu kayıtlarda boş kalıyor.
+
+### Doğrulama
+Bu ortamda `node_modules` yok / internet yok — gerçek bir `npm run build` veya
+tarayıcıda manuel deneme YAPILMADI. Değişiklikler yalnızca statik olarak (parantez
+dengesi + kod okuması ile veri akışının uçtan uca izlenmesi) doğrulandı. Kullanıma
+almadan önce: (1) Risk Tespiti'nde fotoğraflı bir bulguyu Fine-Kinney'e köprüleyip
+kaydet, (2) Denetim Dosyası'nı o kaydı kapsayan bir aralıkla oluştur, (3) küçük
+resmin göründüğünü doğrula.
+
 ## [Backend Planlama — Davet Linki, Hesap Türü Kısıtı, Rol Yetkisi] — Bu güncelleme
 
 ⚠️ SADECE PLANLAMA — `docs/backend-migration/` dışına, `src/`'e HİÇBİR DOKUNMA

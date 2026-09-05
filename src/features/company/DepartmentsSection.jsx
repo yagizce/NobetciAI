@@ -11,6 +11,7 @@ import CsvImportButton from "../../components/CsvImportButton.jsx";
 import Button from "../../components/ui/Button.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import { Plus, Trash2 } from "../../components/icons/index.jsx";
 
@@ -22,13 +23,20 @@ export default function DepartmentsSection({ theme, companyId }) {
   const { role } = useRole();
   const [departments, setDepartments] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [newName, setNewName] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
-    ensureDefaultDepartments(companyId).then(() =>
-      getDepartments(companyId).then((data) => { setDepartments(data); setLoaded(true); })
-    );
+    ensureDefaultDepartments(companyId)
+      .then(() => getDepartments(companyId).then((data) => { setDepartments(data); setLoaded(true); }))
+      .catch((err) => {
+        // BUG FIX (Sprint 8 polish): iç içe .then zincirinde hiç .catch() yoktu — hata
+        // durumunda `loaded` hiç true olmuyor, bölüm SONSUZA KADAR yükleniyor görünüyordu.
+        console.error("Departmanlar yüklenemedi:", err);
+        setLoadError(err);
+        setLoaded(true);
+      });
   }, [companyId]);
 
   async function handleAdd() {
@@ -42,11 +50,19 @@ export default function DepartmentsSection({ theme, companyId }) {
       return;
     }
     const entry = { id: createId(), companyId, name: newName.trim(), isCustom: true };
-    await saveDepartment(entry);
-    setDepartments((prev) => [...prev, entry]);
-    setNewName("");
-    showToast("Departman eklendi.", "success");
-    logActivity({ actor: getRoleLabel(role) || role, action: "Departman eklendi", details: entry.name, entityType: "department" });
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
+    // (aynı bölümdeki `handleConfirmDelete`'in aksine) kullanıcıya hiçbir geri bildirim
+    // verilmiyordu.
+    try {
+      await saveDepartment(entry);
+      setDepartments((prev) => [...prev, entry]);
+      setNewName("");
+      showToast("Departman eklendi.", "success");
+      logActivity({ actor: getRoleLabel(role) || role, action: "Departman eklendi", details: entry.name, entityType: "department" });
+    } catch (err) {
+      console.error("Departman eklenemedi:", err);
+      showToast("Departman eklenemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+    }
   }
   // HARDENING: çift tıklama/Enter tuşuna basılı tutma koruması (bkz. hooks/useSubmitGuard.js).
   const [guardedHandleAdd, isSubmitting] = useSubmitGuard(handleAdd);
@@ -84,15 +100,25 @@ export default function DepartmentsSection({ theme, companyId }) {
   }
 
   async function handleBulkImport(entities) {
-    for (const entity of entities) {
-      await saveDepartment(entity);
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — döngü ortasında bir kayıt
+    // başarısız olursa hata yakalanmadan fırlıyor, kullanıcıya kaç kaydın gerçekten
+    // eklendiği hiç bildirilmiyordu (bkz. PeriodicChecksPanel.jsx'teki toplu güncelleme
+    // hatasıyla aynı, zaten kurulu ifade kalıbı).
+    try {
+      for (const entity of entities) {
+        await saveDepartment(entity);
+      }
+      setDepartments((prev) => [...prev, ...entities]);
+      showToast(`${entities.length} departman içe aktarıldı.`, "success");
+      logActivity({ actor: getRoleLabel(role) || role, action: "Toplu departman içe aktarma", details: `${entities.length} kayıt`, entityType: "department" });
+    } catch (err) {
+      console.error("Toplu departman içe aktarma başarısız:", err);
+      showToast("Toplu içe aktarma tamamlanamadı. Başarılı kayıtlar korunmuş olabilir; sayfayı yenileyip kontrol edin.", "error");
     }
-    setDepartments((prev) => [...prev, ...entities]);
-    showToast(`${entities.length} departman içe aktarıldı.`, "success");
-    logActivity({ actor: getRoleLabel(role) || role, action: "Toplu departman içe aktarma", details: `${entities.length} kayıt`, entityType: "department" });
   }
 
   if (!loaded) return <Loading label="Departmanlar yükleniyor..." />;
+  if (loadError) return <ErrorState title="Departmanlar yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
 
   return (
     <div>

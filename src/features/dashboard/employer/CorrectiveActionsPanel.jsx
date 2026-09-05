@@ -26,8 +26,8 @@ export default function CorrectiveActionsPanel({ theme, fineKinneyEntries }) {
         return (
           <div key={entry.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
             <div className="flex items-start justify-between gap-2 mb-1">
-              <p className="text-sm font-medium leading-snug" style={{ color: theme.textPrimary }}>{entry.hazard}</p>
-              <Badge tone={priorityMeta.tone}>{priorityMeta.label}</Badge>
+              <p className="text-sm font-medium leading-snug min-w-0 break-words" style={{ color: theme.textPrimary }}>{entry.hazard}</p>
+              <span className="shrink-0"><Badge tone={priorityMeta.tone}>{priorityMeta.label}</Badge></span>
             </div>
             <p className="text-[11px] mb-1.5" style={{ color: theme.textFaint }}>
               {entry.responsible || "Sorumlu atanmadı"} {entry.dueDate && `• Termin: ${entry.dueDate}`}

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { Home, MessageSquare, ShieldAlert, FileText, Scale, UserRound, Settings, X, HardHat, BookOpen } from "../components/icons/index.jsx";
@@ -26,6 +27,18 @@ const NAV_ITEMS = [
  */
 export default function Sidebar({ mobileOpen, onClose }) {
   const { theme } = useTheme();
+
+  // A11Y FIX: Modal.jsx'te olduğu gibi (bkz. o dosyadaki not) bu çekmece de Escape
+  // tuşuna hiç yanıt vermiyordu — ayrı bir bileşen olduğu için oradaki düzeltme bunu
+  // kapsamıyor, burada da aynı desen uygulandı.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen, onClose]);
 
   const content = (
     <div className="h-full flex flex-col" style={{ background: theme.header, borderRight: `1px solid ${theme.border}` }}>
@@ -75,7 +88,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute left-0 top-0 h-full w-64">{content}</div>
+      <div role="dialog" aria-modal="true" aria-label="Gezinme menüsü" className="absolute left-0 top-0 h-full w-64">{content}</div>
     </div>
   );
 }

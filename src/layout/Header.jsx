@@ -46,7 +46,7 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
           önceden `md:hidden` ile gerçek masaüstü genişliğinde gizlenip yerini kalıcı
           Sidebar'a bırakıyordu; artık Sidebar HER ZAMAN çekmece (bkz. Sidebar.jsx), bu
           yüzden menü butonu da her zaman gerekli. */}
-      <button onClick={onMenuClick} aria-label="Menü">
+      <button onClick={onMenuClick} aria-label="Menü" className="p-2.5 -m-2.5 rounded-lg">
         <Menu style={{ fontSize: "20px", color: theme.textPrimary }} />
       </button>
 
@@ -74,7 +74,7 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
 
       {/* Profile menu */}
       <div className="relative" ref={profileMenuRef}>
-        <button onClick={() => setProfileOpen((v) => !v)} className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full" style={{ background: theme.surfaceAlt }}>
+        <button onClick={() => setProfileOpen((v) => !v)} aria-label="Profil menüsü" aria-haspopup="true" aria-expanded={profileOpen} className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full" style={{ background: theme.surfaceAlt }}>
           <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: theme.accent, color: theme.onAccent }}>
             <UserRound style={{ fontSize: "14px" }} />
           </div>

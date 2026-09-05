@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useKnowledgeAI } from "./useKnowledgeAI.js";
 import Button from "../../components/ui/Button.jsx";
 import { Sparkles, X, ChevronDown } from "../../components/icons/index.jsx";
+import MarkdownLite from "../../components/MarkdownLite.jsx";
 
 /**
  * Sprint 7.3 — "AI'ya Sor" paneli. Varsayılan kapalı (sayfa kalabalıklaşmasın diye),
@@ -67,7 +68,9 @@ export default function KnowledgeAIAssistant({ theme, documents, onOpenDocument 
 
       {answer && (
         <div className="rounded-lg px-3 py-2.5 mb-2" style={{ background: theme.surface, border: `1px solid ${theme.border}` }}>
-          <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap" style={{ color: theme.textPrimary }}>{answer}</p>
+          <div className="text-[12.5px] leading-relaxed" style={{ color: theme.textPrimary }}>
+            <MarkdownLite text={answer} theme={theme} />
+          </div>
         </div>
       )}
 

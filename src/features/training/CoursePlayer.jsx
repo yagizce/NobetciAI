@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NoSkipVideoPlayer from "./NoSkipVideoPlayer.jsx";
 import CourseQuiz from "./CourseQuiz.jsx";
 import { printTrainingCompletionCertificate } from "./printTrainingCompletionCertificate.js";
@@ -25,6 +25,9 @@ export default function CoursePlayer({ theme, course, employeeName, myProgress, 
   const [videoWatched, setVideoWatched] = useState(alreadyFullyWatched);
   const [result, setResult] = useState(null);
   const [popupBlocked, setPopupBlocked] = useState(false);
+  // UX FIX (Eğitim cilası — çift tıklama): `handlePrintCertificate` async (getPrimaryCompany
+  // beklemesi var) — hızlı çift tıklamada iki ayrı yazdırma penceresi açılabiliyordu.
+  const [printing, setPrinting] = useState(false);
 
   function handleQuizSubmit({ scorePercent, passed }) {
     setResult({ scorePercent, passed });
@@ -39,23 +42,43 @@ export default function CoursePlayer({ theme, course, employeeName, myProgress, 
   }
 
   async function handlePrintCertificate() {
-    const company = await getPrimaryCompany();
-    const opened = printTrainingCompletionCertificate({
-      employeeName,
-      courseTitle: course.title,
-      completedAt: new Date().toISOString(),
-      quizScore: result.scorePercent,
-      companyName: company?.name,
-    });
-    setPopupBlocked(!opened);
+    if (printing) return;
+    setPrinting(true);
+    try {
+      const company = await getPrimaryCompany();
+      const opened = printTrainingCompletionCertificate({
+        employeeName,
+        courseTitle: course.title,
+        completedAt: new Date().toISOString(),
+        quizScore: result.scorePercent,
+        companyName: company?.name,
+      });
+      setPopupBlocked(!opened);
+    } finally {
+      setPrinting(false);
+    }
   }
+
+  // A11Y FIX: diğer tüm modal/çekmecelerde olduğu gibi (bkz. Modal.jsx, Sidebar.jsx)
+  // Escape tuşu kapatmalı — ama BURADA kasıtlı bir istisna korunuyor: sınav adımında
+  // (step === "quiz") X butonu da, arka plana tıklama da zaten devre dışı (yukarıdaki
+  // aynı `step !== "quiz"` şartına bakın) — "no-skip" eğitim akışının kullanıcıyı
+  // yarıda sınavdan kolayca çıkarmaması kasıtlı bir tasarım kararı. Escape bu kuralı
+  // atlamamalı, aynı şartla tutarlı olmalı.
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape" && step !== "quiz") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [step, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-2 sm:px-4">
       <div className="absolute inset-0 bg-black/40" onClick={step !== "video" ? undefined : onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl p-4 sm:p-5 max-h-[90vh] overflow-y-auto" style={{ background: theme.surface, border: `1px solid ${theme.border}` }}>
+      <div role="dialog" aria-modal="true" aria-label={course.title} className="relative w-full max-w-lg rounded-2xl p-4 sm:p-5 max-h-[90vh] overflow-y-auto" style={{ background: theme.surface, border: `1px solid ${theme.border}` }}>
         <div className="flex items-start justify-between gap-2 mb-3">
-          <p className="font-[Oswald] text-base uppercase tracking-wide" style={{ color: theme.textPrimary }}>{course.title}</p>
+          <p className="font-[Oswald] text-base uppercase tracking-wide min-w-0 break-words" style={{ color: theme.textPrimary }}>{course.title}</p>
           {step !== "quiz" && (
             <button onClick={onClose} aria-label="Kapat" className="p-1.5 -m-1.5 -mt-1 rounded-lg shrink-0"><X style={{ fontSize: "18px", color: theme.textMuted }} /></button>
           )}
@@ -99,8 +122,8 @@ export default function CoursePlayer({ theme, course, employeeName, myProgress, 
             </p>
             {result.passed && (
               <>
-                <Button variant="secondary" onClick={handlePrintCertificate} className="w-full mb-2 flex items-center justify-center gap-1.5">
-                  <FileText style={{ fontSize: "14px" }} /> Tamamlama Belgesini İndir (PDF)
+                <Button variant="secondary" onClick={handlePrintCertificate} disabled={printing} className="w-full mb-2 flex items-center justify-center gap-1.5">
+                  <FileText style={{ fontSize: "14px" }} /> {printing ? "Hazırlanıyor..." : "Tamamlama Belgesini İndir (PDF)"}
                 </Button>
                 {popupBlocked && (
                   <p className="text-[10.5px] mb-2" style={{ color: theme.warnText }}>

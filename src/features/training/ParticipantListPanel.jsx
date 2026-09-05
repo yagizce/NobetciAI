@@ -21,6 +21,9 @@ import { getPrimaryCompany } from "../../services/companyService.js";
  */
 export default function ParticipantListPanel({ theme, course, progress, completions }) {
   const [popupBlockedFor, setPopupBlockedFor] = useState(null);
+  // UX FIX (Eğitim cilası — çift tıklama): CoursePlayer.jsx'teki aynı sorunun aynısı —
+  // handlePrintCertificate async, buton önceden hiç devre dışı bırakılmıyordu.
+  const [printingFor, setPrintingFor] = useState(null);
 
   const courseProgress = progress.filter((p) => p.courseId === course.id);
   const courseCompletions = completions.filter((c) => c.courseId === course.id);
@@ -44,15 +47,21 @@ export default function ParticipantListPanel({ theme, course, progress, completi
   }).sort((a, b) => new Date(b.lastActivityAt || 0) - new Date(a.lastActivityAt || 0));
 
   async function handlePrintCertificate(row) {
-    const company = await getPrimaryCompany();
-    const opened = printTrainingCompletionCertificate({
-      employeeName: row.employeeName,
-      courseTitle: course.title,
-      completedAt: row.completedAt,
-      quizScore: row.quizScore,
-      companyName: company?.name,
-    });
-    setPopupBlockedFor(opened ? null : row.employeeName);
+    if (printingFor) return;
+    setPrintingFor(row.employeeName);
+    try {
+      const company = await getPrimaryCompany();
+      const opened = printTrainingCompletionCertificate({
+        employeeName: row.employeeName,
+        courseTitle: course.title,
+        completedAt: row.completedAt,
+        quizScore: row.quizScore,
+        companyName: company?.name,
+      });
+      setPopupBlockedFor(opened ? null : row.employeeName);
+    } finally {
+      setPrintingFor(null);
+    }
   }
 
   if (rows.length === 0) {
@@ -77,8 +86,8 @@ export default function ParticipantListPanel({ theme, course, progress, completi
             </div>
           </div>
           {r.status.id === "completed" && (
-            <button onClick={() => handlePrintCertificate(r)} className="flex items-center gap-1 text-[10.5px] font-semibold mt-1.5" style={{ color: theme.accent }}>
-              <FileText style={{ fontSize: "11px" }} /> Tamamlama Belgesini İndir
+            <button onClick={() => handlePrintCertificate(r)} disabled={printingFor === r.employeeName} className="flex items-center gap-1 text-[10.5px] font-semibold mt-1.5 disabled:opacity-60" style={{ color: theme.accent }}>
+              <FileText style={{ fontSize: "11px" }} /> {printingFor === r.employeeName ? "Hazırlanıyor..." : "Tamamlama Belgesini İndir"}
             </button>
           )}
           {popupBlockedFor === r.employeeName && (

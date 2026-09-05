@@ -9,7 +9,10 @@ const ENTITY_ROUTES = {
   riskDetection: "/risk-analysis", // Phase 9.1 — Risk Tespiti sekmesi de aynı sayfada; en azından doğru sayfaya yönlendirir
   periodicCheck: "/documents?tab=periodicChecks",
   training: "/documents?tab=education",
-  equipment: "/documents?tab=equipment",
+  // QR Kod → Periyodik Kontrol entegrasyonu: "equipment" (Ekipman Kayıtları) sekmesi
+  // kaldırıldı, işlevi Periyodik Kontroller'e taşındı — eski "Ekipman eklendi" aktivite
+  // kayıtları artık oraya yönlendiriyor (var olmayan bir sekmeye değil).
+  equipment: "/documents?tab=periodicChecks",
   document: "/documents?tab=generator",
   employee: "/settings",
   department: "/settings",

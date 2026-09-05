@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { patchFineKinneyEntry } from "../../../../services/riskService.js";
 import { logActivity } from "../../../../services/auditService.js";
 import { useRole } from "../../../../contexts/RoleContext.jsx";
+import { useToast } from "../../../../contexts/ToastContext.jsx";
 import { getRoleLabel } from "../../../../constants/allRoles.js";
 import { makeHistoryEvent } from "../historyEvent.js";
 import { clampPercent } from "../../../../utils/numberGuards.js";
@@ -17,20 +18,33 @@ import { createId } from "../../../../utils/id.js";
  */
 export function useFineKinneyDetail(entry, onUpdated) {
   const { role } = useRole();
+  const { showToast } = useToast();
   const actorLabel = getRoleLabel(role);
 
   const persist = useCallback(async (fields, historyEvent, activityAction) => {
     if (!entry) return;
     const withHistory = historyEvent ? { history: [...(entry.history || []), historyEvent] } : {};
-    const updated = await patchFineKinneyEntry(entry.id, { ...fields, ...withHistory });
-    if (updated) {
-      onUpdated(updated);
-      if (activityAction) {
-        logActivity({ actor: actorLabel, action: activityAction, details: entry.hazard, entityType: "fineKinney" });
+    // UX FIX (Risk Yönetimi cilası): önceden try/catch yoktu — Ek Dosyalar/Düzeltici
+    // Faaliyetler/Notlar sekmelerindeki ekleme/güncelleme/silme işlemlerinden biri
+    // başarısız olursa (örn. depolama alanı erişilemez) kullanıcıya hiçbir geri bildirim
+    // verilmiyordu; form kapanıyor ama değişiklik aslında kaydedilmemiş oluyordu. Ana
+    // Fine-Kinney formundaki (FineKinneyModule.jsx handleSubmit) aynı try/catch + toast
+    // deseniyle tutarlı hale getirildi.
+    try {
+      const updated = await patchFineKinneyEntry(entry.id, { ...fields, ...withHistory });
+      if (updated) {
+        onUpdated(updated);
+        if (activityAction) {
+          logActivity({ actor: actorLabel, action: activityAction, details: entry.hazard, entityType: "fineKinney" });
+        }
       }
+      return updated;
+    } catch (err) {
+      console.error("Risk detayı güncellenemedi:", err);
+      showToast("Değişiklik kaydedilemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+      return null;
     }
-    return updated;
-  }, [entry, onUpdated, actorLabel]);
+  }, [entry, onUpdated, actorLabel, showToast]);
 
   const addAttachment = useCallback((attachment) => {
     const newAttachment = { id: createId(), addedAt: new Date().toISOString(), addedBy: actorLabel, ...attachment };

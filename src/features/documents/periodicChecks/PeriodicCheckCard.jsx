@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { getCategoryLabel, getCheckStatusStyle } from "../../../constants/periodicCheck.js";
-import { Trash2, CheckCircle2 } from "../../../components/icons/index.jsx";
+import { Trash2, CheckCircle2, QrCode } from "../../../components/icons/index.jsx";
 
 /**
  * @param {{ check: object, theme: object, departmentName?: string, onOpenDetail: (check: object) => void, onEdit: (check: object) => void, onDelete: (id: number) => void, onMarkChecked: (id: number) => void, selected?: boolean, onToggleSelect?: (id: number) => void }} props
@@ -37,7 +37,10 @@ function PeriodicCheckCard({ check, theme, departmentName, onOpenDetail, onEdit,
               aria-label={`${check.itemName} seç`}
             />
           )}
-          <p className="text-sm font-semibold leading-snug" style={{ color: theme.textPrimary }}>{check.itemName}</p>
+          <p className="text-sm font-semibold leading-snug min-w-0 break-words" style={{ color: theme.textPrimary }}>{check.itemName}</p>
+          {/* QR Kod → Periyodik Kontrol: bu ekipman bir QR etiketine bağlıysa küçük bir
+              rozetle işaretlenir — "üstünde QR olan şeyleri kolayca takip edebilme" isteği. */}
+          {check.qrCode && <QrCode style={{ fontSize: "12px", color: theme.textFaint }} className="shrink-0 mt-0.5" />}
         </div>
         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0" style={{ background: statusStyle.bg, color: statusStyle.text }}>
           {statusStyle.label}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ShieldAlert, BarChart3, ListChecks, Paperclip, History, StickyNote } from "../../../../components/icons/index.jsx";
 import { useFineKinneyDetail } from "./useFineKinneyDetail.js";
 import RiskInfoTab from "./tabs/RiskInfoTab.jsx";
@@ -29,12 +29,25 @@ export default function FineKinneyDetailDrawer({ entry, theme, mode, onClose, on
   const [tab, setTab] = useState("info");
   const detail = useFineKinneyDetail(entry, onEntryUpdated);
 
+  // A11Y FIX (bkz. Modal.jsx'teki aynı not): Escape ile kapatma eklendi.
+  useEffect(() => {
+    if (!entry) return;
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [entry, onClose]);
+
   if (!entry) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-2 sm:px-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={entry.hazard}
         className="relative w-full max-w-2xl rounded-2xl p-4 sm:p-5 max-h-[90vh] overflow-y-auto"
         style={{ background: theme.surface, border: `1px solid ${theme.border}` }}
       >

@@ -7,11 +7,22 @@ const DB_NAME = "nobetci-isg";
 // kayıtları yalnızca `photoId` referansı tutuyor (bkz. riskDetectionPhotoService.js).
 // Eski `photoDataUrl` alanı (artık üretilmeyen, kaldırılmış tek-tespit fotoğraf akışının geçmiş
 // kayıtlar için) hâlâ destekleniyor — geriye dönük uyumluluk bozulmadı.
-const DB_VERSION = 12;
+//
+// v13: closureEvidencePhotos store eklendi — Düzeltici Faaliyet Kanıt Zorunluluğu
+// sprinti. Bir Fine-Kinney kaydı "Kapandı" işaretlenirken eklenebilen kanıt fotoğrafı,
+// aynı riskDetectionPhotos deseniyle (ayrı store + id referansı) saklanır (bkz.
+// closureEvidenceService.js).
+//
+// v14: periodicCheckPhotos store eklendi — QR Kod → Periyodik Kontrol entegrasyonu.
+// Üzerinde QR etiketi olan bir ekipmanın (yangın tüpü, elektrik panosu vb.) kontrolü
+// yapılırken (örn. basınç göstergesi okuması) eklenebilen fotoğraf, AYNI desenle
+// (riskDetectionPhotos/closureEvidencePhotos) ayrı saklanır (bkz.
+// periodicCheckPhotoService.js). PeriodicCheck kaydı yalnızca `photoId` referansı taşır.
+const DB_VERSION = 14;
 // Export edilir: backupService.js gibi "tüm store'ları dolaş" ihtiyacı olan kodlar bu
 // listeyi TEKRAR TANIMLAMAK yerine buradan alır — yeni bir store eklendiğinde (bkz.
 // DB_VERSION artışı) yedekleme kodunun ayrıca güncellenmesi gerekmez, otomatik kapsar.
-export const STORES = ["equipment", "notifications", "risks", "fineKinney", "documents", "periodicChecks", "auditLog", "companies", "branches", "departments", "employees", "systemNotifications", "trainingCompletions", "trainingProgress", "riskDetections", "trainingCourseSettings", "riskDetectionPhotos"];
+export const STORES = ["equipment", "notifications", "risks", "fineKinney", "documents", "periodicChecks", "auditLog", "companies", "branches", "departments", "employees", "systemNotifications", "trainingCompletions", "trainingProgress", "riskDetections", "trainingCourseSettings", "riskDetectionPhotos", "closureEvidencePhotos", "periodicCheckPhotos"];
 
 // REFACTOR: Bağlantı önbelleği — saveData/loadAllData/deleteData her çağrıldığında
 // önceden `indexedDB.open()` YENİDEN çalıştırılıyordu (her okuma/yazma kendi bağlantısını

@@ -1,19 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { getEquipment, saveEquipment } from "../services/documentService.js";
 import { getNotificationRecords, saveNotificationRecord } from "../services/notificationRecordService.js";
 import { useToast } from "./ToastContext.jsx";
 
 const IsgDataContext = createContext(null);
 
 export function IsgDataProvider({ children }) {
-  const [equipmentList, setEquipmentList] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
-    Promise.all([getEquipment(), getNotificationRecords()]).then(([eq, notif]) => {
-      setEquipmentList(eq);
+    getNotificationRecords().then((notif) => {
       setNotifications(notif);
       setLoaded(true);
     }).catch((err) => {
@@ -23,23 +20,14 @@ export function IsgDataProvider({ children }) {
     });
   }, [showToast]);
 
-  // REFACTOR: bu üç fonksiyon "optimistic update" yapıyor (önce UI'ı güncelle, sonra
-  // arka planda kaydet) — ama daha önce saveEquipment/saveNotificationRecord'un dönen
-  // Promise'i hiç beklenmiyor/yakalanmıyordu. db.js artık gerçek yazma hatalarında
-  // (örn. IndexedDB kotası dolu, tarayıcı gizli modda depolamayı engelliyor) reject
-  // ediyor (bkz. services/db.js) — bu, önceden sessizce yutulan bir hatayı artık
-  // yakalayıp kullanıcıya göstermemiz VE ekrandaki "kaydedilmiş gibi görünen" veriyi
-  // geri almamız gerektiği anlamına geliyor. Aksi halde kullanıcı, aslında diskte
-  // olmayan bir kaydı ekranda görmeye devam eder (bkz. proje kuralı: sessiz/sahte veri yok).
-  const addEquipment = useCallback((eq) => {
-    setEquipmentList((prev) => [...prev, eq]);
-    saveEquipment(eq).catch((err) => {
-      console.error("Ekipman kaydedilemedi:", err);
-      setEquipmentList((prev) => prev.filter((e) => e.id !== eq.id));
-      showToast("Ekipman kaydedilemedi, lütfen tekrar deneyin.", "error");
-    });
-  }, [showToast]);
-
+  // REFACTOR: bu fonksiyonlar "optimistic update" yapıyor (önce UI'ı güncelle, sonra
+  // arka planda kaydet) — ama daha önce saveNotificationRecord'un dönen Promise'i hiç
+  // beklenmiyor/yakalanmıyordu. db.js artık gerçek yazma hatalarında (örn. IndexedDB
+  // kotası dolu, tarayıcı gizli modda depolamayı engelliyor) reject ediyor (bkz.
+  // services/db.js) — bu, önceden sessizce yutulan bir hatayı artık yakalayıp
+  // kullanıcıya göstermemiz VE ekrandaki "kaydedilmiş gibi görünen" veriyi geri almamız
+  // gerektiği anlamına geliyor. Aksi halde kullanıcı, aslında diskte olmayan bir kaydı
+  // ekranda görmeye devam eder (bkz. proje kuralı: sessiz/sahte veri yok).
   const addNotification = useCallback((notif) => {
     setNotifications((prev) => [notif, ...prev]);
     saveNotificationRecord(notif).catch((err) => {
@@ -67,7 +55,7 @@ export function IsgDataProvider({ children }) {
   }, [showToast]);
 
   return (
-    <IsgDataContext.Provider value={{ equipmentList, notifications, loaded, addEquipment, addNotification, updateNotification }}>
+    <IsgDataContext.Provider value={{ notifications, loaded, addNotification, updateNotification }}>
       {children}
     </IsgDataContext.Provider>
   );

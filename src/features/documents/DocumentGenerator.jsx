@@ -13,6 +13,7 @@ import Button from "../../components/ui/Button.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import DocumentDetailDrawer from "./DocumentDetailDrawer.jsx";
 import { Plus, FileText, Trash2 } from "../../components/icons/index.jsx";
@@ -23,6 +24,7 @@ export default function DocumentGenerator() {
   const { role } = useRole();
   const [documents, setDocuments] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [type, setType] = useState(DOCUMENT_TYPES[0].value);
   const [title, setTitle] = useState("");
@@ -31,7 +33,15 @@ export default function DocumentGenerator() {
   const [selectedDocId, setSelectedDocId] = useState(null);
 
   useEffect(() => {
-    getDocuments().then((docs) => { setDocuments(docs); setLoaded(true); });
+    getDocuments()
+      .then((docs) => { setDocuments(docs); setLoaded(true); })
+      .catch((err) => {
+        // BUG FIX (Sprint 8 polish): .catch() yoktu — hata durumunda `loaded` hiç
+        // true olmuyor, sayfa SONSUZA KADAR yükleniyor görünüyordu.
+        console.error("Belgeler yüklenemedi:", err);
+        setLoadError(err);
+        setLoaded(true);
+      });
   }, []);
 
   async function createDocument() {
@@ -48,44 +58,76 @@ export default function DocumentGenerator() {
       status: "draft",
       content: aiContent, // AI taslağı (boşsa üretim başarısız olmuştur, kullanıcı elle yazabilir)
     };
-    await saveDocument(doc);
-    setDocuments((prev) => [doc, ...prev]);
-    setTitle("");
-    setFormOpen(false);
-    setGenerating(false);
-    showToast(aiContent ? "AI taslağı oluşturuldu, gözden geçirip düzenleyebilirsin." : "Belge oluşturuldu (AI taslağı üretilemedi, elle yazabilirsin).", aiContent ? "success" : "neutral");
-    logActivity({ actor: getRoleLabel(role), action: "Belge oluşturuldu", details: `${doc.title} (${getDocumentTypeLabel(doc.type)})`, entityType: "document" });
-    setSelectedDocId(doc.id);
+    // UX FIX (hata yönetimi cilası): `saveDocument` hiç try/catch içinde değildi — IndexedDB
+    // yazması başarısız olursa (örn. depolama kotası dolu) hata yakalanmadan fırlıyordu ve
+    // `generating` hiçbir zaman `false` olmuyordu (buton sonsuza kadar "Oluşturuluyor..."
+    // görünüyordu). Diğer tüm modüllerdeki (Fine-Kinney, Çalışanlar, Periyodik Kontroller vb.)
+    // save/delete deseniyle tutarlı hale getirildi.
+    try {
+      await saveDocument(doc);
+      setDocuments((prev) => [doc, ...prev]);
+      setTitle("");
+      setFormOpen(false);
+      showToast(aiContent ? "AI taslağı oluşturuldu, gözden geçirip düzenleyebilirsin." : "Belge oluşturuldu (AI taslağı üretilemedi, elle yazabilirsin).", aiContent ? "success" : "neutral");
+      logActivity({ actor: getRoleLabel(role), action: "Belge oluşturuldu", details: `${doc.title} (${getDocumentTypeLabel(doc.type)})`, entityType: "document" });
+      setSelectedDocId(doc.id);
+    } catch (err) {
+      console.error("Belge kaydedilemedi:", err);
+      showToast("Belge kaydedilemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+    } finally {
+      setGenerating(false);
+    }
   }
 
   async function updateDocumentContent(id, content) {
     const doc = documents.find((d) => d.id === id);
     if (!doc) return;
     const updated = { ...doc, content };
-    await saveDocument(updated);
-    setDocuments((prev) => prev.map((d) => (d.id === id ? updated : d)));
+    try {
+      await saveDocument(updated);
+      setDocuments((prev) => prev.map((d) => (d.id === id ? updated : d)));
+      // UX FIX (doküman cilası): önceden içerik kaydedildiğinde HİÇBİR görünür geri
+      // bildirim yoktu — yalnızca "Kaydet" butonu kayboluyordu (isDirty=false), ki bu
+      // kolayca fark edilmeyebilir. Uygulamadaki diğer TÜM belge işlemleriyle (oluşturma,
+      // tamamlama, silme) tutarlı olacak şekilde bir başarı toast'ı eklendi.
+      showToast("Belge içeriği kaydedildi.", "success");
+    } catch (err) {
+      console.error("Belge güncellenemedi:", err);
+      showToast("Belge güncellenemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+    }
   }
 
   async function markDocumentCompleted(id) {
     const doc = documents.find((d) => d.id === id);
     if (!doc) return;
     const updated = { ...doc, status: "completed" };
-    await saveDocument(updated);
-    setDocuments((prev) => prev.map((d) => (d.id === id ? updated : d)));
-    showToast("Belge tamamlandı olarak işaretlendi.", "success");
-    logActivity({ actor: getRoleLabel(role), action: "Belge tamamlandı", details: doc.title, entityType: "document" });
+    try {
+      await saveDocument(updated);
+      setDocuments((prev) => prev.map((d) => (d.id === id ? updated : d)));
+      showToast("Belge tamamlandı olarak işaretlendi.", "success");
+      logActivity({ actor: getRoleLabel(role), action: "Belge tamamlandı", details: doc.title, entityType: "document" });
+    } catch (err) {
+      console.error("Belge tamamlandı olarak işaretlenemedi:", err);
+      showToast("Belge güncellenemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+    }
   }
 
   async function confirmDelete() {
     const doc = documents.find((d) => d.id === confirmDeleteId);
-    await deleteDocument(confirmDeleteId);
-    setDocuments((prev) => prev.filter((d) => d.id !== confirmDeleteId));
-    setConfirmDeleteId(null);
-    showToast("Belge silindi.", "neutral");
-    logActivity({ actor: getRoleLabel(role), action: "Belge silindi", details: doc?.title || `#${confirmDeleteId}`, entityType: "document" });
+    try {
+      await deleteDocument(confirmDeleteId);
+      setDocuments((prev) => prev.filter((d) => d.id !== confirmDeleteId));
+      setConfirmDeleteId(null);
+      showToast("Belge silindi.", "neutral");
+      logActivity({ actor: getRoleLabel(role), action: "Belge silindi", details: doc?.title || `#${confirmDeleteId}`, entityType: "document" });
+    } catch (err) {
+      console.error("Belge silinemedi:", err);
+      showToast("Belge silinemedi, lütfen tekrar deneyin.", "error");
+    }
   }
 
   if (!loaded) return <Loading label="Belgeler yükleniyor..." />;
+  if (loadError) return <ErrorState title="Belgeler yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
 
   return (
     <div>
@@ -125,8 +167,10 @@ export default function DocumentGenerator() {
           {documents.map((d) => (
             <div key={d.id} onClick={() => setSelectedDocId(d.id)} role="button" tabIndex={0} className="rounded-lg border px-3.5 py-3 text-left cursor-pointer" style={{ borderColor: theme.border, background: theme.surface }}>
               <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{d.title}</p>
-                <Badge tone={d.status === "completed" ? "success" : "pending"}>{d.status === "completed" ? "Tamamlandı" : "Taslak"}</Badge>
+                <p className="text-sm font-semibold min-w-0 break-words" style={{ color: theme.textPrimary }}>{d.title}</p>
+                <span className="shrink-0">
+                  <Badge tone={d.status === "completed" ? "success" : "pending"}>{d.status === "completed" ? "Tamamlandı" : "Taslak"}</Badge>
+                </span>
               </div>
               <p className="text-xs mb-1.5" style={{ color: theme.textMuted }}>{getDocumentTypeLabel(d.type)}</p>
               <p className="text-[11px]" style={{ color: theme.textFaint }}>{d.createdBy} • {d.createdAt}</p>

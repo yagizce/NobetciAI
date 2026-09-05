@@ -35,8 +35,10 @@ export default function DocumentDetailDrawer({ theme, document, onClose, onSaveC
   return (
     <Modal open={Boolean(document)} onClose={onClose} title="Belge Detayı">
       <div className="flex items-start justify-between gap-2 mb-1">
-        <p className="text-base font-semibold leading-snug" style={{ color: theme.textPrimary }}>{document.title}</p>
-        <Badge tone={document.status === "completed" ? "success" : "pending"}>{document.status === "completed" ? "Tamamlandı" : "Taslak"}</Badge>
+        <p className="text-base font-semibold leading-snug min-w-0 break-words" style={{ color: theme.textPrimary }}>{document.title}</p>
+        <span className="shrink-0">
+          <Badge tone={document.status === "completed" ? "success" : "pending"}>{document.status === "completed" ? "Tamamlandı" : "Taslak"}</Badge>
+        </span>
       </div>
       <p className="text-xs mb-3" style={{ color: theme.textFaint }}>
         {getDocumentTypeLabel(document.type)} • {document.createdBy} • {document.createdAt}

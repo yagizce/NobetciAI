@@ -50,6 +50,14 @@ export function usePeriodicChecks(initialSearch = "") {
       status,
       responsible: formValues.responsible.trim(),
       notes: formValues.notes.trim(),
+      // QR Kod → Periyodik Kontrol entegrasyonu. `saveCheck` bu haliyle formValues'ta
+      // olmayan hiçbir alanı önceki kayıttan KORUMUYOR (Fine-Kinney'deki `??
+      // previousEntry?.x` düşürme deseninin aksine burada zaten tüm çağıranlar —
+      // markCheckedToday, bulkUpdateDepartment — mevcut kaydın alanlarını elle
+      // yeniden geçiriyor). Aynı disiplin qrCode/photoId için de korundu: her iki
+      // çağıran da aşağıda güncellendi, buraya `?? null` eklemek yeterli değildi.
+      qrCode: formValues.qrCode ?? null,
+      photoId: formValues.photoId ?? null,
     };
     await savePeriodicCheck(entry);
     setChecks((prev) => {
@@ -98,6 +106,12 @@ export function usePeriodicChecks(initialSearch = "") {
       intervalDays: check.intervalDays,
       responsible: check.responsible,
       notes: check.notes,
+      // BUG FIX (QR entegrasyonu): bu alanlar eklenmeden önce "Bugün Kontrol Edildi"
+      // tek-tık aksiyonu, kaydın qrCode/photoId'sini SESSİZCE SİLERDİ — çünkü saveCheck
+      // yalnızca kendisine verilen alanları yazıyor, formValues'ta olmayan bir alanı
+      // önceki kayıttan miras almıyor (yukarıdaki not).
+      qrCode: check.qrCode,
+      photoId: check.photoId,
     }, id);
   }, [checks, saveCheck]);
 
@@ -117,6 +131,7 @@ export function usePeriodicChecks(initialSearch = "") {
         itemName: check.itemName, category: check.category, departmentId,
         lastCheckDate: check.lastCheckDate, intervalDays: check.intervalDays,
         responsible: check.responsible, notes: check.notes,
+        qrCode: check.qrCode, photoId: check.photoId,
       }, id);
     }
   }, [checks, saveCheck]);

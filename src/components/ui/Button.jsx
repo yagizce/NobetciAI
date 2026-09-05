@@ -3,7 +3,7 @@ import { useTheme } from "../../contexts/ThemeContext.jsx";
 /**
  * @param {{ variant?: "primary"|"secondary"|"danger"|"ghost", size?: "sm"|"md", disabled?: boolean, onClick?: () => void, children: React.ReactNode, type?: string, className?: string }} props
  */
-export default function Button({ variant = "primary", size = "md", disabled = false, onClick, children, type = "button", className = "" }) {
+export default function Button({ variant = "primary", size = "md", disabled = false, onClick, children, type = "button", className = "", ...rest }) {
   const { theme } = useTheme();
 
   const sizeStyles = size === "sm" ? "text-xs px-3 py-1.5" : "text-sm px-4 py-2.5";
@@ -20,8 +20,9 @@ export default function Button({ variant = "primary", size = "md", disabled = fa
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg font-semibold transition-transform active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none ${sizeStyles} ${className}`}
+      className={`rounded-lg font-semibold transition-transform hover:brightness-95 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-40 disabled:pointer-events-none disabled:hover:brightness-100 ${sizeStyles} ${className}`}
       style={variantStyle}
+      {...rest}
     >
       {children}
     </button>

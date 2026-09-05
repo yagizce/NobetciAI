@@ -3,6 +3,7 @@ import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { getAuditLog } from "../../services/auditService.js";
 import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import { ClipboardList } from "../../components/icons/index.jsx";
 
 const ENTITY_LABELS = {
@@ -24,13 +25,22 @@ export default function AuditLogPanel() {
   const { theme } = useTheme();
   const [log, setLog] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(null);
   const [entityFilter, setEntityFilter] = useState("all");
 
   useEffect(() => {
-    getAuditLog().then((data) => {
-      setLog(data);
-      setLoaded(true);
-    });
+    getAuditLog()
+      .then((data) => {
+        setLog(data);
+        setLoaded(true);
+      })
+      .catch((err) => {
+        // BUG FIX (Sprint 8 polish): .catch() yoktu — hata durumunda `loaded` hiç
+        // true olmuyor, panel SONSUZA KADAR yükleniyor görünüyordu.
+        console.error("Aktivite geçmişi yüklenemedi:", err);
+        setError(err);
+        setLoaded(true);
+      });
   }, []);
 
   const filteredLog = useMemo(
@@ -39,6 +49,7 @@ export default function AuditLogPanel() {
   );
 
   if (!loaded) return <Loading label="Aktivite geçmişi yükleniyor..." />;
+  if (error) return <ErrorState title="Aktivite geçmişi yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
 
   return (
     <div>

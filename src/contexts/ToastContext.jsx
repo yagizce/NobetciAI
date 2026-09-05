@@ -8,12 +8,18 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   const showToast = useCallback((message, tone = "neutral", duration = 3000) => {
+    // UX FIX (hata yönetimi cilası): aynı mesaj zaten ekranda gösteriliyorsa (örn. bir
+    // ağ hatası art arda birkaç kez tetiklenirse) ikinci bir toast eklemek yerine
+    // mevcut olanı korunuyor — kullanıcı aynı uyarının üst üste yığıldığını görmesin diye.
+    // Farklı mesajlar / mesaj-ton kombinasyonları normal şekilde ayrı toast olarak eklenir.
+    const isDuplicate = toasts.some((t) => t.message === message && t.tone === tone);
+    if (isDuplicate) return;
     const id = ++idCounter;
     setToasts((prev) => [...prev, { id, message, tone }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, duration);
-  }, []);
+  }, [toasts]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>

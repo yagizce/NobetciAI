@@ -74,3 +74,21 @@ export function toComparableDate(trDateStr) {
   if (!day || !month || !year) return null;
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
+
+/**
+ * Küçük Refactor #1 (kod kalitesi): bu fonksiyon önceden EmployerOverviewTab.jsx ve
+ * NotificationCenterDropdown.jsx'te birebir aynı şekilde iki kez tanımlıydı — hiçbir
+ * davranış farkı yoktu, saf/yan etkisiz bir fonksiyon olduğu için buraya (mevcut tarih
+ * yardımcıları dosyasına) taşındı, iki dosya da artık buradan import ediyor.
+ * @param {string} iso - ISO 8601 tarih/saat string'i
+ * @returns {string} "az önce" / "N dk önce" / "N sa önce" / "N gün önce"
+ */
+export function timeAgo(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "az önce";
+  if (mins < 60) return `${mins} dk önce`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} sa önce`;
+  return `${Math.floor(hours / 24)} gün önce`;
+}

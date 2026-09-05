@@ -97,6 +97,21 @@ html, body {
   }
 }
 
+/* KÜÇÜK REFACTOR #2 (UI Consistency): form alanları (input/select/textarea) uygulama
+ * genelinde `outline-none` kullanıyor (28 dosya) ama HİÇBİRİNDE yerine geçen bir
+ * `focus:` stili yoktu — klavye ile gezinen bir kullanıcı için hangi alanın seçili
+ * olduğunu gösteren HİÇBİR görsel işaret kalmıyordu. 28 dosyayı tek tek değiştirmek
+ * yerine (büyük/riskli bir değişiklik olurdu) tek bir global kural: her iki temada da
+ * (light/dark) accent rengi aynı olduğu için (#F2B705, bkz. constants/theme.js) statik
+ * bir renk güvenle kullanılabildi. Yalnızca klavye ile odaklanıldığında görünür
+ * (`:focus-visible`) — fare ile tıklamada gereksiz bir halka göstermez. Butonların
+ * kendi focus stili zaten var (bkz. components/ui/Button.jsx), bu kural yalnızca
+ * form alanlarını kapsıyor. */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #F2B705;
+  outline-offset: 1px;
+}
+
 /* .frame-fill: PhoneFrame.jsx'in JS ile <html>'e ekleyip kaldırdığı `.app-framed`
    sınıfı VARSA (gerçek fare/trackpad + ≥640px masaüstü) bu öğe telefon çerçevesinin
    kendi yüksekliğini doldurur; YOKSA (dokunmatik herhangi bir cihaz — geniş/yatay

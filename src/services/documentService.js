@@ -18,23 +18,6 @@ function assertCompanyMatch(record, companyId) {
   }
 }
 
-/** @returns {Promise<import("../types/index.js").Equipment[]>} */
-export async function getEquipment() {
-  const companyId = await getActiveCompanyId();
-  return companyId == null ? [] : dataProvider.getAll("equipment", { companyId });
-}
-
-/** @param {import("../types/index.js").Equipment} equipment */
-export async function saveEquipment(equipment) {
-  const companyId = await requireActiveCompanyId();
-  assertCompanyMatch(equipment, companyId);
-  const existing = await dataProvider.getById("equipment", equipment.id);
-  if (existing?.companyId != null && String(existing.companyId) !== String(companyId)) {
-    throw new Error("Ekipman kaydı başka bir firmaya ait ve ezilemez.");
-  }
-  return dataProvider.upsert("equipment", { ...equipment, id: ensureId(equipment), companyId });
-}
-
 /** @returns {Promise<import("../types/index.js").DocumentRecord[]>} */
 export async function getDocuments() {
   const companyId = await getActiveCompanyId();

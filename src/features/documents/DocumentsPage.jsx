@@ -1,20 +1,19 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useRole } from "../../contexts/RoleContext.jsx";
-import { getRoleLabel } from "../../constants/allRoles.js";
-import { useIsgData } from "../../contexts/IsgDataContext.jsx";
-import { nowLabel } from "../../utils/dateUtils.js";
-import { logActivity } from "../../services/auditService.js";
-import { createId } from "../../utils/id.js";
-import { QrCode, BookOpen, FileText, ListChecks } from "../../components/icons/index.jsx";
+import { BookOpen, FileText, ListChecks } from "../../components/icons/index.jsx";
 import DocumentGenerator from "./DocumentGenerator.jsx";
 import PeriodicChecksPanel from "./periodicChecks/PeriodicChecksPanel.jsx";
 import AskAiButton from "../../components/AskAiButton.jsx";
 import TrainingModule from "../training/TrainingModule.jsx";
 
+// QR Kod → Periyodik Kontrol entegrasyonu: "Ekipman Kayıtları" sekmesi (QR tarama +
+// ayrı equipment listesi) buradan KALDIRILDI, aynı işlev artık Periyodik Kontroller
+// sekmesinin içinde ve o modülün gerçek verisiyle konuşarak çalışıyor (bkz.
+// PeriodicChecksPanel.jsx → "QR Okut"). Eski equipmentList/addEquipment
+// (IsgDataContext.jsx) hiç kullanılmadığı doğrulandıktan sonra tamamen temizlendi.
 const ALL_TABS = [
-  { key: "equipment", label: "Ekipman Kayıtları", icon: QrCode, roles: ["employee", "expert", "employer"] },
   { key: "education", label: "Eğitim Modülleri", icon: BookOpen, roles: ["employee", "expert", "employer"] },
   { key: "generator", label: "Belge Oluştur", icon: FileText, roles: ["expert", "employer"] },
   { key: "periodicChecks", label: "Periyodik Kontroller", icon: ListChecks, roles: ["expert", "employer"] },
@@ -23,7 +22,6 @@ const ALL_TABS = [
 export default function DocumentsPage() {
   const { theme } = useTheme();
   const { role } = useRole();
-  const { equipmentList, addEquipment } = useIsgData();
   const visibleTabs = useMemo(() => ALL_TABS.filter((t) => t.roles.includes(role)), [role]);
   const [searchParams] = useSearchParams();
   // Sprint 7.4: Dashboard kartlarından (Yaklaşan Periyodik Kontroller / Devam Eden
@@ -32,71 +30,13 @@ export default function DocumentsPage() {
   const requestedTab = searchParams.get("tab");
   const prefillSearch = searchParams.get("q") || undefined; // Genel arama (GlobalSearchBar.jsx) buradan gelir
   const [tab, setTab] = useState(
-    visibleTabs.some((t) => t.key === requestedTab) ? requestedTab : (visibleTabs[0]?.key || "equipment")
+    visibleTabs.some((t) => t.key === requestedTab) ? requestedTab : (visibleTabs[0]?.key || "education")
   );
-  const [scanResult, setScanResult] = useState(null);
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  // PERFORMANS: jsQR önceden index.html'de HER sayfada global script olarak
-  // yükleniyordu (yalnızca burada, "Ekipman Kayıtları" sekmesinde kullanılmasına
-  // rağmen). Artık sadece bu sayfada kullanıcı "QR Kod Tarayıcı Başlat"a basınca
-  // (aşağıdaki startQRScan) dinamik import ile indiriliyor — Dashboard/Sohbet/Profil
-  // gibi diğer tüm sayfalar bu kütüphaneyi hiç indirmiyor. Çözümlenen fonksiyon bir
-  // ref'te tutuluyor çünkü scanQRLoop, requestAnimationFrame ile SENKRON/tekrarlı
-  // çağrılıyor — her karede yeniden `await import(...)` yapmak hem gereksiz hem yavaş.
-  const jsQRRef = useRef(null);
 
   // Rol değişip mevcut sekme artık görünmüyorsa, görünür ilk sekmeye dön.
   useEffect(() => {
-    if (!visibleTabs.some((t) => t.key === tab)) setTab(visibleTabs[0]?.key || "equipment");
+    if (!visibleTabs.some((t) => t.key === tab)) setTab(visibleTabs[0]?.key || "education");
   }, [visibleTabs, tab]);
-
-  function startQRScan() {
-    if (navigator.mediaDevices?.getUserMedia) {
-      import("jsqr").then(({ default: jsQR }) => {
-        jsQRRef.current = jsQR;
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then((stream) => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current.play();
-              scanQRLoop();
-            };
-          }
-        });
-      });
-    }
-  }
-
-  function scanQRLoop() {
-    if (canvasRef.current && videoRef.current && jsQRRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      ctx.drawImage(videoRef.current, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQRRef.current(imageData.data, canvas.width, canvas.height);
-      if (code) {
-        setScanResult(code.data);
-        videoRef.current.srcObject?.getTracks().forEach((t) => t.stop());
-      } else {
-        requestAnimationFrame(scanQRLoop);
-      }
-    }
-  }
-
-  function handleAddEquipment() {
-    const newEq = { id: createId(), name: `Ekipman ${equipmentList.length + 1}`, qr: scanResult, lastCheck: nowLabel() };
-    addEquipment(newEq);
-    logActivity({
-      actor: getRoleLabel(role),
-      action: "Ekipman eklendi",
-      details: newEq.name,
-      entityType: "equipment",
-    });
-    setScanResult(null);
-  }
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-3xl mx-auto">
@@ -113,34 +53,6 @@ export default function DocumentsPage() {
         </div>
         {tab === "periodicChecks" && <AskAiButton contextId="periodicChecks" />}
       </div>
-
-      {tab === "equipment" && (
-        <div>
-          {!scanResult ? (
-            <button onClick={startQRScan} className="w-full max-w-sm py-3 rounded-xl border-2 text-center font-semibold mb-4" style={{ borderColor: theme.accent, background: theme.surfaceAlt, color: theme.accent }}>
-              QR Kod Tarayıcı Başlat
-            </button>
-          ) : (
-            <div className="rounded-xl p-4 mb-4 max-w-sm" style={{ background: theme.successBg }}>
-              <p className="text-sm" style={{ color: theme.successText }}>✓ QR Okundu</p>
-              <button onClick={handleAddEquipment} className="w-full mt-2 py-2 rounded-lg font-semibold" style={{ background: theme.accent, color: theme.onAccent }}>Ekleyin</button>
-            </div>
-          )}
-          <video ref={videoRef} style={{ display: "none" }} />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-
-          <p className="font-[Oswald] text-sm uppercase tracking-wide mb-2" style={{ color: theme.textPrimary }}>Kayıtlı Ekipmanlar</p>
-          <div className="grid gap-2 md:grid-cols-2">
-            {equipmentList.map((eq) => (
-              <div key={eq.id} className="rounded-lg border px-3 py-2" style={{ borderColor: theme.border, background: theme.surface }}>
-                <p className="text-sm" style={{ color: theme.textPrimary }}>{eq.name}</p>
-                <p className="text-xs" style={{ color: theme.textFaint }}>Son: {eq.lastCheck}</p>
-              </div>
-            ))}
-            {equipmentList.length === 0 && <p className="text-xs" style={{ color: theme.textFaint }}>Henüz kayıtlı ekipman yok.</p>}
-          </div>
-        </div>
-      )}
 
       {tab === "education" && <TrainingModule theme={theme} role={role} />}
 

@@ -10,6 +10,7 @@ import CsvImportButton from "../../components/CsvImportButton.jsx";
 import Button from "../../components/ui/Button.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import { Plus, Building2, Trash2 } from "../../components/icons/index.jsx";
 
@@ -23,13 +24,22 @@ export default function BranchesSection({ theme, companyId }) {
   const { role } = useRole();
   const [branches, setBranches] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
-    getBranches(companyId).then((data) => { setBranches(data); setLoaded(true); });
+    getBranches(companyId)
+      .then((data) => { setBranches(data); setLoaded(true); })
+      .catch((err) => {
+        // BUG FIX (Sprint 8 polish): .catch() yoktu — hata durumunda `loaded` hiç
+        // true olmuyor, bölüm SONSUZA KADAR yükleniyor görünüyordu.
+        console.error("Şubeler yüklenemedi:", err);
+        setLoadError(err);
+        setLoaded(true);
+      });
   }, [companyId]);
 
   function resetForm() {
@@ -47,11 +57,18 @@ export default function BranchesSection({ theme, companyId }) {
   async function handleSubmit() {
     if (!form.name.trim()) return;
     const entry = { id: editingId || createId(), companyId, name: form.name.trim(), address: form.address.trim(), responsible: form.responsible.trim() };
-    await saveBranch(entry);
-    setBranches((prev) => (editingId ? prev.map((b) => (b.id === entry.id ? entry : b)) : [entry, ...prev]));
-    showToast(editingId ? "Şube güncellendi." : "Yeni şube eklendi.", "success");
-    logActivity({ actor: getRoleLabel(role) || role, action: editingId ? "Şube güncellendi" : "Şube eklendi", details: entry.name, entityType: "branch" });
-    resetForm();
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
+    // kullanıcıya hiçbir geri bildirim verilmiyordu.
+    try {
+      await saveBranch(entry);
+      setBranches((prev) => (editingId ? prev.map((b) => (b.id === entry.id ? entry : b)) : [entry, ...prev]));
+      showToast(editingId ? "Şube güncellendi." : "Yeni şube eklendi.", "success");
+      logActivity({ actor: getRoleLabel(role) || role, action: editingId ? "Şube güncellendi" : "Şube eklendi", details: entry.name, entityType: "branch" });
+      resetForm();
+    } catch (err) {
+      console.error("Şube kaydedilemedi:", err);
+      showToast("Şube kaydedilemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+    }
   }
   // HARDENING: çift tıklama koruması (bkz. hooks/useSubmitGuard.js).
   const [guardedHandleSubmit, isSubmitting] = useSubmitGuard(handleSubmit);
@@ -78,15 +95,22 @@ export default function BranchesSection({ theme, companyId }) {
   }
 
   async function handleBulkImport(entities) {
-    for (const entity of entities) {
-      await saveBranch(entity);
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu.
+    try {
+      for (const entity of entities) {
+        await saveBranch(entity);
+      }
+      setBranches((prev) => [...entities, ...prev]);
+      showToast(`${entities.length} şube içe aktarıldı.`, "success");
+      logActivity({ actor: getRoleLabel(role) || role, action: "Toplu şube içe aktarma", details: `${entities.length} kayıt`, entityType: "branch" });
+    } catch (err) {
+      console.error("Toplu şube içe aktarma başarısız:", err);
+      showToast("Toplu içe aktarma tamamlanamadı. Başarılı kayıtlar korunmuş olabilir; sayfayı yenileyip kontrol edin.", "error");
     }
-    setBranches((prev) => [...entities, ...prev]);
-    showToast(`${entities.length} şube içe aktarıldı.`, "success");
-    logActivity({ actor: getRoleLabel(role) || role, action: "Toplu şube içe aktarma", details: `${entities.length} kayıt`, entityType: "branch" });
   }
 
   if (!loaded) return <Loading label="Şubeler yükleniyor..." />;
+  if (loadError) return <ErrorState title="Şubeler yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
 
   return (
     <div>
@@ -104,7 +128,7 @@ export default function BranchesSection({ theme, companyId }) {
 
       {formOpen && (
         <div className="rounded-xl border px-3.5 py-3 mb-4" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Şube adı"
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Şube adı *"
             className="w-full text-sm rounded-lg px-3 py-2 mb-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
           <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Adres"
             className="w-full text-sm rounded-lg px-3 py-2 mb-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />

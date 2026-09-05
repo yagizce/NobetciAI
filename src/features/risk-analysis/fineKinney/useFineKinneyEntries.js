@@ -102,6 +102,17 @@ export function useFineKinneyEntries(initialSearch = "") {
       // Sprint 5A alanları — hiçbiri zorunlu değil, eski kayıtlarda undefined/[] olarak kalır.
       departmentId: formValues.departmentId ?? previousEntry?.departmentId ?? null,
       branchId: formValues.branchId ?? previousEntry?.branchId ?? null,
+      // Risk Tespiti'nden (Vision AI) köprülenen kanıt fotoğrafı, varsa. Manuel girilen
+      // kayıtlarda ve düzenlemede korunur — form bu alan için bir UI sunmuyor, yalnızca
+      // taşıma amaçlı (bkz. FineKinneyModule.jsx openDraftForm).
+      photoId: formValues.photoId ?? previousEntry?.photoId ?? null,
+      photoDataUrl: formValues.photoDataUrl ?? previousEntry?.photoDataUrl ?? null,
+      // Düzeltici Faaliyet Kanıt Zorunluluğu: bkz. FineKinneyForm.jsx (zorunluluk
+      // kontrolü) ve FineKinneyModule.jsx handleSubmit (pendingClosurePhotoDataUrl →
+      // closurePhotoId dönüşümü, submit anında). `pendingClosurePhotoDataUrl` burada
+      // KASITLI OLARAK yok — o hiçbir zaman kalıcı kayda yazılmaz.
+      closureNote: formValues.closureNote ?? previousEntry?.closureNote ?? "",
+      closurePhotoId: formValues.closurePhotoId ?? previousEntry?.closurePhotoId ?? null,
       correctiveActions: previousEntry?.correctiveActions || [],
       attachments: previousEntry?.attachments || [],
       notes: previousEntry?.notes || [],

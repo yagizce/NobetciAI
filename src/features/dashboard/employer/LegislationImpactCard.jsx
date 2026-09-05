@@ -39,8 +39,8 @@ export default function LegislationImpactCard({ theme, fineKinneyEntries }) {
           <div className="flex flex-col gap-1">
             {affectedEntries.slice(0, 4).map(({ entry }) => (
               <Link key={entry.id} to="/risk-analysis" className="flex items-center justify-between gap-2 text-[11px] rounded px-2 py-1" style={{ background: theme.surface, color: theme.textPrimary }}>
-                <span className="truncate">{entry.hazard}</span>
-                <ChevronRight style={{ fontSize: "11px", color: theme.textFaint }} />
+                <span className="truncate min-w-0 flex-1">{entry.hazard}</span>
+                <ChevronRight style={{ fontSize: "11px", color: theme.textFaint }} className="shrink-0" />
               </Link>
             ))}
             {affectedEntries.length > 4 && (

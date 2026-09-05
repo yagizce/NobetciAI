@@ -3,18 +3,9 @@ import { Link } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { getSystemNotifications, markNotificationRead, markAllNotificationsRead } from "../../services/systemNotificationService.js";
 import { getNotificationMeta } from "../../constants/systemNotifications.js";
+import { timeAgo } from "../../utils/dateUtils.js";
 import EmptyState from "../../components/EmptyState.jsx";
 import { Bell } from "../../components/icons/index.jsx";
-
-function timeAgo(iso) {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "az önce";
-  if (mins < 60) return `${mins} dk önce`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} sa önce`;
-  return `${Math.floor(hours / 24)} gün önce`;
-}
 
 /**
  * @param {{ theme: object, pendingReportsCount?: number }} props
@@ -24,6 +15,7 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -33,7 +25,15 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
     // Bu hem projenin kendi "sessiz/sahte veri yok" ilkesini ihlal ediyordu hem de
     // artık GEREKSİZDİ — useReminderScheduler.js zaten gerçek trainingCourseSettings
     // verisinden aynı türde (trainingDue) bildirimi üretiyor. Kaldırıldı.
-    getSystemNotifications().then((data) => { setNotifications(data); setLoaded(true); });
+    getSystemNotifications()
+      .then((data) => { setNotifications(data); setLoaded(true); })
+      .catch((err) => {
+        // BUG FIX (Sprint 8 polish): .catch() yoktu — hata durumunda `loaded` hiç
+        // true olmuyor, dropdown SONSUZA KADAR "Yükleniyor..." gösteriyordu.
+        console.error("Bildirimler yüklenemedi:", err);
+        setLoadError(true);
+        setLoaded(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -95,6 +95,8 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
           <div className="max-h-80 overflow-y-auto">
             {!loaded ? (
               <div className="px-3.5 py-6 text-center text-xs" style={{ color: theme.textFaint }}>Yükleniyor...</div>
+            ) : loadError ? (
+              <div className="px-3.5 py-6 text-center text-xs" style={{ color: theme.warnText }}>Bildirimler yüklenemedi.</div>
             ) : notifications.length === 0 ? (
               <EmptyState icon={Bell} title="Henüz bildirim yok" />
             ) : (

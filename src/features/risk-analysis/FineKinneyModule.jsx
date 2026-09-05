@@ -5,6 +5,7 @@ import { useSubmitGuard } from "../../hooks/useSubmitGuard.js";
 import Button from "../../components/ui/Button.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import { Plus, BarChart3 } from "../../components/icons/index.jsx";
 
@@ -15,6 +16,7 @@ import FineKinneyFilters from "./fineKinney/FineKinneyFilters.jsx";
 import FineKinneyExportButtons from "./fineKinney/FineKinneyExportButtons.jsx";
 import FineKinneyDetailDrawer from "./fineKinney/detail/FineKinneyDetailDrawer.jsx";
 import MevzuatScanPanel from "./fineKinney/MevzuatScanPanel.jsx";
+import { saveClosureEvidencePhoto } from "../../services/closureEvidenceService.js";
 
 // Orchestrator only — all real logic lives in ./fineKinney/*. This keeps the module the
 // rest of the app imports (RiskAnalysisPage.jsx) unchanged while the internals stay modular.
@@ -77,6 +79,10 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
       // BUG FIX: Risk Tespiti'nden köprülenen departmentId artık forma taşınıyor
       // (bkz. RiskDetectionCard.jsx handleSendManual/handleSendAiDraft).
       departmentId: extra.departmentId || EMPTY_FINE_KINNEY_FORM.departmentId,
+      // BUG FIX: aynı şekilde kanıt fotoğrafı referansı da forma taşınıyor —
+      // Denetim Dosyası fotoğraf kanıtı özelliği bu alana bağlı (bkz. auditPackageExport.js).
+      photoId: extra.photoId ?? null,
+      photoDataUrl: extra.photoDataUrl ?? null,
     });
     setEditingId(null);
     setFormOpen(true);
@@ -106,6 +112,9 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
       completionPercent: entry.completionPercent || 0,
       departmentId: entry.departmentId ?? "",
       branchId: entry.branchId ?? "",
+      closureNote: entry.closureNote || "",
+      closurePhotoId: entry.closurePhotoId ?? null,
+      pendingClosurePhotoDataUrl: null,
     });
     setEditingId(entry.id);
     setFormOpen(true);
@@ -114,7 +123,16 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
   async function handleSubmit() {
     if (!form.hazard.trim() || !form.risk.trim()) return;
     try {
-      await saveEntry(form, editingId);
+      let toSave = form;
+      // Düzeltici Faaliyet Kanıt Zorunluluğu: yeni seçilmiş bir kapanış fotoğrafı varsa
+      // (henüz store'a yazılmadı, bkz. FineKinneyForm.jsx), submit anında kalıcı hale
+      // getir. FineKinneyForm zaten not/fotoğraftan en az birini zorunlu kılıyor, bu
+      // yüzden burada tekrar doğrulamıyoruz — yalnızca varsa yüklüyoruz.
+      if (form.pendingClosurePhotoDataUrl) {
+        const saved = await saveClosureEvidencePhoto(form.pendingClosurePhotoDataUrl);
+        toSave = { ...form, closurePhotoId: saved.id, pendingClosurePhotoDataUrl: null };
+      }
+      await saveEntry(toSave, editingId);
       showToast(editingId ? "Değerlendirme güncellendi." : "Yeni risk değerlendirmesi eklendi.", "success");
       resetForm();
     } catch (err) {
@@ -143,7 +161,11 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
   const detailEntry = detailEntryId != null ? allEntries.find((e) => e.id === detailEntryId) : null;
 
   if (!loaded) return <Loading label="Risk değerlendirmeleri yükleniyor..." />;
-  if (loadError) return <EmptyState icon={BarChart3} title="Risk değerlendirmeleri yüklenemedi" description={loadError} />;
+  // UX FIX (loading/empty state cilası): bu bir GERÇEK hata durumu — önceden EmptyState
+  // ile gösteriliyordu, kullanıcı bunu "henüz veri yok" ile karıştırabiliyor ve "Tekrar
+  // Dene" imkanı hiç sunulmuyordu. Diğer modüllerle (Belgeler, Eğitim, Aktivite Geçmişi)
+  // tutarlı olacak şekilde ErrorState'e alındı.
+  if (loadError) return <ErrorState title="Risk değerlendirmeleri yüklenemedi" description={loadError} onRetry={() => window.location.reload()} />;
 
   return (
     <div>

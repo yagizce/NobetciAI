@@ -15,6 +15,7 @@ import Button from "../../components/ui/Button.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import { Plus, Users, Trash2 } from "../../components/icons/index.jsx";
 
@@ -29,17 +30,26 @@ export default function EmployeesSection({ theme, companyId }) {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
-    Promise.all([getEmployees(companyId), getDepartments(companyId)]).then(([emps, depts]) => {
-      setEmployees(emps);
-      setDepartments(depts);
-      setLoaded(true);
-    });
+    Promise.all([getEmployees(companyId), getDepartments(companyId)])
+      .then(([emps, depts]) => {
+        setEmployees(emps);
+        setDepartments(depts);
+        setLoaded(true);
+      })
+      .catch((err) => {
+        // BUG FIX (Sprint 8 polish): .catch() yoktu — hata durumunda `loaded` hiç
+        // true olmuyor, bölüm SONSUZA KADAR yükleniyor görünüyordu.
+        console.error("Çalışanlar yüklenemedi:", err);
+        setLoadError(err);
+        setLoaded(true);
+      });
   }, [companyId]);
 
   function departmentName(id) {
@@ -63,15 +73,33 @@ export default function EmployeesSection({ theme, companyId }) {
 
   async function handleSubmit() {
     if (!form.fullName.trim()) return;
+    // BUG FIX (Sprint 13 QA — derinlemesine geçiş): DepartmentsSection.jsx'te aynı
+    // sınıftan bir bug zaten bulunup düzeltilmişti (manuel "Ekle" yolu duplicate kontrolü
+    // yapmıyordu, CSV içe aktarma yapıyordu) — burada da AYNI TUTARSIZLIK vardı: Sicil No
+    // dolu girildiğinde, zaten var olan bir sicil no ile ikinci bir çalışan sessizce
+    // eklenebiliyordu. Boş Sicil No'lar (opsiyonel alan) bu kontrole dahil değil.
+    const trimmedNumber = form.employeeNumber.trim();
+    if (trimmedNumber && employees.some((e) => e.id !== editingId && e.employeeNumber?.trim() === trimmedNumber)) {
+      showToast(`"${trimmedNumber}" sicil numarası zaten kullanılıyor.`, "error");
+      return;
+    }
     const entry = {
-      id: editingId || createId(), companyId, fullName: form.fullName.trim(), employeeNumber: form.employeeNumber.trim(),
+      id: editingId || createId(), companyId, fullName: form.fullName.trim(), employeeNumber: trimmedNumber,
       departmentId: form.departmentId || null, position: form.position.trim(),
       phone: form.phone.trim(), email: form.email.trim(), status: form.status,
     };
-    await saveEmployee(entry);
-    setEmployees((prev) => (editingId ? prev.map((e) => (e.id === entry.id ? entry : e)) : [entry, ...prev]));
-    showToast(editingId ? "Çalışan güncellendi." : "Yeni çalışan eklendi.", "success");
-    logActivity({ actor: getRoleLabel(role) || role, action: editingId ? "Çalışan güncellendi" : "Çalışan eklendi", details: entry.fullName, entityType: "employee" });
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
+    // kullanıcıya hiçbir geri bildirim verilmiyordu.
+    try {
+      await saveEmployee(entry);
+      setEmployees((prev) => (editingId ? prev.map((e) => (e.id === entry.id ? entry : e)) : [entry, ...prev]));
+      showToast(editingId ? "Çalışan güncellendi." : "Yeni çalışan eklendi.", "success");
+      logActivity({ actor: getRoleLabel(role) || role, action: editingId ? "Çalışan güncellendi" : "Çalışan eklendi", details: entry.fullName, entityType: "employee" });
+    } catch (err) {
+      console.error("Çalışan kaydedilemedi:", err);
+      showToast("Çalışan kaydedilemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+      return;
+    }
     if (!editingId) {
       pushSystemNotification({ type: "employeeAdded", title: "Yeni Çalışan Eklendi", message: entry.fullName });
     }
@@ -114,24 +142,41 @@ export default function EmployeesSection({ theme, companyId }) {
     const statusRaw = turkishLower(row["Durum"] || "aktif");
     const status = statusRaw.startsWith("pasif") ? "inactive" : "active";
 
+    // BUG FIX (Sprint 13 QA): aynı kontrol CSV toplu içe aktarmaya da eklendi — manuel
+    // ekleme yolunda olduğu gibi burada da hiç yoktu, aynı sicil no'ya sahip birden
+    // fazla çalışan sessizce içe aktarılabiliyordu.
+    const employeeNumber = row["Sicil No"] || "";
+    if (employeeNumber) {
+      const dup = employees.some((e) => e.employeeNumber?.trim() === employeeNumber)
+        || alreadyStaged.some((e) => e.employeeNumber === employeeNumber);
+      if (dup) return { error: `Sicil No zaten kullanılıyor: "${employeeNumber}"` };
+    }
+
     return {
       id: createId(),
-      companyId, fullName, employeeNumber: row["Sicil No"] || "", departmentId,
+      companyId, fullName, employeeNumber, departmentId,
       position: row["Görev"] || "", phone: row["Telefon"] || "", email: row["E-posta"] || "", status,
     };
   }
 
   async function handleBulkImport(entities) {
-    for (const entity of entities) {
-      await saveEmployee(entity);
+    // UX FIX (hata yönetimi cilası): önceden try/catch yoktu.
+    try {
+      for (const entity of entities) {
+        await saveEmployee(entity);
+      }
+      const fresh = await getEmployees(companyId);
+      setEmployees(fresh);
+      showToast(`${entities.length} çalışan içe aktarıldı.`, "success");
+      logActivity({ actor: getRoleLabel(role) || role, action: "Toplu çalışan içe aktarma", details: `${entities.length} kayıt`, entityType: "employee" });
+    } catch (err) {
+      console.error("Toplu çalışan içe aktarma başarısız:", err);
+      showToast("Toplu içe aktarma tamamlanamadı. Başarılı kayıtlar korunmuş olabilir; sayfayı yenileyip kontrol edin.", "error");
     }
-    const fresh = await getEmployees(companyId);
-    setEmployees(fresh);
-    showToast(`${entities.length} çalışan içe aktarıldı.`, "success");
-    logActivity({ actor: getRoleLabel(role) || role, action: "Toplu çalışan içe aktarma", details: `${entities.length} kayıt`, entityType: "employee" });
   }
 
   if (!loaded) return <Loading label="Çalışanlar yükleniyor..." />;
+  if (loadError) return <ErrorState title="Çalışanlar yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
 
   return (
     <div>
@@ -150,7 +195,7 @@ export default function EmployeesSection({ theme, companyId }) {
       {formOpen && (
         <div className="rounded-xl border px-3.5 py-3 mb-4" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
           <div className="grid gap-2 mb-2 sm:grid-cols-2">
-            <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Ad Soyad"
+            <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Ad Soyad *"
               className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
             <input value={form.employeeNumber} onChange={(e) => setForm({ ...form, employeeNumber: e.target.value })} placeholder="Sicil No"
               className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />

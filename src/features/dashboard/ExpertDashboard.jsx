@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useIsgData } from "../../contexts/IsgDataContext.jsx";
 import { getCompanies } from "../../services/companyService.js";
 import EmptyState from "../../components/EmptyState.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
+import Loading from "../../components/Loading.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
 import { MessageSquare, ShieldAlert } from "../../components/icons/index.jsx";
@@ -11,14 +13,24 @@ import { MessageSquare, ShieldAlert } from "../../components/icons/index.jsx";
  * @param {{ theme: object }} props
  */
 export default function ExpertDashboard({ theme }) {
-  const { notifications } = useIsgData();
+  const { notifications, loaded: notificationsLoaded } = useIsgData();
   const [companies, setCompanies] = useState([]);
+  const [companiesLoaded, setCompaniesLoaded] = useState(false);
+  const [companiesError, setCompaniesError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    getCompanies().then((data) => {
-      if (!cancelled) setCompanies(data);
-    }).catch((error) => console.error("Firmalar yüklenemedi:", error));
+    getCompanies()
+      .then((data) => {
+        if (!cancelled) { setCompanies(data); setCompaniesLoaded(true); }
+      })
+      .catch((error) => {
+        console.error("Firmalar yüklenemedi:", error);
+        // BUG FIX (Sprint 8 polish): önceden hata yalnızca console'a yazılıyordu — "Aktif
+        // Şirketler" bölümü sonsuza kadar boş görünüyordu, kullanıcı bunun bir hata mı
+        // yoksa gerçekten firma yok mu olduğunu ayırt edemiyordu.
+        if (!cancelled) { setCompaniesError(error); setCompaniesLoaded(true); }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -38,7 +50,13 @@ export default function ExpertDashboard({ theme }) {
         <section>
           <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Aktif Şirketler</p>
           <div className="grid gap-2">
-            {companies.length === 0 ? <EmptyState icon={ShieldAlert} title="Henüz firma oluşturulmadı" /> : companies.map((company) => (
+            {!companiesLoaded ? (
+              <Loading label="Firmalar yükleniyor..." />
+            ) : companiesError ? (
+              <ErrorState title="Firmalar yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />
+            ) : companies.length === 0 ? (
+              <EmptyState icon={ShieldAlert} title="Henüz firma oluşturulmadı" />
+            ) : companies.map((company) => (
               <div key={company.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
                 <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{company.name}</p>
                 <p className="text-xs" style={{ color: theme.textFaint }}>{company.sector} • {company.employeeCount} çalışan</p>
@@ -49,7 +67,12 @@ export default function ExpertDashboard({ theme }) {
 
         <section>
           <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Bekleyen Analizler</p>
-          {pendingAnalyses.length === 0 ? (
+          {/* UX FIX (loading/empty state cilası): bildirimler context'te ayrı yükleniyor —
+              önceden `loaded` hiç kontrol edilmiyordu, ilk render'da (veri henüz gelmeden)
+              kısa süreliğine "Bekleyen analiz yok" gösterilebiliyordu. */}
+          {!notificationsLoaded ? (
+            <Loading label="Analizler yükleniyor..." />
+          ) : pendingAnalyses.length === 0 ? (
             <EmptyState icon={ShieldAlert} title="Bekleyen analiz yok" />
           ) : (
             <div className="grid gap-2">
@@ -69,7 +92,9 @@ export default function ExpertDashboard({ theme }) {
 
       <section className="mt-4">
         <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Son Analizler</p>
-        {recentAnalyses.length === 0 ? (
+        {!notificationsLoaded ? (
+          <Loading label="Analizler yükleniyor..." />
+        ) : recentAnalyses.length === 0 ? (
           <EmptyState icon={ShieldAlert} title="Henüz analiz yapılmadı" />
         ) : (
           <div className="grid gap-2 md:grid-cols-2">

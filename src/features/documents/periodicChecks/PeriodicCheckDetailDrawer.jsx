@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import Modal from "../../../components/ui/Modal.jsx";
 import Button from "../../../components/ui/Button.jsx";
 import { getCategoryLabel, getCheckStatusStyle } from "../../../constants/periodicCheck.js";
-import { Trash2, CheckCircle2 } from "../../../components/icons/index.jsx";
+import { getPeriodicCheckPhoto } from "../../../services/periodicCheckPhotoService.js";
+import { Trash2, CheckCircle2, QrCode } from "../../../components/icons/index.jsx";
 
 function InfoRow({ theme, label, value }) {
   if (!value) return null;
@@ -24,6 +26,18 @@ function InfoRow({ theme, label, value }) {
  * }} props
  */
 export default function PeriodicCheckDetailDrawer({ theme, check, departmentName, onClose, onEdit, onDelete, onMarkChecked }) {
+  const [photoUrl, setPhotoUrl] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (check?.photoId) {
+      getPeriodicCheckPhoto(check.photoId).then((p) => { if (!cancelled) setPhotoUrl(p?.dataUrl || null); });
+    } else {
+      setPhotoUrl(null);
+    }
+    return () => { cancelled = true; };
+  }, [check?.photoId]);
+
   if (!check) return null;
   const statusStyle = getCheckStatusStyle(check.status, theme);
   const needsAttention = check.status === "overdue" || check.status === "upcoming";
@@ -31,11 +45,18 @@ export default function PeriodicCheckDetailDrawer({ theme, check, departmentName
   return (
     <Modal open={Boolean(check)} onClose={onClose} title="Kontrol Detayı">
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-base font-semibold leading-snug" style={{ color: theme.textPrimary }}>{check.itemName}</p>
+        <p className="text-base font-semibold leading-snug flex items-center gap-1.5 min-w-0 break-words" style={{ color: theme.textPrimary }}>
+          {check.itemName}
+          {check.qrCode && <QrCode style={{ fontSize: "13px", color: theme.textFaint }} className="shrink-0" />}
+        </p>
         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0" style={{ background: statusStyle.bg, color: statusStyle.text }}>
           {statusStyle.label}
         </span>
       </div>
+
+      {photoUrl && (
+        <img src={photoUrl} alt="Kontrol fotoğrafı" className="rounded-lg border mb-2" style={{ width: "100%", maxHeight: 180, objectFit: "cover", borderColor: theme.border }} />
+      )}
 
       <div className="mb-3">
         <InfoRow theme={theme} label="Ekipman" value={check.itemName} />
