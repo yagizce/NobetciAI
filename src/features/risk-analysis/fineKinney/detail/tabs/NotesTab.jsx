@@ -4,9 +4,9 @@ import EmptyState from "../../../../../components/EmptyState.jsx";
 import { StickyNote } from "../../../../../components/icons/index.jsx";
 
 /**
- * @param {{ entry: object, theme: object, onAdd: (text: string) => void }} props
+ * @param {{ entry: object, theme: object, onAdd: (text: string) => void, readOnly?: boolean }} props
  */
-export default function NotesTab({ entry, theme, onAdd }) {
+export default function NotesTab({ entry, theme, onAdd, readOnly = false }) {
   const [text, setText] = useState("");
   const notes = [...(entry.notes || [])].sort((a, b) => new Date(b.at) - new Date(a.at));
 
@@ -18,12 +18,14 @@ export default function NotesTab({ entry, theme, onAdd }) {
 
   return (
     <div>
-      <div className="flex gap-2 mb-3">
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Not ekle..."
-          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-          className="flex-1 text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surfaceAlt, borderColor: theme.border, color: theme.textPrimary }} />
-        <Button size="sm" onClick={submit} disabled={!text.trim()}>Ekle</Button>
-      </div>
+      {!readOnly && (
+        <div className="flex gap-2 mb-3">
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Not ekle..."
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            className="flex-1 text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surfaceAlt, borderColor: theme.border, color: theme.textPrimary }} />
+          <Button size="sm" onClick={submit} disabled={!text.trim()}>Ekle</Button>
+        </div>
+      )}
 
       {notes.length === 0 ? (
         <EmptyState icon={StickyNote} title="Henüz not yok" description="Bu risk hakkında ilk notu ekleyin." />

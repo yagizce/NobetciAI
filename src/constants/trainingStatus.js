@@ -50,6 +50,33 @@ export function computeProgressPercent(progress) {
 }
 
 /**
+ * Yarım kalmış bir eğitimde kalan süreyi saniye cinsinden döner (negatife düşmez).
+ * Çalışan Paneli'nde "Devam Eden Eğitim" kartının kalan süre göstergesi için —
+ * bkz. EmployeeDashboard.jsx.
+ * @param {import("../types/index.js").TrainingProgress|null} progress
+ * @returns {number}
+ */
+export function computeRemainingSeconds(progress) {
+  if (!progress || !progress.durationSeconds) return 0;
+  return Math.max(0, progress.durationSeconds - (progress.positionSeconds || 0));
+}
+
+/**
+ * Saniyeyi "12 dk" / "1 sa 5 dk" gibi kısa, okunabilir bir Türkçe süreye çevirir.
+ * 60 saniyenin altındaki kalan süreler "1 dk"dan az kaybolmasın diye en az 1 dk gösterir.
+ * @param {number} totalSeconds
+ * @returns {string}
+ */
+export function formatRemainingDuration(totalSeconds) {
+  const seconds = Math.max(0, Math.round(totalSeconds || 0));
+  if (seconds === 0) return "0 dk";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.max(1, Math.round((seconds % 3600) / 60));
+  if (hours === 0) return `${minutes} dk`;
+  return `${hours} sa ${minutes} dk`;
+}
+
+/**
  * Dashboard'un kullanacağı eğitim istatistikleri. Yalnızca en az bir ilerleme/tamamlama
  * kaydı bulunan çalışanlar üzerinden hesaplanır — gerçek veri yoksa sahte bir yüzde
  * UYDURULMAZ, 0 döner (bkz. DEVELOPMENT_RULES.md → General Rules).

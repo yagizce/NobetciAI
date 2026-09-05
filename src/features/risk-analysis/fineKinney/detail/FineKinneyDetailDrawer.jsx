@@ -23,9 +23,9 @@ const TABS = [
  * diyaloğu için tasarlanmış; bu görünüm 6 sekmeli daha geniş bir yüzey gerektiriyor.
  * Modal.jsx'in kendisi hiç değiştirilmedi, başka hiçbir ekranı etkilemez.
  *
- * @param {{ entry: object|null, theme: object, mode: "light"|"dark", onClose: () => void, onEntryUpdated: (updated: object) => void }} props
+ * @param {{ entry: object|null, theme: object, mode: "light"|"dark", onClose: () => void, onEntryUpdated: (updated: object) => void, readOnly?: boolean }} props
  */
-export default function FineKinneyDetailDrawer({ entry, theme, mode, onClose, onEntryUpdated }) {
+export default function FineKinneyDetailDrawer({ entry, theme, mode, onClose, onEntryUpdated, readOnly = false }) {
   const [tab, setTab] = useState("info");
   const detail = useFineKinneyDetail(entry, onEntryUpdated);
 
@@ -83,13 +83,14 @@ export default function FineKinneyDetailDrawer({ entry, theme, mode, onClose, on
             onAdd={detail.addCorrectiveAction}
             onUpdate={detail.updateCorrectiveAction}
             onRemove={detail.removeCorrectiveAction}
+            readOnly={readOnly}
           />
         )}
         {tab === "attachments" && (
-          <AttachmentsTab entry={entry} theme={theme} onAdd={detail.addAttachment} onRemove={detail.removeAttachment} />
+          <AttachmentsTab entry={entry} theme={theme} onAdd={detail.addAttachment} onRemove={detail.removeAttachment} readOnly={readOnly} />
         )}
         {tab === "history" && <HistoryTab entry={entry} theme={theme} />}
-        {tab === "notes" && <NotesTab entry={entry} theme={theme} onAdd={detail.addNote} />}
+        {tab === "notes" && <NotesTab entry={entry} theme={theme} onAdd={detail.addNote} readOnly={readOnly} />}
       </div>
     </div>
   );

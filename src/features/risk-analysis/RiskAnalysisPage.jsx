@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useRole } from "../../contexts/RoleContext.jsx";
+import { useCompany } from "../../hooks/useCompany.js";
+import { canManageRiskAssessments } from "../../utils/permissions.js";
 import { getRoleLabel } from "../../constants/allRoles.js";
 import { MOCK_USERS } from "../../constants/mockUsers.js";
 import { useIsgData } from "../../contexts/IsgDataContext.jsx";
@@ -134,6 +136,12 @@ const ALL_TABS = [
 export default function RiskAnalysisPage() {
   const { theme } = useTheme();
   const { role } = useRole();
+  const { company } = useCompany();
+  // Fine-Kinney'de kim yeni kayıt açabilir/düzenleyebilir/kapatabilir — bkz.
+  // utils/permissions.js. Çalışan zaten aşağıdaki ALL_TABS filtresiyle bu sekmeye hiç
+  // erişemiyor; İşveren normalde salt-görüntüler, İSG Uzmanı ile aynı kişiyse (Ayarlar →
+  // Firma Yönetimi) tam yetkiye sahip olur.
+  const canManageFineKinney = useMemo(() => canManageRiskAssessments(role, company), [role, company]);
   const visibleTabs = useMemo(() => ALL_TABS.filter((t) => t.roles.includes(role)), [role]);
   // Genel arama (bkz. GlobalSearchBar.jsx) buraya `state: { targetTab, prefillSearch }`
   // ile yönlendirebilir — dolu ise ilgili sekme + arama metni ile açılır. Doğrudan
@@ -183,8 +191,8 @@ export default function RiskAnalysisPage() {
       </div>
 
       {tab === "notifications" && <NotificationCenterTab theme={theme} role={role} />}
-      {tab === "riskDetection" && <RiskDetectionPanel theme={theme} onSendToFineKinney={sendDetectionToFineKinney} initialSearch={location.state?.prefillSearch} />}
-      {tab === "fineKinney" && <FineKinneyModule pendingDraft={pendingDraft} onDraftConsumed={() => setPendingDraft(null)} initialSearch={location.state?.prefillSearch} />}
+      {tab === "riskDetection" && <RiskDetectionPanel theme={theme} onSendToFineKinney={sendDetectionToFineKinney} initialSearch={location.state?.prefillSearch} canCreateFineKinney={canManageFineKinney} />}
+      {tab === "fineKinney" && <FineKinneyModule pendingDraft={pendingDraft} onDraftConsumed={() => setPendingDraft(null)} initialSearch={location.state?.prefillSearch} canManage={canManageFineKinney} />}
       {tab === "auditLog" && <AuditLogPanel />}
     </div>
   );

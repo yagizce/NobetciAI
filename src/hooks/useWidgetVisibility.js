@@ -4,24 +4,18 @@ import { useLocalStorage } from "./useLocalStorage.js";
 // widget eklemek için buraya bir satır eklemek yeterli, görünürlük altyapısı otomatik
 // çalışır.
 export const DASHBOARD_WIDGETS = [
+  { id: "executiveSummaryStrip", label: "Hızlı Özet (Kritik Risk/Kontrol/Eğitim)" },
   { id: "safetyScore", label: "Güvenlik Skoru" },
-  { id: "last30DayChange", label: "Son 30 Gün Değişim" }, // Sprint 7.4
-  { id: "criticalRisks", label: "Açık Kritik Riskler" }, // Sprint 7.2.4
   { id: "executiveSummary", label: "Yönetici Özeti" },
   { id: "accidentStreak", label: "Kazasız Gün Sayacı" },
+  { id: "last30DayChange", label: "Son 30 Gün Değişim" }, // Sprint 7.4
   { id: "attentionNeeded", label: "Dikkat Gerektirenler" },
-  { id: "upcomingChecksList", label: "Yaklaşan Periyodik Kontroller" }, // Sprint 7.4
-  { id: "kpiCards", label: "KPI Kartları" },
-  { id: "workflowPipeline", label: "Risk Workflow" },
-  { id: "departmentBreakdown", label: "Departman Kırılımı" },
-  { id: "departmentHeatMap", label: "Risk Isı Haritası (Departman)" },
-  { id: "auditPackage", label: "Denetim Dosyası Oluşturucu" },
-  { id: "departmentTrendAlert", label: "Departman Risk Trend Uyarısı" },
+  { id: "departmentHeatMap", label: "Departman Risk Analizi" },
   { id: "legislationImpact", label: "Mevzuat Değişikliği Uyarısı" },
   { id: "trainingComplianceList", label: "Eğitim Uyum Listesi (Kim Almadı)" },
-  { id: "periodicCheckOverview", label: "Periyodik Kontrol Özeti" },
-  { id: "trends", label: "Trend Analizi" },
-  { id: "correctiveActions", label: "Düzeltici Faaliyetler" },
+  { id: "kpiCards", label: "KPI Kartları" },
+  { id: "workflowPipeline", label: "Risk Workflow" },
+  { id: "auditPackage", label: "Denetim Dosyası Oluşturucu" },
   { id: "riskAnalyses", label: "Risk Analizleri" },
   { id: "employees", label: "Çalışanlar" },
   { id: "education", label: "Devam Eden Eğitimler" }, // Sprint 7.4: içerik statik listeden gerçek veriye geçti

@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { getUpcomingTrainingDueReminders } from "./trainingStatus.js";
+import { getUpcomingTrainingDueReminders, computeRemainingSeconds, formatRemainingDuration } from "./trainingStatus.js";
 
 function daysFromToday(n) {
   const d = new Date();
@@ -48,5 +48,38 @@ describe("getUpcomingTrainingDueReminders", () => {
   test("4+ gün kalan kurs (henüz yakın değil) hatırlatma üretmez", () => {
     const settings = [{ id: "kkd", dueDate: daysFromToday(10) }];
     assert.equal(getUpcomingTrainingDueReminders(courses, settings, [], [], "Ahmet").length, 0);
+  });
+});
+
+describe("computeRemainingSeconds", () => {
+  test("ilerleme yoksa 0 döner", () => {
+    assert.equal(computeRemainingSeconds(null), 0);
+  });
+
+  test("kalan süreyi doğru hesaplar", () => {
+    assert.equal(computeRemainingSeconds({ positionSeconds: 300, durationSeconds: 900 }), 600);
+  });
+
+  test("bozuk veriyle negatife düşmez (izlenen süre toplam süreyi aşarsa)", () => {
+    assert.equal(computeRemainingSeconds({ positionSeconds: 1000, durationSeconds: 900 }), 0);
+  });
+});
+
+describe("formatRemainingDuration", () => {
+  test("saat içermeyen süreleri 'X dk' olarak gösterir", () => {
+    assert.equal(formatRemainingDuration(600), "10 dk");
+  });
+
+  test("1 saati aşan süreleri 'X sa Y dk' olarak gösterir", () => {
+    assert.equal(formatRemainingDuration(3900), "1 sa 5 dk");
+  });
+
+  test("0 veya negatif için '0 dk' döner", () => {
+    assert.equal(formatRemainingDuration(0), "0 dk");
+    assert.equal(formatRemainingDuration(-30), "0 dk");
+  });
+
+  test("1 dakikadan az kalan süreyi de en az '1 dk' gösterir (kaybolmaz)", () => {
+    assert.equal(formatRemainingDuration(20), "1 dk");
   });
 });

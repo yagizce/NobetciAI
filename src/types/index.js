@@ -29,6 +29,10 @@
  * @property {string} address
  * @property {string} phone
  * @property {string} email
+ * @property {boolean} [expertIsEmployer] - İSG Uzmanı ve İşveren aynı kişi mi? (küçük
+ *   işletmelerde sık görülür). true ise İşveren rolü de Fine-Kinney değerlendirmesi
+ *   oluşturabilir/düzenleyebilir — aksi halde İşveren yalnızca görüntüler
+ *   (bkz. utils/permissions.js → canManageRiskAssessments).
  */
 
 /**

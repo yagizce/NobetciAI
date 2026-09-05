@@ -57,12 +57,16 @@ function FineKinneyCard({ entry, theme, mode, onEdit, onDelete, onOpenDetail }) 
       <div className="flex items-center justify-between text-[11px] flex-wrap gap-1" style={{ color: theme.textFaint }}>
         <span>{entry.responsible || "—"} {entry.date && `• ${entry.date}`}</span>
       </div>
-      <div className="flex gap-2 mt-2">
-        <button onClick={(e) => { e.stopPropagation(); onEdit(entry); }} className="text-[11px] font-semibold" style={{ color: theme.accent }}>Düzenle</button>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }} className="text-[11px] font-semibold flex items-center gap-0.5" style={{ color: theme.emergencyText }}>
-          <Trash2 style={{ fontSize: "11px" }} /> Sil
-        </button>
-      </div>
+      {(onEdit || onDelete) && (
+        <div className="flex gap-2 mt-2">
+          {onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(entry); }} className="text-[11px] font-semibold" style={{ color: theme.accent }}>Düzenle</button>}
+          {onDelete && (
+            <button onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }} className="text-[11px] font-semibold flex items-center gap-0.5" style={{ color: theme.emergencyText }}>
+              <Trash2 style={{ fontSize: "11px" }} /> Sil
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,17 +4,15 @@ import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import Button from "../../components/ui/Button.jsx";
-import { Building2, BarChart3, LayoutDashboard, Zap, Sparkles } from "../../components/icons/index.jsx";
+import { Building2, BarChart3, LayoutDashboard, Sparkles } from "../../components/icons/index.jsx";
 import { useEmployerDashboardData } from "./employer/useEmployerDashboardData.js";
 import { seedDemoData } from "../../services/demoSeedService.js";
 import EmployerOverviewTab from "./employer/EmployerOverviewTab.jsx";
 import PerformancePanel from "./employer/PerformancePanel.jsx";
-import ExecutiveModePanel from "./employer/ExecutiveModePanel.jsx";
 
 const TABS = [
   { key: "overview", label: "Genel Bakış", icon: LayoutDashboard },
   { key: "performance", label: "Performans", icon: BarChart3 },
-  { key: "executive", label: "Patron Modu", icon: Zap },
 ];
 
 /**
@@ -118,7 +116,6 @@ export default function EmployerDashboard({ theme }) {
 
       {tab === "overview" && <EmployerOverviewTab theme={theme} data={data} />}
       {tab === "performance" && <PerformancePanel theme={theme} data={data} />}
-      {tab === "executive" && <ExecutiveModePanel theme={theme} data={data} />}
     </div>
   );
 }

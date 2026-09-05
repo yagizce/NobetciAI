@@ -25,7 +25,7 @@ import { saveClosureEvidencePhoto } from "../../services/closureEvidenceService.
 // Oluştur" veya "Sahaya İn" ile bu sekmeye köprülenen bir taslak varsa formu ön
 // doldurulmuş açar. RiskAnalysisPage.jsx bu köprüyü yönetir; FineKinneyModule kendi
 // başına Risk Tespiti'nden HABERSİZDİR — yalnızca hazır bir taslak objesi alır.
-export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initialSearch }) {
+export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initialSearch, canManage = true }) {
   const { theme, mode } = useTheme();
   const { showToast } = useToast();
   const {
@@ -93,11 +93,14 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
   // tekrar tekrar açılmasın.
   useEffect(() => {
     if (pendingDraft) {
-      openDraftForm(pendingDraft.hazard, pendingDraft.risk, pendingDraft);
+      // Yetki kontrolü: İşveren (İSG Uzmanı ile aynı kişi değilse) Risk Tespiti'nden
+      // köprülenen bir taslağı da açamaz — bu buton zaten RiskDetectionCard.jsx'te
+      // canCreateFineKinney=false iken gizlenir, burası ikinci bir güvenlik katmanı.
+      if (canManage) openDraftForm(pendingDraft.hazard, pendingDraft.risk, pendingDraft);
       onDraftConsumed?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingDraft]);
+  }, [pendingDraft, canManage]);
 
   function openEditForm(entry) {
     setForm({
@@ -171,13 +174,17 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
     <div>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <p className="text-xs" style={{ color: theme.textFaint }}>
-          Fine-Kinney yöntemi: Risk = Olasılık × Maruziyet × Şiddet
+          {canManage
+            ? "Fine-Kinney yöntemi: Risk = Olasılık × Maruziyet × Şiddet"
+            : "Görüntüleme modu — risk değerlendirmelerini ekleme/düzenleme yetkisi İSG Uzmanı'na özgüdür."}
         </p>
         <div className="flex items-center gap-2">
           <FineKinneyExportButtons theme={theme} entries={entries} />
-          <Button size="sm" onClick={openNewForm} className="flex items-center gap-1.5 shrink-0">
-            <Plus style={{ fontSize: "13px" }} sw={2.5} /> Yeni Değerlendirme
-          </Button>
+          {canManage && (
+            <Button size="sm" onClick={openNewForm} className="flex items-center gap-1.5 shrink-0">
+              <Plus style={{ fontSize: "13px" }} sw={2.5} /> Yeni Değerlendirme
+            </Button>
+          )}
         </div>
       </div>
 
@@ -185,10 +192,10 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
         theme={theme}
         fineKinneyEntries={allEntries}
         onGoToEntry={(id) => setDetailEntryId(id)}
-        onCreateDraft={openDraftForm}
+        onCreateDraft={canManage ? openDraftForm : null}
       />
 
-      {formOpen && (
+      {formOpen && canManage && (
         <FineKinneyForm
           theme={theme}
           mode={mode}
@@ -235,8 +242,8 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
               entry={e}
               theme={theme}
               mode={mode}
-              onEdit={openEditForm}
-              onDelete={setConfirmDeleteId}
+              onEdit={canManage ? openEditForm : undefined}
+              onDelete={canManage ? setConfirmDeleteId : undefined}
               onOpenDetail={(entry) => setDetailEntryId(entry.id)}
             />
           ))}
@@ -259,6 +266,7 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
         mode={mode}
         onClose={() => setDetailEntryId(null)}
         onEntryUpdated={applyPatchedEntry}
+        readOnly={!canManage}
       />
     </div>
   );

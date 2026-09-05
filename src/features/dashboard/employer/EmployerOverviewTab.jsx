@@ -5,29 +5,35 @@ import DashboardWidget from "../../../components/DashboardWidget.jsx";
 import Badge from "../../../components/ui/Badge.jsx";
 import { useWidgetVisibility, DASHBOARD_WIDGETS } from "../../../hooks/useWidgetVisibility.js";
 import { timeAgo } from "../../../utils/dateUtils.js";
-import { ShieldAlert, Users, ClipboardList, ListChecks, Settings, X, Scale } from "../../../components/icons/index.jsx";
+import { ShieldAlert, Users, ClipboardList, Settings, X, Scale } from "../../../components/icons/index.jsx";
 import SafetyScoreCard from "./SafetyScoreCard.jsx";
 import ExecutiveSummaryCard from "./ExecutiveSummaryCard.jsx";
-import TrendsPanel from "./TrendsPanel.jsx";
-import CorrectiveActionsPanel from "./CorrectiveActionsPanel.jsx";
+import ExecutiveSummaryStrip from "./ExecutiveSummaryStrip.jsx";
 import StreakCounterCard from "../StreakCounterCard.jsx";
 import WorkflowPipelinePanel from "./WorkflowPipelinePanel.jsx";
-import DepartmentRiskBreakdown from "./DepartmentRiskBreakdown.jsx";
 import DepartmentHeatMap from "./DepartmentHeatMap.jsx";
 import AuditPackageButton from "./AuditPackageButton.jsx";
-import DepartmentTrendAlertCard from "./DepartmentTrendAlertCard.jsx";
 import LegislationImpactCard from "./LegislationImpactCard.jsx";
 import TrainingComplianceListCard from "./TrainingComplianceListCard.jsx";
-import PeriodicCheckOverviewPanel from "./PeriodicCheckOverviewPanel.jsx";
 import AttentionNeededPanel from "./AttentionNeededPanel.jsx";
 import DashboardExportButtons from "./DashboardExportButtons.jsx";
 import Last30DaysChangeCard from "./Last30DaysChangeCard.jsx";
-import UpcomingChecksCard from "./UpcomingChecksCard.jsx";
 import OngoingTrainingsCard from "./OngoingTrainingsCard.jsx";
-import CriticalRisksCard from "./CriticalRisksCard.jsx";
 import { getActivityLink } from "../../../constants/activityLink.js";
 
 /**
+ * İşveren Dashboard'ının Genel Bakış sekmesi.
+ *
+ * SADELEŞTİRME NOTU: bu sekme önceden aynı soruyu ("hangi bölüm/kayıt riskli,
+ * neye bakmalıyım") birbirinden habersiz, zaman zaman çelişen sayılar veren çok
+ * sayıda widget'la cevaplıyordu. Her biri TEK bir widget'a indirgendi ve o widget
+ * genişletildi (bkz. ilgili bileşenlerin dosya başı yorumları):
+ *   - Departman/kritik risk kırılımı (4 widget) → yalnızca `DepartmentHeatMap`
+ *   - Dikkat gerektiren faaliyet/kontrol listeleri (3 widget) → yalnızca `AttentionNeededPanel`
+ *   - Ayrı bir "Patron Modu" SEKMESİ → `ExecutiveSummaryStrip` olarak buraya taşındı
+ *   - Sahte/temsili "Trend Analizi" widget'ı (Performans sekmesindeki GERÇEK
+ *     verilerle çelişiyordu) → tamamen kaldırıldı
+ *
  * @param {{ theme: object, data: ReturnType<typeof import("./useEmployerDashboardData.js").useEmployerDashboardData> }} props
  */
 export default function EmployerOverviewTab({ theme, data }) {
@@ -41,14 +47,9 @@ export default function EmployerOverviewTab({ theme, data }) {
 
   const CARDS = [
     { label: "Toplam Çalışan", value: metrics.totalEmployees, bg: theme.surfaceAlt, color: theme.textPrimary },
-    { label: "Açık Risk", value: metrics.openRisks, bg: theme.pendingBg, color: theme.pendingText },
-    { label: "Kritik Risk", value: metrics.criticalRisks, bg: theme.highRiskBg, color: theme.highRiskText },
-    { label: "Yaklaşan Kontroller", value: metrics.upcomingChecks, bg: theme.warnBg, color: theme.warnText },
-    { label: "Tamamlanan Eğitim", value: `${metrics.completedTrainings}/${metrics.totalTrainings}`, bg: theme.successBg, color: theme.successText },
     { label: "Son AI Analizleri", value: metrics.recentAiAnalyses, bg: theme.surfaceAlt, color: theme.textPrimary },
     { label: "Risk Kapanma Süresi", value: metrics.avgClosureDays !== null ? `${metrics.avgClosureDays} gün` : "—", bg: theme.surfaceAlt, color: theme.textPrimary },
     { label: "Ortalama Risk Puanı", value: fineKinneyEntries.length > 0 ? metrics.avgRiskScore : "—", bg: theme.surfaceAlt, color: theme.textPrimary },
-    { label: "Aktif Düzeltici Faaliyet", value: metrics.activeCorrectiveActions, bg: theme.pendingBg, color: theme.pendingText },
   ];
 
   return (
@@ -74,10 +75,11 @@ export default function EmployerOverviewTab({ theme, data }) {
       )}
 
       <div className="flex flex-col gap-4">
+        {isVisible("executiveSummaryStrip") && <ExecutiveSummaryStrip theme={theme} data={data} />}
         {isVisible("safetyScore") && <SafetyScoreCard theme={theme} safetyScore={safetyScore} />}
-        {isVisible("last30DayChange") && <Last30DaysChangeCard theme={theme} change={last30DayChange} />}
         {isVisible("executiveSummary") && <ExecutiveSummaryCard theme={theme} weeklySummary={weeklySummary} />}
         {isVisible("accidentStreak") && <StreakCounterCard theme={theme} streak={accidentFreeStreak} />}
+        {isVisible("last30DayChange") && <Last30DaysChangeCard theme={theme} change={last30DayChange} />}
 
         {isVisible("attentionNeeded") && (
           <DashboardWidget theme={theme} title="Dikkat Gerektirenler" icon={ClipboardList}
@@ -86,10 +88,12 @@ export default function EmployerOverviewTab({ theme, data }) {
           </DashboardWidget>
         )}
 
-        {isVisible("departmentTrendAlert") && (
-          <DashboardWidget theme={theme} title="Departman Risk Trend Uyarısı" icon={ShieldAlert}
-            description="Son 30 günde önceki 30 güne göre risk kaydı artan departmanlar — erken müdahale için.">
-            <DepartmentTrendAlertCard theme={theme} fineKinneyEntries={fineKinneyEntries} departments={departments} />
+        {isVisible("departmentHeatMap") && (
+          <DashboardWidget theme={theme} title="Departman Risk Analizi" icon={ShieldAlert}
+            description="Kayıt sayısına değil ortalama risk şiddetine göre sıralı — kritik kayıt sayısı ve artış uyarısı dahil tek widget.">
+            <DepartmentHeatMap fineKinneyEntries={fineKinneyEntries} departments={departments}
+              periodicChecks={periodicChecks} notifications={notifications} employees={employees}
+              trainingProgressRecords={trainingProgressRecords} trainingCompletionRecords={trainingCompletionRecords} />
           </DashboardWidget>
         )}
 
@@ -107,22 +111,8 @@ export default function EmployerOverviewTab({ theme, data }) {
           </DashboardWidget>
         )}
 
-        {isVisible("criticalRisks") && (
-          <DashboardWidget theme={theme} title="Açık Kritik Riskler" icon={ShieldAlert}
-            description="Durumu 'Tamamlandı' olmayan, Fine-Kinney puanı Yüksek/Çok Yüksek seviyedeki riskler.">
-            <CriticalRisksCard fineKinneyEntries={fineKinneyEntries} />
-          </DashboardWidget>
-        )}
-
-        {isVisible("upcomingChecksList") && (
-          <DashboardWidget theme={theme} title="Yaklaşan Periyodik Kontroller" icon={ListChecks}
-            description="Süresi geçmiş veya önümüzdeki günlerde yaklaşan kontroller, en yakın tarihten başlayarak.">
-            <UpcomingChecksCard theme={theme} periodicChecks={periodicChecks} />
-          </DashboardWidget>
-        )}
-
         {isVisible("kpiCards") && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {CARDS.map((c) => (
               <div key={c.label} className="rounded-lg p-3" style={{ background: c.bg }}>
                 <p className="text-[10.5px]" style={{ color: theme.textFaint }}>{c.label}</p>
@@ -138,43 +128,10 @@ export default function EmployerOverviewTab({ theme, data }) {
           </DashboardWidget>
         )}
 
-        {isVisible("departmentBreakdown") && (
-          <DashboardWidget theme={theme} title="Departman Bazlı Risk Dağılımı">
-            <DepartmentRiskBreakdown theme={theme} fineKinneyEntries={fineKinneyEntries} departments={departments} />
-          </DashboardWidget>
-        )}
-
-        {isVisible("departmentHeatMap") && (
-          <DashboardWidget theme={theme} title="Risk Isı Haritası" icon={ShieldAlert}
-            description="Kayıt sayısına değil, ortalama risk şiddetine göre — en tehlikeli bölüm en üstte.">
-            <DepartmentHeatMap fineKinneyEntries={fineKinneyEntries} departments={departments}
-              periodicChecks={periodicChecks} notifications={notifications} employees={employees}
-              trainingProgressRecords={trainingProgressRecords} trainingCompletionRecords={trainingCompletionRecords} />
-          </DashboardWidget>
-        )}
-
         {isVisible("auditPackage") && (
-          <DashboardWidget theme={theme} title="Denetim Dosyası" icon={ListChecks}>
+          <DashboardWidget theme={theme} title="Denetim Dosyası" icon={ClipboardList}>
             <AuditPackageButton theme={theme} fineKinneyEntries={fineKinneyEntries} periodicChecks={periodicChecks}
               trainingStats={trainingStats} companyName={company?.name} documents={documents} />
-          </DashboardWidget>
-        )}
-
-        {isVisible("periodicCheckOverview") && (
-          <DashboardWidget theme={theme} title="Periyodik Kontrol Özeti" icon={ListChecks}>
-            <PeriodicCheckOverviewPanel theme={theme} periodicChecks={periodicChecks} />
-          </DashboardWidget>
-        )}
-
-        {isVisible("trends") && (
-          <DashboardWidget theme={theme} title="Trend Analizi">
-            <TrendsPanel theme={theme} metrics={metrics} />
-          </DashboardWidget>
-        )}
-
-        {isVisible("correctiveActions") && (
-          <DashboardWidget theme={theme} title="Düzeltici Faaliyetler" icon={ListChecks}>
-            <CorrectiveActionsPanel theme={theme} fineKinneyEntries={fineKinneyEntries} />
           </DashboardWidget>
         )}
 

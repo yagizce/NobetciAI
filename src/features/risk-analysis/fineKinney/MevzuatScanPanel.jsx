@@ -110,9 +110,11 @@ export default function MevzuatScanPanel({ theme, fineKinneyEntries, onGoToEntry
                     {item.reason && <p className="text-[11px] mt-0.5" style={{ color: theme.textFaint }}>{item.reason}</p>}
                   </div>
                 </div>
-                <button onClick={() => onCreateDraft(item.hazard, item.risk)} className="text-[11px] font-semibold mt-1.5" style={{ color: theme.accent }}>
-                  Taslak Oluştur →
-                </button>
+                {onCreateDraft && (
+                  <button onClick={() => onCreateDraft(item.hazard, item.risk)} className="text-[11px] font-semibold mt-1.5" style={{ color: theme.accent }}>
+                    Taslak Oluştur →
+                  </button>
+                )}
               </div>
             ))}
           </div>

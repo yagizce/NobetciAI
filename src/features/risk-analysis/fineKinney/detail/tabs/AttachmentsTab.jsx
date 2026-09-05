@@ -12,9 +12,9 @@ import { Paperclip, ImageIcon, FileText, Trash2 } from "../../../../../component
 const TYPE_ICON = { photo: ImageIcon, pdf: FileText, word: FileText, excel: FileText };
 
 /**
- * @param {{ entry: object, theme: object, onAdd: (a: object) => void, onRemove: (id: number) => void }} props
+ * @param {{ entry: object, theme: object, onAdd: (a: object) => void, onRemove: (id: number) => void, readOnly?: boolean }} props
  */
-export default function AttachmentsTab({ entry, theme, onAdd, onRemove }) {
+export default function AttachmentsTab({ entry, theme, onAdd, onRemove, readOnly = false }) {
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState("photo");
@@ -44,12 +44,14 @@ export default function AttachmentsTab({ entry, theme, onAdd, onRemove }) {
 
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs" style={{ color: theme.textFaint }}>Fotoğraf, PDF, Word, Excel</p>
-        <Button size="sm" variant="secondary" onClick={() => setFormOpen((v) => !v)} className="flex items-center gap-1">
-          <Paperclip style={{ fontSize: "12px" }} /> Dosya Ekle
-        </Button>
+        {!readOnly && (
+          <Button size="sm" variant="secondary" onClick={() => setFormOpen((v) => !v)} className="flex items-center gap-1">
+            <Paperclip style={{ fontSize: "12px" }} /> Dosya Ekle
+          </Button>
+        )}
       </div>
 
-      {formOpen && (
+      {formOpen && !readOnly && (
         <div className="rounded-lg border px-3 py-3 mb-3" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dosya adı (örn. Merdiven_korkuluk.jpg)"
             className="w-full text-sm rounded-lg px-3 py-2 mb-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
@@ -81,7 +83,7 @@ export default function AttachmentsTab({ entry, theme, onAdd, onRemove }) {
                   <p className="text-sm font-medium truncate" style={{ color: theme.textPrimary }}>{a.name}</p>
                   <p className="text-[10.5px]" style={{ color: theme.textFaint }}>{a.addedBy} • {new Date(a.addedAt).toLocaleDateString("tr-TR")}</p>
                 </div>
-                <button onClick={() => setConfirmRemoveId(a.id)} aria-label="Sil"><Trash2 style={{ fontSize: "13px", color: theme.emergencyText }} /></button>
+                {!readOnly && <button onClick={() => setConfirmRemoveId(a.id)} aria-label="Sil"><Trash2 style={{ fontSize: "13px", color: theme.emergencyText }} /></button>}
               </div>
             );
           })}

@@ -1,13 +1,14 @@
 import { useMemo } from "react";
-import { useIsgData } from "../../contexts/IsgDataContext.jsx";
-import { EDUCATION_MODULES } from "../../constants/education.js";
-import { computeAccidentFreeStreak } from "../../utils/accidentFreeStreak.js";
+import { Link } from "react-router-dom";
+import { TRAINING_COURSES } from "../../constants/trainingCourses.js";
+import { resolveTrainingStatus, computeProgressPercent, computeRemainingSeconds, formatRemainingDuration } from "../../constants/trainingStatus.js";
 import { MOCK_USERS } from "../../constants/mockUsers.js";
+import { useTrainingCompletions } from "../training/useTrainingCompletions.js";
 import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
+import ErrorState from "../../components/ErrorState.jsx";
 import Badge from "../../components/ui/Badge.jsx";
-import { Bell, ListChecks, BookOpen } from "../../components/icons/index.jsx";
-import StreakCounterCard from "./StreakCounterCard.jsx";
+import { BookOpen, Clock, CheckCircle2 } from "../../components/icons/index.jsx";
 
 // BUG FIX (demo veri temizliği): önceden literal "Ahmet Yıldız" hardcoded'du —
 // RiskAnalysisPage.jsx ve DocumentGenerator.jsx'te de bağımsız olarak
@@ -16,83 +17,119 @@ import StreakCounterCard from "./StreakCounterCard.jsx";
 const CURRENT_EMPLOYEE_NAME = MOCK_USERS.employee?.name || "Çalışan";
 
 /**
+ * Çalışan Paneli — BİLİNÇLİ OLARAK yalnızca eğitim durumuna odaklanır. Bildirim
+ * Merkezi (Ramak Kala/Tehlike/İş Kazası bildirimleri) ve firma geneli kazasız gün
+ * sayacı gibi bilgiler kasıtlı olarak burada GÖSTERİLMEZ — bunlar çalışanın kendi
+ * aksiyon alanı değil (bildirimlerini zaten Risk Analizi sayfasından takip edebilir).
+ * Panel üç net gruba ayrılır: yarım kalmış eğitim(ler)in kalan süresi, henüz
+ * başlanmamış zorunlu eğitimler, ve tamamlanan eğitimler.
+ *
  * @param {{ theme: object }} props
  */
 export default function EmployeeDashboard({ theme }) {
-  const { notifications, loaded: notificationsLoaded } = useIsgData();
+  const { completions, progress, loaded, error } = useTrainingCompletions();
 
-  const myNotifications = useMemo(() => notifications.filter((n) => n.worker === CURRENT_EMPLOYEE_NAME), [notifications]);
-  const myTasks = useMemo(() => myNotifications.filter((n) => n.status === "approved"), [myNotifications]);
-  // Kazasız gün sayacı firma genelini yansıtır — yalnızca bu çalışanın bildirimleriyle
-  // sınırlı DEĞİLDİR, bkz. StreakCounterCard/accidentFreeStreak.js.
-  const accidentFreeStreak = useMemo(() => computeAccidentFreeStreak(notifications), [notifications]);
+  const courseRows = useMemo(() => {
+    return TRAINING_COURSES.map((course) => {
+      const myProgress = progress.find((p) => p.courseId === course.id && p.employeeName === CURRENT_EMPLOYEE_NAME) || null;
+      const myCompletions = completions.filter((c) => c.courseId === course.id && c.employeeName === CURRENT_EMPLOYEE_NAME);
+      const status = resolveTrainingStatus({ progress: myProgress, completions: myCompletions });
+      const latestCompletion = myCompletions.length > 0
+        ? [...myCompletions].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0]
+        : null;
+      return { course, status, myProgress, latestCompletion };
+    });
+  }, [progress, completions]);
+
+  const notStarted = courseRows.filter((r) => r.status.id === "assigned");
+  const inProgress = courseRows.filter((r) => r.status.id === "inProgress" || r.status.id === "failed");
+  const completed = courseRows.filter((r) => r.status.id === "completed");
+
+  if (!loaded) {
+    return (
+      <div className="px-4 md:px-8 py-6 max-w-4xl mx-auto">
+        <Loading label="Eğitimler yükleniyor..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="px-4 md:px-8 py-6 max-w-4xl mx-auto">
+        <ErrorState title="Eğitimler yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-4xl mx-auto">
-      <p className="font-[Oswald] text-xl uppercase tracking-wide mb-4" style={{ color: theme.textPrimary }}>Çalışan Paneli</p>
+      <p className="font-[Oswald] text-xl uppercase tracking-wide mb-1" style={{ color: theme.textPrimary }}>Çalışan Paneli</p>
+      <p className="text-xs mb-4" style={{ color: theme.textFaint }}>Almanız gereken eğitimler ve eğitim durumunuz</p>
 
-      <div className="mb-4">
-        <StreakCounterCard theme={theme} streak={accidentFreeStreak} />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <section>
-          <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
-            <BookOpen style={{ fontSize: "14px" }} /> Eğitimler
-          </p>
-          <div className="grid gap-2">
-            {EDUCATION_MODULES.map((title) => (
-              <div key={title} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
-                <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{title}</p>
-                <p className="text-xs mt-0.5" style={{ color: theme.textMuted }}>Zorunlu Eğitim</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
-            <Bell style={{ fontSize: "14px" }} /> Bildirimlerim
-          </p>
-          {/* UX FIX (loading/empty state cilası): bildirimler context'te ayrı yükleniyor —
-              `loaded` kontrol edilmeden ilk render'da "Henüz bildirimin yok" kısa süreliğine
-              yanlışlıkla gösterilebiliyordu. */}
-          {!notificationsLoaded ? (
-            <Loading label="Bildirimler yükleniyor..." />
-          ) : myNotifications.length === 0 ? (
-            <EmptyState icon={Bell} title="Henüz bildirimin yok" description="Risk Analizi sayfasından yeni bildirim oluşturabilirsin." />
-          ) : (
-            <div className="grid gap-2">
-              {myNotifications.map((n) => (
-                <div key={n.id} className="rounded-lg border px-3 py-2.5 flex items-start justify-between gap-2" style={{ borderColor: theme.border, background: theme.surface }}>
-                  <div>
-                    <p className="text-sm" style={{ color: theme.textPrimary }}>{n.desc}</p>
-                    <p className="text-xs" style={{ color: theme.textFaint }}>{n.date}</p>
-                  </div>
-                  <Badge tone={n.status === "approved" ? "success" : n.status === "ai_analyzed" ? "warning" : "pending"}>
-                    {n.status === "approved" ? "Onaylandı" : n.status === "ai_analyzed" ? "İncelemede" : "Analiz Ediliyor"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      <section className="mt-4">
+      <section className="mb-5">
         <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
-          <ListChecks style={{ fontSize: "14px" }} /> Kendisine Atanmış Görevler
+          <Clock style={{ fontSize: "14px", color: theme.warnText }} /> Devam Eden Eğitim
         </p>
-        {!notificationsLoaded ? (
-          <Loading label="Görevler yükleniyor..." />
-        ) : myTasks.length === 0 ? (
-          <EmptyState icon={ListChecks} title="Atanmış görev yok" description="Bir bildirimin onaylanıp göreve dönüştüğünde burada görünecek." />
+        {inProgress.length === 0 ? (
+          <p className="text-xs" style={{ color: theme.textFaint }}>Şu anda yarım kalmış bir eğitiminiz yok.</p>
+        ) : (
+          <div className="grid gap-2">
+            {inProgress.map(({ course, status, myProgress }) => {
+              const percent = computeProgressPercent(myProgress);
+              const remaining = formatRemainingDuration(computeRemainingSeconds(myProgress));
+              return (
+                <Link key={course.id} to="/documents?tab=education" className="rounded-lg border px-3.5 py-3 block" style={{ borderColor: theme.border, background: theme.surface }}>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{course.title}</p>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full overflow-hidden mb-1.5" style={{ background: theme.surfaceAlt }}>
+                    <div className="h-full rounded-full" style={{ width: `${percent}%`, background: theme.accent }} />
+                  </div>
+                  <p className="text-[11px]" style={{ color: theme.textFaint }}>%{percent} tamamlandı • Kalan süre: yaklaşık {remaining}</p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="mb-5">
+        <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
+          <BookOpen style={{ fontSize: "14px" }} /> Almanız Gereken Eğitimler
+        </p>
+        {notStarted.length === 0 ? (
+          <EmptyState icon={BookOpen} title="Bekleyen eğitim yok" description="Şu an başlamanız gereken bir eğitim bulunmuyor." />
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
-            {myTasks.map((n) => (
-              <div key={n.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
-                <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{n.desc}</p>
-                <p className="text-xs mt-1" style={{ color: theme.successText }}>✓ {n.expertNote}</p>
+            {notStarted.map(({ course }) => (
+              <Link key={course.id} to="/documents?tab=education" className="rounded-lg border px-3 py-2.5 block" style={{ borderColor: theme.border, background: theme.surface }}>
+                <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{course.title}</p>
+                <p className="text-xs mt-0.5" style={{ color: theme.textMuted }}>{course.mandatory ? "Zorunlu Eğitim" : "Eğitim"}</p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
+          <CheckCircle2 style={{ fontSize: "14px", color: theme.successText }} /> Tamamladıklarınız
+        </p>
+        {completed.length === 0 ? (
+          <p className="text-xs" style={{ color: theme.textFaint }}>Henüz tamamlanmış bir eğitiminiz yok.</p>
+        ) : (
+          <div className="grid gap-2 md:grid-cols-2">
+            {completed.map(({ course, latestCompletion }) => (
+              <div key={course.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{course.title}</p>
+                  <Badge tone="success">Tamamlandı</Badge>
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: theme.textFaint }}>
+                  {latestCompletion?.completedAt ? new Date(latestCompletion.completedAt).toLocaleDateString("tr-TR") : "—"}
+                  {typeof latestCompletion?.quizScore === "number" ? ` • Sınav notu: %${latestCompletion.quizScore}` : ""}
+                </p>
               </div>
             ))}
           </div>

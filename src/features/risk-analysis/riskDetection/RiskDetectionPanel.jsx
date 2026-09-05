@@ -36,9 +36,9 @@ const SUMMARY_ITEMS = [
  * başındaki not). Üçü de aynı veri modelini kullanır; gerçek sabit kamera geldiğinde
  * yalnızca dördüncü bir "source" (`"camera"`) eklenmesi yeterli olacaktır.
  *
- * @param {{ onSendToFineKinney: (hazard: string, risk: string, extra?: object) => void }} props
+ * @param {{ onSendToFineKinney: (hazard: string, risk: string, extra?: object) => void, canCreateFineKinney?: boolean }} props
  */
-export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialSearch }) {
+export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialSearch, canCreateFineKinney = true }) {
   const {
     detections, allDetections, totalCount, stats, loaded, loadError,
     addDetection, updateStatus, removeDetection,
@@ -242,7 +242,7 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
               departmentName={d.departmentId ? departmentNameById[String(d.departmentId)] : null}
               onUpdateStatus={handleUpdateStatus}
               onDelete={handleDelete}
-              onSendToFineKinney={onSendToFineKinney}
+              onSendToFineKinney={canCreateFineKinney ? onSendToFineKinney : null}
             />
           ))}
         </div>

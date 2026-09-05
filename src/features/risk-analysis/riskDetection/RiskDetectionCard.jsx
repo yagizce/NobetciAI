@@ -135,10 +135,14 @@ export default function RiskDetectionCard({ detection, theme, departmentName, on
       {detection.status === "reviewing" && (
         <div className="mt-2">
           <div className="flex items-center gap-2 flex-wrap -mx-2 -mb-1">
-            <button onClick={() => setAiExpanded((v) => !v)} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1.5" style={{ color: theme.accent }}>
-              <Sparkles style={{ fontSize: "11px" }} /> AI ile Taslak Oluştur
-            </button>
-            <button onClick={handleSendManual} className="text-[11px] font-semibold px-2 py-1.5" style={{ color: theme.textMuted }}>Sahaya İn (Manuel)</button>
+            {onSendToFineKinney && (
+              <>
+                <button onClick={() => setAiExpanded((v) => !v)} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1.5" style={{ color: theme.accent }}>
+                  <Sparkles style={{ fontSize: "11px" }} /> AI ile Taslak Oluştur
+                </button>
+                <button onClick={handleSendManual} className="text-[11px] font-semibold px-2 py-1.5" style={{ color: theme.textMuted }}>Sahaya İn (Manuel)</button>
+              </>
+            )}
             <button onClick={() => onUpdateStatus(detection.id, "dismissed", { dismissReason: "Uzman incelemesi sonucu reddedildi" })} className="text-[11px] font-semibold px-2 py-1.5 ml-auto" style={{ color: theme.textFaint }}>Reddet</button>
           </div>
 

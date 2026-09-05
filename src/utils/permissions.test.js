@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { hasRole, hasPermission } from "./permissions.js";
+import { hasRole, hasPermission, canManageRiskAssessments } from "./permissions.js";
 
 describe("hasRole", () => {
   test("izin verilen roller listesinde bulunan rol için true döner", () => {
@@ -38,5 +38,26 @@ describe("hasPermission", () => {
     // bu test, kaldırılan rollerin sessizce yetki KAZANMADIĞINI doğrular.
     assert.equal(hasPermission("companyAdmin", "manage_company"), false);
     assert.equal(hasPermission("superAdmin", "manage_all_companies"), false);
+  });
+});
+
+describe("canManageRiskAssessments", () => {
+  test("İSG Uzmanı her zaman yetkilidir — firma ayarından bağımsız", () => {
+    assert.equal(canManageRiskAssessments("expert", null), true);
+    assert.equal(canManageRiskAssessments("expert", { expertIsEmployer: false }), true);
+  });
+
+  test("İşveren, İSG Uzmanı ile aynı kişi DEĞİLSE salt-görüntüler (yetkisiz)", () => {
+    assert.equal(canManageRiskAssessments("employer", null), false);
+    assert.equal(canManageRiskAssessments("employer", { expertIsEmployer: false }), false);
+    assert.equal(canManageRiskAssessments("employer", undefined), false);
+  });
+
+  test("İşveren, İSG Uzmanı ile aynı kişiyse tam yetkilidir", () => {
+    assert.equal(canManageRiskAssessments("employer", { expertIsEmployer: true }), true);
+  });
+
+  test("Çalışan hiçbir zaman yetkili değildir", () => {
+    assert.equal(canManageRiskAssessments("employee", { expertIsEmployer: true }), false);
   });
 });

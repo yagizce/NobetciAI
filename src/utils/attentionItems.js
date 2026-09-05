@@ -6,13 +6,19 @@
 //   2) Yaklaşan/geciken periyodik kontroller — bugün yalnızca bir SAYI (KPI kartı)
 //      olarak görünüyor, HANGİ kontrol olduğu hiçbir yerde listelenmiyor.
 // Her ikisi de gerçek veriden hesaplanır, mock içermez.
+//
+// GENİŞLETME: bu widget artık "Dikkat Gerektirenler"in TEK adresi — önceden ayrı
+// var olan `CorrectiveActionsPanel` (risk kaydı bazında, önceliğe göre sıralı aktif
+// liste) buraya katıldı. Bu yüzden her aksiyon kalemi artık üst risk kaydının
+// `priority` alanını da taşır (bkz. `priority` alanı) — AttentionNeededPanel.jsx bunu
+// bir rozet olarak gösterir.
 
 import { todayISO } from "./dateUtils.js";
 
 /**
  * @param {import("../types/index.js").FineKinneyEntry[]} fineKinneyEntries
  * @param {import("../types/index.js").PeriodicCheck[]} periodicChecks
- * @returns {Array<{ kind: "action"|"check", id: string, title: string, context: string|null, dueDate: string, overdue: boolean }>}
+ * @returns {Array<{ kind: "action"|"check", id: string, title: string, context: string|null, dueDate: string, overdue: boolean, priority?: string }>}
  */
 export function collectAttentionItems(fineKinneyEntries, periodicChecks) {
   const today = todayISO();
@@ -28,6 +34,7 @@ export function collectAttentionItems(fineKinneyEntries, periodicChecks) {
         context: entry.hazard,
         dueDate: a.dueDate,
         overdue: a.dueDate < today,
+        priority: entry.priority,
       });
     });
   });

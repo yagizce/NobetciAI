@@ -34,8 +34,13 @@ describe("collectAttentionItems", () => {
     const result = collectAttentionItems(entries, []);
     assert.equal(result.length, 1);
     assert.deepEqual(result[0], {
-      kind: "action", id: "action-e1-a1", title: "Bariyer kur", context: "Tehlike e1", dueDate: TOMORROW, overdue: false,
+      kind: "action", id: "action-e1-a1", title: "Bariyer kur", context: "Tehlike e1", dueDate: TOMORROW, overdue: false, priority: undefined,
     });
+  });
+
+  test("üst risk kaydının önceliği (priority) faaliyet kalemine taşınır — CorrectiveActionsPanel'in yerini alan rozet için", () => {
+    const entries = [{ id: "e1", hazard: "Tehlike e1", priority: "urgent", correctiveActions: [{ id: "a1", title: "Bariyer kur", status: "open", dueDate: TOMORROW }] }];
+    assert.equal(collectAttentionItems(entries, [])[0].priority, "urgent");
   });
 
   test("son tarihi geçmiş düzeltici faaliyet overdue: true olarak işaretlenir", () => {

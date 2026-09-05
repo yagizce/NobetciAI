@@ -13,7 +13,7 @@ import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { Building2 } from "../../components/icons/index.jsx";
 
-const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], employeeCount: "", logo: null, address: "", phone: "", email: "" };
+const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], employeeCount: "", logo: null, address: "", phone: "", email: "", expertIsEmployer: false };
 
 /**
  * @param {{ theme: object, onCompanyLoaded: (company: object|null) => void }} props
@@ -75,6 +75,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
       address: form.address.trim(),
       phone: form.phone.trim(),
       email: form.email.trim(),
+      expertIsEmployer: Boolean(form.expertIsEmployer),
     };
     // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
     // (örn. depolama alanı erişilemez) kullanıcıya hiçbir geri bildirim verilmiyordu,
@@ -147,6 +148,19 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
         <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="E-posta" type="email"
           className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
       </div>
+
+      <label className="flex items-start gap-2.5 rounded-lg border px-3 py-2.5 mb-3 cursor-pointer" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
+        <input type="checkbox" checked={Boolean(form.expertIsEmployer)} onChange={(e) => setForm({ ...form, expertIsEmployer: e.target.checked })}
+          className="mt-0.5" style={{ accentColor: theme.accent }} />
+        <span>
+          <span className="block text-sm font-medium" style={{ color: theme.textPrimary }}>İSG Uzmanı ve İşveren aynı kişi mi?</span>
+          <span className="block text-[11px] mt-0.5" style={{ color: theme.textFaint }}>
+            Yalnızca küçük işletmelerde işaretleyin. İşaretlenirse İşveren rolü de Fine-Kinney risk
+            değerlendirmesi oluşturabilir/düzenleyebilir. Aksi halde İşveren risk değerlendirmelerini
+            yalnızca görüntüler — ekleme/düzenleme/kapatma İSG Uzmanı'na özgü kalır.
+          </span>
+        </span>
+      </label>
 
       <Button onClick={guardedHandleSave} disabled={!form.name.trim() || isSubmitting}>{isSubmitting ? "Kaydediliyor..." : company ? "Güncelle" : "Firma Oluştur"}</Button>
     </div>
