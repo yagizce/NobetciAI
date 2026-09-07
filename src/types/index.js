@@ -274,4 +274,54 @@
  * @property {number} [confidenceScore] - Phase 6: AI güven skoru (0-100)
  */
 
+/**
+ * ISO Denetim Modülü (Faz 1: yalnızca ISO 45001) — sihirbazla oluşturulan bir
+ * denetim kaydı. `companyId`, denetlenen MÜŞTERİ firmayı belirtir (bkz.
+ * services/companyService.js — COMPANY_SCOPED_STORES); OSGB/çoklu-müşteri
+ * senaryosunda her müşteri kendi companyId'siyle doğal olarak ayrışır.
+ * @typedef {Object} Audit
+ * @property {string|number} id
+ * @property {string|number} companyId - Denetlenen firma
+ * @property {"45001"} standard - Faz 1'de sabit; Faz 2'de "9001"|"14001"|"27001" de eklenecek
+ * @property {string} scopeDescription - Denetim kapsamının serbest metin özeti
+ * @property {Array<string|number>} scopeDepartmentIds - Kapsama dahil departmanlar (boşsa: tüm firma)
+ * @property {string} plannedDate - ISO tarih, sahaya çıkış tarihi
+ * @property {Array<{ id: string, categoryCode: string, title: string, result: "uygun"|"kismen_uygun"|"uygun_degil"|"kanit_yok"|"degerlendirilmedi", note: string, departmentId: string|number|null }>} checklist - bkz. constants/iso45001Checklist.js
+ * @property {string|null} completedAt - ISO zaman damgası; doluysa denetim "Tamamlandı" sayılır (bkz. computeAuditStatus)
+ * @property {string} createdAt
+ */
+
+/**
+ * ISO Denetim Modülü — bir denetim bulgusundan (checklist maddesinden) tek tıkla
+ * açılan Düzeltici İyileştirici Faaliyet (DİF) kaydı.
+ *
+ * FAZ 1 NOTU: bu tip ve ilgili servis fonksiyonları (services/auditManagementService.js)
+ * ile UI'lar (features/audit/DifBoardPanel.jsx, DifDetailDrawer.jsx) Faz 1'de
+ * hiçbir sayfaya BAĞLANMAMIŞTIR — Faz 1 kapsamı yalnızca ISO 45001 checklist
+ * yürütme + skor. Faz 2'de uygunsuzluk otomasyonu eklenince devreye girecek
+ * altyapı olarak burada dursun diye SİLİNMEDİ.
+ *
+ * Denetimden ayrı, kendi koleksiyonunda tutulur (bkz. companyService.js) —
+ * böylece bir denetim kapansa bile DİF'in yaşam döngüsü (Açık → Kök Neden →
+ * Aksiyon → Doğrulama → Kapalı) bağımsız olarak, termin/gecikme takibiyle sürer.
+ * @typedef {Object} AuditFinding
+ * @property {string|number} id
+ * @property {string|number} companyId
+ * @property {string|number} auditId
+ * @property {string} checklistItemId - Kaynak checklist maddesinin id'si (bkz. Audit.checklist)
+ * @property {string} standard
+ * @property {string} clauseCode
+ * @property {"major"|"minor"|"observation"|"good_practice"} type
+ * @property {string|number|null} departmentId
+ * @property {string} description - Bulgunun sahada gözlemlenen hali
+ * @property {string} rootCause - Kök neden analizi (stage "rootCause" ve sonrasında doldurulur)
+ * @property {string} correctiveAction - Planlanan/uygulanan düzeltici faaliyet
+ * @property {"open"|"rootCause"|"action"|"verification"|"closed"} stage
+ * @property {string} responsible - Sorumlu kişi
+ * @property {string} dueDate - ISO tarih, termin
+ * @property {string} openedAt - ISO zaman damgası
+ * @property {string|null} closedAt - ISO zaman damgası; yalnızca stage "closed" ise dolu
+ * @property {Array<{ id: string|number, name: string, type: string, addedAt: string }>} evidence - Kanıt dosyaları (Fine-Kinney AttachmentsTab.jsx ile aynı desen: şimdilik mock meta veri — ad/tür)
+ */
+
 export {};

@@ -18,11 +18,11 @@ const DB_NAME = "nobetci-isg";
 // yapılırken (örn. basınç göstergesi okuması) eklenebilen fotoğraf, AYNI desenle
 // (riskDetectionPhotos/closureEvidencePhotos) ayrı saklanır (bkz.
 // periodicCheckPhotoService.js). PeriodicCheck kaydı yalnızca `photoId` referansı taşır.
-const DB_VERSION = 14;
+const DB_VERSION = 15;
 // Export edilir: backupService.js gibi "tüm store'ları dolaş" ihtiyacı olan kodlar bu
 // listeyi TEKRAR TANIMLAMAK yerine buradan alır — yeni bir store eklendiğinde (bkz.
 // DB_VERSION artışı) yedekleme kodunun ayrıca güncellenmesi gerekmez, otomatik kapsar.
-export const STORES = ["equipment", "notifications", "risks", "fineKinney", "documents", "periodicChecks", "auditLog", "companies", "branches", "departments", "employees", "systemNotifications", "trainingCompletions", "trainingProgress", "riskDetections", "trainingCourseSettings", "riskDetectionPhotos", "closureEvidencePhotos", "periodicCheckPhotos"];
+export const STORES = ["equipment", "notifications", "risks", "fineKinney", "documents", "periodicChecks", "auditLog", "companies", "branches", "departments", "employees", "systemNotifications", "trainingCompletions", "trainingProgress", "riskDetections", "trainingCourseSettings", "riskDetectionPhotos", "closureEvidencePhotos", "periodicCheckPhotos", "audits", "auditFindings", "auditEvidencePhotos"];
 
 // REFACTOR: Bağlantı önbelleği — saveData/loadAllData/deleteData her çağrıldığında
 // önceden `indexedDB.open()` YENİDEN çalıştırılıyordu (her okuma/yazma kendi bağlantısını

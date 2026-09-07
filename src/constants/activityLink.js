@@ -18,6 +18,7 @@ const ENTITY_ROUTES = {
   department: "/settings",
   branch: "/settings",
   company: "/settings",
+  audit: "/audit",
 };
 
 /**

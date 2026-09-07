@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useIsgData } from "../../contexts/IsgDataContext.jsx";
-import { getCompanies } from "../../services/companyService.js";
+import { getCompanies, setActiveCompany, getActiveCompanyId } from "../../services/companyService.js";
 import EmptyState from "../../components/EmptyState.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import Loading from "../../components/Loading.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
+import { useToast } from "../../contexts/ToastContext.jsx";
 import { MessageSquare, ShieldAlert } from "../../components/icons/index.jsx";
 
 /**
@@ -14,15 +15,18 @@ import { MessageSquare, ShieldAlert } from "../../components/icons/index.jsx";
  */
 export default function ExpertDashboard({ theme }) {
   const { notifications, loaded: notificationsLoaded } = useIsgData();
+  const { showToast } = useToast();
   const [companies, setCompanies] = useState([]);
   const [companiesLoaded, setCompaniesLoaded] = useState(false);
   const [companiesError, setCompaniesError] = useState(null);
+  const [activeCompanyId, setActiveCompanyIdState] = useState(null);
+  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    getCompanies()
-      .then((data) => {
-        if (!cancelled) { setCompanies(data); setCompaniesLoaded(true); }
+    Promise.all([getCompanies(), getActiveCompanyId()])
+      .then(([data, activeId]) => {
+        if (!cancelled) { setCompanies(data); setActiveCompanyIdState(activeId); setCompaniesLoaded(true); }
       })
       .catch((error) => {
         console.error("Firmalar yüklenemedi:", error);
@@ -33,6 +37,25 @@ export default function ExpertDashboard({ theme }) {
       });
     return () => { cancelled = true; };
   }, []);
+
+  // OSGB/çoklu-müşteri portföyü: Fine-Kinney, Denetim vb. TÜM modüller yalnızca
+  // AKTİF firmanın verisini gösterir (bkz. companyService.js → COMPANY_SCOPED_STORES).
+  // Bu yüzden "portföyde her firma kendi takibiyle ayrışır" ihtiyacı, İSG Uzmanı'nın
+  // burada bir müşteriye tıklayıp onu aktif hale getirmesiyle karşılanır — sayfa
+  // yenilendiğinde tüm modüller o müşterinin verisiyle açılır.
+  async function handleSwitch(companyId) {
+    if (String(companyId) === String(activeCompanyId) || switching) return;
+    setSwitching(true);
+    try {
+      await setActiveCompany(companyId);
+      showToast("Aktif firma değiştirildi, sayfa yenileniyor...", "neutral");
+      window.location.reload();
+    } catch (err) {
+      console.error("Firma değiştirilemedi:", err);
+      showToast("Firma değiştirilemedi.", "error");
+      setSwitching(false);
+    }
+  }
 
   const pendingAnalyses = useMemo(() => notifications.filter((n) => n.status === "pending" || n.status === "ai_analyzed"), [notifications]);
   const recentAnalyses = useMemo(() => notifications.filter((n) => n.aiAnalysis).slice(0, 5), [notifications]);
@@ -56,12 +79,20 @@ export default function ExpertDashboard({ theme }) {
               <ErrorState title="Firmalar yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />
             ) : companies.length === 0 ? (
               <EmptyState icon={ShieldAlert} title="Henüz firma oluşturulmadı" />
-            ) : companies.map((company) => (
-              <div key={company.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surface }}>
-                <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{company.name}</p>
-                <p className="text-xs" style={{ color: theme.textFaint }}>{company.sector} • {company.employeeCount} çalışan</p>
-              </div>
-            ))}
+            ) : companies.map((company) => {
+              const isActive = String(company.id) === String(activeCompanyId);
+              return (
+                <button key={company.id} onClick={() => handleSwitch(company.id)} disabled={switching}
+                  className="text-left rounded-lg border px-3 py-2.5 flex items-center justify-between gap-2"
+                  style={{ borderColor: isActive ? theme.accent : theme.border, background: theme.surface }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{company.name}</p>
+                    <p className="text-xs" style={{ color: theme.textFaint }}>{company.sector} • {company.employeeCount} çalışan</p>
+                  </div>
+                  {isActive ? <Badge tone="success">Aktif</Badge> : <span className="text-[10.5px] font-semibold" style={{ color: theme.accent }}>Bu firmaya geç →</span>}
+                </button>
+              );
+            })}
           </div>
         </section>
 

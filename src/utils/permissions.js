@@ -62,3 +62,15 @@ export function canManageRiskAssessments(currentRole, company) {
   if (currentRole === "employer") return Boolean(company?.expertIsEmployer);
   return false;
 }
+
+/**
+ * ISO Denetim modülünü kim OLUŞTURABİLİR/YÜRÜTEBİLİR/KAPATABİLİR — aynen Fine-Kinney
+ * gibi bu da İSG Uzmanlığı işidir, aynı kuralı paylaşır (bkz. yukarıdaki
+ * canManageRiskAssessments). İşveren denetimleri ve DİF'leri her zaman görüntüleyebilir.
+ * @param {string} currentRole
+ * @param {{ expertIsEmployer?: boolean }|null|undefined} company
+ * @returns {boolean}
+ */
+export function canManageAudits(currentRole, company) {
+  return canManageRiskAssessments(currentRole, company);
+}

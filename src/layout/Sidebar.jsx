@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext.jsx";
-import { Home, MessageSquare, ShieldAlert, FileText, Scale, UserRound, Settings, X, HardHat, BookOpen } from "../components/icons/index.jsx";
+import { Home, MessageSquare, ShieldAlert, FileText, Scale, UserRound, Settings, X, HardHat, BookOpen, ClipboardList } from "../components/icons/index.jsx";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: Home, emoji: "🏠" },
   { to: "/chat", label: "AI Chat", icon: MessageSquare, emoji: "🤖" },
   { to: "/risk-analysis", label: "Risk Analizi", icon: ShieldAlert, emoji: "⚠️" },
+  { to: "/audit", label: "ISO 45001 Denetim", icon: ClipboardList, emoji: "📋" },
+  { to: "/audit/mevzuat", label: "Mevzuat Denetimi", icon: ClipboardList, emoji: "📋" },
   { to: "/documents", label: "Dokümanlar", icon: FileText, emoji: "📄" },
   { to: "/legislation", label: "Mevzuat", icon: Scale, emoji: "📚" },
   { to: "/knowledge-center", label: "Bilgi Kütüphanesi", icon: BookOpen, emoji: "📖" },

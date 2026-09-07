@@ -22,6 +22,8 @@ export const COMPANY_SCOPED_STORES = [
   "trainingProgress",
   "riskDetections",
   "trainingCourseSettings",
+  "audits",
+  "auditFindings",
 ];
 
 /**
