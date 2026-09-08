@@ -6,6 +6,7 @@ import {
 import { logActivity } from "../../services/auditService.js";
 import { pushSystemNotification } from "../../services/systemNotificationService.js";
 import { useRole } from "../../contexts/RoleContext.jsx";
+import { useCompany } from "../../hooks/useCompany.js";
 import { getRoleLabel } from "../../constants/allRoles.js";
 
 /**
@@ -24,6 +25,7 @@ import { getRoleLabel } from "../../constants/allRoles.js";
  */
 export function useAudits({ standard, standardLabel }) {
   const { role } = useRole();
+  const { company } = useCompany();
   const [audits, setAudits] = useState([]);
   const [findings, setFindings] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -93,12 +95,28 @@ export function useAudits({ standard, standardLabel }) {
     return dif;
   }, [role]);
 
-  const setDifStage = useCallback(async (dif, newStage, patch) => {
-    const saved = await updateDifStage(dif, newStage, patch);
+  /**
+   * DİF durum geçişi — merkezi doğrulama servis katmanında yapılır (bkz.
+   * auditManagementService.js → updateDifStage / constants/auditWorkflow.js →
+   * canTransitionDifStage). Geçersiz bir geçiş burada YUTULMAZ, olduğu gibi
+   * çağırana (DifDetailDrawer.jsx) fırlatılır ki kullanıcı anlamlı hatayı görsün.
+   * @param {object} dif
+   * @param {string} newStage
+   * @param {{ patch?: object, isReopenAction?: boolean, reason?: string|null }} [options]
+   */
+  const setDifStage = useCallback(async (dif, newStage, options = {}) => {
+    const saved = await updateDifStage(dif, newStage, {
+      actorRole: role,
+      actorLabel: getRoleLabel(role),
+      company,
+      patch: options.patch,
+      isReopenAction: options.isReopenAction,
+      reason: options.reason,
+    });
     setFindings((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
     logActivity({ actor: getRoleLabel(role), action: `DİF durumu güncellendi: ${newStage}`, details: saved.description, entityType: "audit" });
     return saved;
-  }, [role]);
+  }, [role, company]);
 
   const addEvidence = useCallback(async (dif, file) => {
     const saved = await addDifEvidence(dif, file);

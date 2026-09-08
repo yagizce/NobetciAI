@@ -19,6 +19,7 @@ export const BarChart3 = (p) => <Ic {...p}><path d="M3 3v18h18" /><path d="M7 16
 export const Bell = (p) => <Ic {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></Ic>;
 export const Copy = (p) => <Ic {...p}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></Ic>;
 export const Trash2 = (p) => <Ic {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></Ic>;
+export const RotateCcw = (p) => <Ic {...p}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></Ic>;
 export const Plus = (p) => <Ic {...p}><path d="M12 5v14M5 12h14" /></Ic>;
 export const CheckCircle2 = (p) => <Ic {...p}><circle cx="12" cy="12" r="9" /><path d="m8.5 12.5 2.3 2.3L16 10" /></Ic>;
 export const ClipboardList = (p) => <Ic {...p}><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 3h6v3H9z" /><path d="M9 11h6M9 15h6M9 19h3" /></Ic>;

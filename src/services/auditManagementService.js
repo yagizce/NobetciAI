@@ -6,7 +6,7 @@
 // ihtiyacı, aktif firma değiştirilerek (bkz. setActiveCompany) doğal olarak karşılanır.
 
 import { createCrudService } from "./createCrudService.js";
-import { computeAuditStatus } from "../constants/auditWorkflow.js";
+import { computeAuditStatus, canTransitionDifStage, applyDifTransition } from "../constants/auditWorkflow.js";
 import { createId, ensureId } from "../utils/id.js";
 import { todayISO } from "../utils/dateUtils.js";
 
@@ -123,25 +123,41 @@ export async function openDifFromFinding(audit, checklistItem, extra = {}) {
     openedAt: todayISO(),
     closedAt: null,
     evidence: [],
+    actionCompleted: false,
+    actionEvidence: "",
+    closureNote: "",
+    history: [],
   };
   return findingsCrud.save(dif);
 }
 
 /**
- * DİF'i bir sonraki (veya elle seçilen herhangi bir) aşamaya taşır. "closed"
- * aşamasına geçildiğinde `closedAt` otomatik doldurulur; geri alınırsa
- * (ör. yanlışlıkla kapatıldıysa) `closedAt` temizlenir.
+ * DİF durum geçişi — MERKEZİ doğrulamayı (canTransitionDifStage) KULLANMADAN bu
+ * fonksiyon çalışamaz: geçiş uygun değilse (grafik dışı, yetkisiz kullanıcı veya
+ * eksik zorunlu alan) bir Error fırlatılır, veritabanına HİÇBİR YAZMA yapılmaz.
+ * UI'daki buton gizleme/pasifleştirme yalnızca kullanıcı deneyimi içindir — gerçek
+ * geçerlilik kontrolü her zaman burada, tek noktada yapılır.
+ *
  * @param {import("../types/index.js").AuditFinding} dif
  * @param {string} newStage
- * @param {object} [patch] - rootCause/correctiveAction gibi ek alanlar aynı anda güncellenebilir
+ * @param {{ actorRole: string, actorLabel: string, company?: object, patch?: object,
+ *   isReopenAction?: boolean, reason?: string|null }} context
+ * @throws {Error} geçiş uygun değilse, `.reason` ile aynı anlamlı mesajla
  */
-export async function updateDifStage(dif, newStage, patch = {}) {
-  return findingsCrud.save({
-    ...dif,
-    ...patch,
-    stage: newStage,
-    closedAt: newStage === "closed" ? dif.closedAt || todayISO() : null,
+export async function updateDifStage(dif, newStage, { actorRole, actorLabel, company, patch = {}, isReopenAction = false, reason = null } = {}) {
+  const check = canTransitionDifStage({ fromStage: dif.stage, toStage: newStage, dif, patch, actorRole, company, isReopenAction });
+  if (!check.allowed) {
+    throw new Error(check.reason || "Bu durum geçişine izin verilmiyor.");
+  }
+
+  const updated = applyDifTransition(dif, newStage, {
+    patch,
+    actorLabel: actorLabel || actorRole,
+    reason: reason || patch.closureNote || patch.reopenReason || patch.actionEvidence || null,
+    historyEntryId: createId(),
+    now: new Date().toISOString(),
   });
+  return findingsCrud.save(updated);
 }
 
 /**

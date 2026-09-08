@@ -132,8 +132,8 @@ export default function EmployerOverviewTab({ theme, data }) {
           <DashboardWidget theme={theme} title="Denetim Dosyası" icon={ClipboardList}>
             <Link to="/audit" className="rounded-lg border px-3.5 py-3 flex items-center justify-between gap-2 mb-3" style={{ borderColor: theme.accent, background: theme.surfaceAlt }}>
               <div>
-                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>ISO Denetim Modülü</p>
-                <p className="text-[11px]" style={{ color: theme.textFaint }}>Sihirbazla denetim planla, madde bazlı checklist yürüt, DİF takibi yap →</p>
+                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Denetim Modülü</p>
+                <p className="text-[11px]" style={{ color: theme.textFaint }}>ISO 45001 ve İSG Mevzuat denetimi planla, madde bazlı checklist yürüt →</p>
               </div>
             </Link>
             <p className="text-[11px] mb-2" style={{ color: theme.textFaint }}>Aşağıdaki hızlı dışa aktarım, tek bir tarih aralığındaki ham kayıtları PDF/HTML olarak birleştirir — planlı bir ISO denetimi için yukarıdaki modülü kullanın.</p>

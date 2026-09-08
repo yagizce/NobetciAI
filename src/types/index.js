@@ -302,8 +302,8 @@
  * altyapı olarak burada dursun diye SİLİNMEDİ.
  *
  * Denetimden ayrı, kendi koleksiyonunda tutulur (bkz. companyService.js) —
- * böylece bir denetim kapansa bile DİF'in yaşam döngüsü (Açık → Kök Neden →
- * Aksiyon → Doğrulama → Kapalı) bağımsız olarak, termin/gecikme takibiyle sürer.
+ * böylece bir denetim kapansa bile DİF'in yaşam döngüsü (Açık → Aksiyon Bekliyor →
+ * İnceleme Bekliyor → Kapatıldı) bağımsız olarak, termin/gecikme takibiyle sürer.
  * @typedef {Object} AuditFinding
  * @property {string|number} id
  * @property {string|number} companyId
@@ -314,14 +314,18 @@
  * @property {"major"|"minor"|"observation"|"good_practice"} type
  * @property {string|number|null} departmentId
  * @property {string} description - Bulgunun sahada gözlemlenen hali
- * @property {string} rootCause - Kök neden analizi (stage "rootCause" ve sonrasında doldurulur)
- * @property {string} correctiveAction - Planlanan/uygulanan düzeltici faaliyet
- * @property {"open"|"rootCause"|"action"|"verification"|"closed"} stage
+ * @property {string} rootCause - Kök neden analizi (serbest metin, isteğe bağlı)
+ * @property {string} correctiveAction - Planlanan düzeltici faaliyet — "open" → "awaitingAction" geçişi için ZORUNLU (bkz. constants/auditWorkflow.js → canTransitionDifStage)
+ * @property {"open"|"awaitingAction"|"pendingReview"|"closed"} stage - Açık → Aksiyon Bekliyor → İnceleme Bekliyor → Kapatıldı. TEK geçerli geçiş kaynağı canTransitionDifStage'dir.
+ * @property {boolean} [actionCompleted] - "awaitingAction" → "pendingReview" geçişi için ZORUNLU
+ * @property {string} [actionEvidence] - Aksiyon açıklaması/kanıtı — "awaitingAction" → "pendingReview" geçişi için ZORUNLU
+ * @property {string} [closureNote] - Kapanış açıklaması — "pendingReview" → "closed" geçişi için ZORUNLU
  * @property {string} responsible - Sorumlu kişi
  * @property {string} dueDate - ISO tarih, termin
  * @property {string} openedAt - ISO zaman damgası
  * @property {string|null} closedAt - ISO zaman damgası; yalnızca stage "closed" ise dolu
  * @property {Array<{ id: string|number, name: string, type: string, addedAt: string }>} evidence - Kanıt dosyaları (Fine-Kinney AttachmentsTab.jsx ile aynı desen: şimdilik mock meta veri — ad/tür)
+ * @property {Array<{ id: string|number, from: string, to: string, at: string, actor: string, reason: string|null }>} history - Durum geçiş geçmişi (bkz. auditWorkflow.js → applyDifTransition); her başarılı geçişte otomatik eklenir, elle düzenlenmez.
  */
 
 export {};

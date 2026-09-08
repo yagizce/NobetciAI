@@ -12,7 +12,6 @@ const Documents = lazy(() => import("./pages/Documents.jsx"));
 const Legislation = lazy(() => import("./pages/Legislation.jsx"));
 const KnowledgeCenter = lazy(() => import("./pages/KnowledgeCenter.jsx"));
 const Audit = lazy(() => import("./pages/Audit.jsx"));
-const MevzuatAudit = lazy(() => import("./pages/MevzuatAudit.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
@@ -40,7 +39,6 @@ export default function App() {
             <Route path="legislation" element={<Legislation />} />
             <Route path="knowledge-center" element={<KnowledgeCenter />} />
             <Route path="audit" element={<Audit />} />
-            <Route path="audit/mevzuat" element={<MevzuatAudit />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
           </Route>
