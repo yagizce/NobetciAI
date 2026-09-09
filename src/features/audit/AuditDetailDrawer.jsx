@@ -2,8 +2,10 @@ import { useMemo } from "react";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
-import { getAuditStatusMeta, getDifStageMeta } from "../../constants/auditWorkflow.js";
-import { X, CheckCircle2, AlertTriangle, ChevronRight } from "../../components/icons/index.jsx";
+import { getAuditStatusMeta, getDifStageMeta, isDifOverdue } from "../../constants/auditWorkflow.js";
+import { computeAuditPreparedness } from "../../utils/auditPreparedness.js";
+import { getDangerClassLabel } from "../../constants/company.js";
+import { X, CheckCircle2, AlertTriangle, ChevronRight, ClipboardList } from "../../components/icons/index.jsx";
 
 /**
  * Denetim detay çekmecesi — kriterler kategoriye göre gruplanır, her kategori
@@ -22,21 +24,33 @@ import { X, CheckCircle2, AlertTriangle, ChevronRight } from "../../components/i
  * (mükerrer oluşturmayı engellemenin gerçek yeri auditManagementService.js →
  * openDifFromFinding'deki idempotent kontrol; burası yalnızca UX).
  *
+ * Faz 5: "Denetime Hazırlık" kartı — checklist'ten ÖNCE, tek merkezi saf
+ * fonksiyondan (utils/auditPreparedness.js → computeAuditPreparedness) beslenir.
+ * UI burada HİÇBİR skor/sayım hesaplamaz, yalnızca döneni gösterir. Bu, checklist
+ * "Uygun/Uygun Değil" SONUÇ skorundan (computeOverallScore) TAMAMEN AYRI bir
+ * hesaplamadır — "bir sonraki denetime ne kadar hazırız" sorusuna cevap verir.
+ *
  * @param {{ audit: object|null, onClose: () => void, canManage: boolean, departments: object[],
  *   onUpdateItem: (audit, itemId, patch) => Promise<void>, onComplete: (audit) => Promise<void>,
  *   standardLabel: string, checklistResults: Array<{value:string,label:string,tone:string}>,
  *   getResultMeta: (value: string) => object, computeOverallScore: (c: object[]) => number|null,
  *   computeProgressPercent: (c: object[]) => number, computeCategoryScores: (c: object[]) => Array<object>,
- *   findings?: object[], onCreateDif?: (audit, item) => Promise<void>, onOpenDif?: (dif) => void }} props
+ *   getCategoryTitle?: (code: string) => string,
+ *   findings?: object[], allAudits?: object[], company?: object|null,
+ *   onCreateDif?: (audit, item) => Promise<void>, onOpenDif?: (dif) => void }} props
  */
 export default function AuditDetailDrawer({
   audit, onClose, canManage, departments, onUpdateItem, onComplete,
   standardLabel, checklistResults, getResultMeta, computeOverallScore, computeProgressPercent, computeCategoryScores,
-  findings = [], onCreateDif, onOpenDif,
+  getCategoryTitle, findings = [], allAudits = [], company = null, onCreateDif, onOpenDif,
 }) {
   const { theme } = useTheme();
 
   const categoryScores = useMemo(() => (audit ? computeCategoryScores(audit.checklist) : []), [audit, computeCategoryScores]);
+  const preparedness = useMemo(
+    () => computeAuditPreparedness({ company, audits: allAudits, findings }),
+    [company, allAudits, findings]
+  );
 
   if (!audit) return null;
   const statusMeta = getAuditStatusMeta(audit.status);
@@ -46,6 +60,14 @@ export default function AuditDetailDrawer({
 
   function findDifFor(item) {
     return findings.find((f) => String(f.auditId) === String(audit.id) && f.checklistItemId === item.id);
+  }
+
+  // Hazırlık kartındaki sayıları/alanları tıklayınca "ilgili DİF detayına geçebilsin"
+  // — en acil (gecikmiş varsa gecikmiş, yoksa en eski açık) DİF'e götürür.
+  function openFirstRelevantDif(predicate) {
+    if (!onOpenDif) return;
+    const match = findings.find(predicate);
+    if (match) onOpenDif(match);
   }
 
   return (
@@ -63,6 +85,74 @@ export default function AuditDetailDrawer({
 
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Badge tone={statusMeta.tone}>{statusMeta.label}</Badge>
+        </div>
+
+        {/* Denetime Hazırlık — Faz 5. Checklist'ten ÖNCE gösterilir (bkz. dosya başı notu). */}
+        <div className="rounded-lg px-3 py-3 mb-4 border" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <ClipboardList style={{ fontSize: "13px", color: theme.textMuted }} />
+            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: theme.textMuted }}>Denetime Hazırlık</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div className="rounded-md px-2.5 py-2" style={{ background: theme.surface }}>
+              <p className="text-[10px]" style={{ color: theme.textFaint }}>Hazırlık Skoru</p>
+              <p className="text-xl font-bold" style={{ color: theme.textPrimary }}>%{preparedness.score}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-1">
+              <div className="rounded-md px-2 py-1 flex items-center justify-between" style={{ background: theme.surface }}>
+                <span className="text-[10px]" style={{ color: theme.textFaint }}>Kritik Uyarı</span>
+                <span className="text-sm font-bold" style={{ color: preparedness.criticalWarningCount > 0 ? theme.highRiskText : theme.textPrimary }}>{preparedness.criticalWarningCount}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <button onClick={() => openFirstRelevantDif((f) => f.stage !== "closed")} disabled={preparedness.openActionCount === 0 || !onOpenDif}
+              className="rounded-md px-2.5 py-2 flex items-center justify-between" style={{ background: theme.surface }}>
+              <span className="text-[10.5px]" style={{ color: theme.textFaint }}>Açık Aksiyon</span>
+              <span className="text-sm font-bold" style={{ color: theme.textPrimary }}>{preparedness.openActionCount}</span>
+            </button>
+            <button onClick={() => openFirstRelevantDif(isDifOverdue)} disabled={preparedness.overdueActionCount === 0 || !onOpenDif}
+              className="rounded-md px-2.5 py-2 flex items-center justify-between" style={{ background: theme.surface }}>
+              <span className="text-[10.5px]" style={{ color: theme.textFaint }}>Gecikmiş Aksiyon</span>
+              <span className="text-sm font-bold" style={{ color: preparedness.overdueActionCount > 0 ? theme.highRiskText : theme.textPrimary }}>{preparedness.overdueActionCount}</span>
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-1 mb-2 text-[10.5px]" style={{ color: theme.textFaint }}>
+            <p><strong style={{ color: theme.textMuted }}>Firma:</strong> {company?.name || "—"}</p>
+            <p><strong style={{ color: theme.textMuted }}>Sektör:</strong> {company?.sector || "Belirtilmemiş"}</p>
+            <p><strong style={{ color: theme.textMuted }}>Tehlike Sınıfı:</strong> {getDangerClassLabel(company?.dangerClass) || "Belirtilmemiş"}</p>
+            {Boolean(company?.employeeCount) && <p><strong style={{ color: theme.textMuted }}>Çalışan Sayısı:</strong> {company.employeeCount}</p>}
+            <p><strong style={{ color: theme.textMuted }}>Denetim Türü/Kapsamı:</strong> {standardLabel} — {audit.scopeDescription}</p>
+          </div>
+
+          {preparedness.missingFields.length > 0 && (
+            <p className="text-[10.5px] mb-2" style={{ color: theme.warnText }}>
+              ⚠️ Eksik firma bilgisi: {preparedness.missingFields.join(", ")} — Ayarlar → Firma Yönetimi'nden tamamlanabilir.
+            </p>
+          )}
+
+          {preparedness.priorityAreas.length > 0 && (
+            <div>
+              <p className="text-[10.5px] font-semibold mb-1" style={{ color: theme.textMuted }}>Öncelikli Kontrol Alanları</p>
+              <div className="flex flex-col gap-1">
+                {preparedness.priorityAreas.map((area) => (
+                  <button key={area.categoryCode}
+                    onClick={() => openFirstRelevantDif((f) => f.id === area.exampleFindingId)}
+                    disabled={!area.exampleFindingId || !onOpenDif}
+                    className="rounded-md px-2 py-1.5 flex items-center justify-between" style={{ background: theme.surface }}>
+                    <span className="text-[10.5px]" style={{ color: theme.textPrimary }}>
+                      {getCategoryTitle ? getCategoryTitle(area.categoryCode) : area.categoryCode}
+                      {area.recurringCount > 0 && <span style={{ color: theme.warnText }}> · tekrarlayan</span>}
+                    </span>
+                    <span className="text-[10.5px] font-semibold" style={{ color: theme.textFaint }}>{area.total}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg px-3 py-3 mb-4" style={{ background: theme.surfaceAlt }}>

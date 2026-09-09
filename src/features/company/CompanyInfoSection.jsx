@@ -6,14 +6,14 @@ import { getRoleLabel } from "../../constants/allRoles.js";
 import { getPrimaryCompany, saveCompany } from "../../services/companyService.js";
 import { logActivity } from "../../services/auditService.js";
 import { createId } from "../../utils/id.js";
-import { SECTOR_OPTIONS } from "../../constants/company.js";
+import { SECTOR_OPTIONS, DANGER_CLASS_OPTIONS } from "../../constants/company.js";
 import { validateImageFile } from "../../utils/fileValidation.js";
 import Button from "../../components/ui/Button.jsx";
 import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { Building2 } from "../../components/icons/index.jsx";
 
-const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], employeeCount: "", logo: null, address: "", phone: "", email: "", expertIsEmployer: false };
+const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], employeeCount: "", logo: null, address: "", phone: "", email: "", expertIsEmployer: false, dangerClass: "" };
 
 /**
  * @param {{ theme: object, onCompanyLoaded: (company: object|null) => void }} props
@@ -76,6 +76,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
       phone: form.phone.trim(),
       email: form.email.trim(),
       expertIsEmployer: Boolean(form.expertIsEmployer),
+      dangerClass: form.dangerClass || "",
     };
     // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
     // (örn. depolama alanı erişilemez) kullanıcıya hiçbir geri bildirim verilmiyordu,
@@ -137,6 +138,11 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
         </select>
         <input type="number" min="0" value={form.employeeCount} onChange={(e) => setForm({ ...form, employeeCount: e.target.value })} placeholder="Çalışan sayısı"
           className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+        <select value={form.dangerClass} onChange={(e) => setForm({ ...form, dangerClass: e.target.value })}
+          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }}>
+          <option value="">Tehlike sınıfı (opsiyonel)</option>
+          {DANGER_CLASS_OPTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+        </select>
       </div>
 
       <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Firma adresi"

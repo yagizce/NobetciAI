@@ -33,6 +33,10 @@
  *   işletmelerde sık görülür). true ise İşveren rolü de Fine-Kinney değerlendirmesi
  *   oluşturabilir/düzenleyebilir — aksi halde İşveren yalnızca görüntüler
  *   (bkz. utils/permissions.js → canManageRiskAssessments).
+ * @property {string} [dangerClass] - constants/company.js → DANGER_CLASS_OPTIONS
+ *   value'larından biri ("az_tehlikeli"|"tehlikeli"|"cok_tehlikeli") veya boş string.
+ *   ELLE beyan edilir, otomatik hesaplanmaz. Denetim Modülü'nün "Denetime Hazırlık"
+ *   kartında gösterilir (bkz. utils/auditPreparedness.js) — boşsa skora dahil edilmez.
  */
 
 /**

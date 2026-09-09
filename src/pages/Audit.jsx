@@ -17,6 +17,7 @@ const CONFIGS = [
     computeOverallScore: iso45001.computeOverallScore,
     computeProgressPercent: iso45001.computeProgressPercent,
     computeCategoryScores: iso45001.computeCategoryScores,
+    getCategoryTitle: iso45001.getCategoryTitle,
   },
   {
     standard: "mevzuat",
@@ -27,6 +28,7 @@ const CONFIGS = [
     computeOverallScore: mevzuat.computeOverallScore,
     computeProgressPercent: mevzuat.computeProgressPercent,
     computeCategoryScores: mevzuat.computeCategoryScores,
+    getCategoryTitle: mevzuat.getCategoryTitle,
   },
 ];
 

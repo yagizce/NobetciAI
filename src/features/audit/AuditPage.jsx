@@ -148,7 +148,10 @@ export default function AuditPage({ configs }) {
         computeOverallScore={config.computeOverallScore}
         computeProgressPercent={config.computeProgressPercent}
         computeCategoryScores={config.computeCategoryScores}
+        getCategoryTitle={config.getCategoryTitle}
         findings={findings}
+        allAudits={audits}
+        company={company}
         onCreateDif={openFinding}
         onOpenDif={(dif) => setSelectedDifId(dif.id)}
       />
