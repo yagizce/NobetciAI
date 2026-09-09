@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
-import { getAuditStatusMeta } from "../../constants/auditWorkflow.js";
-import { X, CheckCircle2 } from "../../components/icons/index.jsx";
+import { getAuditStatusMeta, getDifStageMeta } from "../../constants/auditWorkflow.js";
+import { X, CheckCircle2, AlertTriangle, ChevronRight } from "../../components/icons/index.jsx";
 
 /**
  * Denetim detay çekmecesi — kriterler kategoriye göre gruplanır, her kategori
@@ -13,16 +13,26 @@ import { X, CheckCircle2 } from "../../components/icons/index.jsx";
  * bileşen — kategori/kriter/skor mantığı dışarıdan gelir (bkz. AuditPage.jsx'teki
  * `config` prop'u), ISO 45001 ve İSG Mevzuat Denetimi AYNI çekmeceyi kullanır.
  *
+ * DİF KÖPRÜSÜ (yalnızca İSG Mevzuat): "Uygunsuzluk Oluştur" butonu SADECE
+ * `item.legislationName` dolu (yani Mevzuat kriteri) VE sonuç "Uygun Değil" iken
+ * görünür — ISO 45001'in checklist maddelerinde `legislationName` hiç yok, bu
+ * yüzden bu blok ISO 45001 akışını hiç etkilemez/göstermez. DİF OTOMATİK
+ * AÇILMAZ — yalnızca uzman butona basarsa `onCreateDif` çağrılır. Zaten bir DİF
+ * varsa (bkz. `findings`), buton yerine durum rozeti + "Yönet →" gösterilir
+ * (mükerrer oluşturmayı engellemenin gerçek yeri auditManagementService.js →
+ * openDifFromFinding'deki idempotent kontrol; burası yalnızca UX).
+ *
  * @param {{ audit: object|null, onClose: () => void, canManage: boolean, departments: object[],
  *   onUpdateItem: (audit, itemId, patch) => Promise<void>, onComplete: (audit) => Promise<void>,
  *   standardLabel: string, checklistResults: Array<{value:string,label:string,tone:string}>,
  *   getResultMeta: (value: string) => object, computeOverallScore: (c: object[]) => number|null,
- *   computeProgressPercent: (c: object[]) => number,
- *   computeCategoryScores: (c: object[]) => Array<object> }} props
+ *   computeProgressPercent: (c: object[]) => number, computeCategoryScores: (c: object[]) => Array<object>,
+ *   findings?: object[], onCreateDif?: (audit, item) => Promise<void>, onOpenDif?: (dif) => void }} props
  */
 export default function AuditDetailDrawer({
   audit, onClose, canManage, departments, onUpdateItem, onComplete,
   standardLabel, checklistResults, getResultMeta, computeOverallScore, computeProgressPercent, computeCategoryScores,
+  findings = [], onCreateDif, onOpenDif,
 }) {
   const { theme } = useTheme();
 
@@ -33,6 +43,10 @@ export default function AuditDetailDrawer({
   const overallScore = computeOverallScore(audit.checklist);
   const progress = computeProgressPercent(audit.checklist);
   const editable = canManage && audit.status !== "completed";
+
+  function findDifFor(item) {
+    return findings.find((f) => String(f.auditId) === String(audit.id) && f.checklistItemId === item.id);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -101,6 +115,37 @@ export default function AuditDetailDrawer({
                             <strong style={{ color: theme.textMuted }}>Beklenen kanıt:</strong> {item.expectedEvidence}
                           </p>
                         )}
+
+                        {/* DİF köprüsü — yalnızca "Uygun Değil" sonucunda, yalnızca uzman
+                            elle tetiklerse. DİF kapandığında bu sonuç OTOMATİK değişmez
+                            (bilerek) — denetim kaydı, o anki bulguyu göstermeye devam eder. */}
+                        {item.result === "uygun_degil" && (() => {
+                          const dif = findDifFor(item);
+                          if (dif) {
+                            const stageMeta = getDifStageMeta(dif.stage);
+                            return (
+                              <button onClick={() => onOpenDif?.(dif)} disabled={!onOpenDif}
+                                className="w-full mt-1.5 flex items-center justify-between gap-2 rounded-md px-2 py-1.5" style={{ background: theme.surfaceAlt }}>
+                                <span className="text-[10.5px] font-semibold flex items-center gap-1" style={{ color: theme.textMuted }}>
+                                  <AlertTriangle style={{ fontSize: "10px", color: theme.highRiskText }} /> Uygunsuzluk (DİF): {stageMeta.label}
+                                </span>
+                                <span className="flex items-center gap-0.5 text-[10.5px] font-semibold" style={{ color: theme.accent }}>
+                                  Yönet <ChevronRight style={{ fontSize: "11px" }} />
+                                </span>
+                              </button>
+                            );
+                          }
+                          if (canManage && onCreateDif) {
+                            return (
+                              <button onClick={() => onCreateDif(audit, item).catch((err) => console.error("Uygunsuzluk oluşturulamadı:", err))}
+                                className="w-full mt-1.5 flex items-center justify-center gap-1.5 text-[11px] font-semibold rounded-md px-2 py-1.5"
+                                style={{ background: theme.highRiskBg, color: theme.highRiskText }}>
+                                <AlertTriangle style={{ fontSize: "11px" }} /> Uygunsuzluk Oluştur
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     )}
 

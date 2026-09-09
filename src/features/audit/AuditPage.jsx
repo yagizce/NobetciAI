@@ -12,6 +12,7 @@ import Button from "../../components/ui/Button.jsx";
 import AuditWizard from "./AuditWizard.jsx";
 import AuditListPanel from "./AuditListPanel.jsx";
 import AuditDetailDrawer from "./AuditDetailDrawer.jsx";
+import DifDetailDrawer from "./DifDetailDrawer.jsx";
 import { Plus, ClipboardList, ShieldAlert } from "../../components/icons/index.jsx";
 
 /**
@@ -23,9 +24,12 @@ import { Plus, ClipboardList, ShieldAlert } from "../../components/icons/index.j
  * hâlâ tek bir `config` nesnesiyle çalışıyor, DEĞİŞMEDİ — bu sayfa yalnızca hangi
  * config'in aktif olduğunu tutuyor.
  *
- * FAZ NOTU: DİF (Düzeltici İyileştirici Faaliyet) takibi ve çoklu standart seçimi
- * (tek denetimde) bu fazda BİLİNÇLİ OLARAK devre dışı — altyapıları SİLİNMEDİ,
- * yalnızca bu sayfaya bağlanmadı.
+ * FAZ NOTU: çoklu standart seçimi (tek denetimde) bu fazda BİLİNÇLİ OLARAK devre
+ * dışı. DİF (Düzeltici İyileştirici Faaliyet) takibi ise artık AKTİF — İSG Mevzuat
+ * Denetimi'nde "Uygun Değil" çıkan bir kriterden uzman isterse manuel "Uygunsuzluk
+ * Oluştur" ile DİF açabilir (bkz. AuditDetailDrawer.jsx). ISO 45001 kriterlerinde
+ * mevzuat dayanağı (legislationName/article) YOK, bu yüzden bu buton ISO 45001
+ * akışında hiç görünmez/etkilenmez — ISO 45001'e dokunulmadı.
  *
  * Fine-Kinney ile AYNI yetki kuralını paylaşır (bkz. utils/permissions.js):
  * İSG Uzmanı yönetir, İşveren yalnızca görüntüler (aynı kişi değillerse),
@@ -48,17 +52,20 @@ export default function AuditPage({ configs }) {
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedAuditId, setSelectedAuditId] = useState(null);
+  const [selectedDifId, setSelectedDifId] = useState(null);
 
-  const { audits, loaded, loadError, addAudit, setChecklistResult, finishAudit } = useAudits({
+  const { audits, findings, loaded, loadError, addAudit, setChecklistResult, finishAudit, openFinding, setDifStage, addEvidence, removeEvidence, updateDif } = useAudits({
     standard: config.standard,
     standardLabel: config.standardLabel,
   });
 
   const selectedAudit = audits.find((a) => a.id === selectedAuditId) || null;
+  const selectedDif = findings.find((f) => f.id === selectedDifId) || null;
 
   function switchStandard(standard) {
     setActiveStandard(standard);
     setSelectedAuditId(null);
+    setSelectedDifId(null);
     setWizardOpen(false);
   }
 
@@ -141,6 +148,19 @@ export default function AuditPage({ configs }) {
         computeOverallScore={config.computeOverallScore}
         computeProgressPercent={config.computeProgressPercent}
         computeCategoryScores={config.computeCategoryScores}
+        findings={findings}
+        onCreateDif={openFinding}
+        onOpenDif={(dif) => setSelectedDifId(dif.id)}
+      />
+
+      <DifDetailDrawer
+        dif={selectedDif}
+        onClose={() => setSelectedDifId(null)}
+        canManage={canManage}
+        onStageChange={setDifStage}
+        onSaveFields={updateDif}
+        onAddEvidence={addEvidence}
+        onRemoveEvidence={removeEvidence}
       />
     </div>
   );

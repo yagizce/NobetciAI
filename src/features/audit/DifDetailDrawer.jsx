@@ -7,7 +7,7 @@ import Button from "../../components/ui/Button.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import { DIF_STAGES, getDifStageIndex, isDifOverdue, canTransitionDifStage } from "../../constants/auditWorkflow.js";
-import { getFindingTypeMeta, getStandardLabel } from "../../constants/isoStandards.js";
+import { getResultMeta } from "../../constants/auditScoring.js";
 import { X, Paperclip, ImageIcon, FileText, Trash2, CheckCircle2, RotateCcw, AlertTriangle } from "../../components/icons/index.jsx";
 
 const EVIDENCE_TYPES = [
@@ -53,7 +53,13 @@ export default function DifDetailDrawer({ dif, onClose, canManage, onStageChange
   }
 
   if (!dif) return null;
-  const typeMeta = getFindingTypeMeta(dif.type);
+  // BUG FIX: önceden isoStandards.js'teki ISO'ya özgü getFindingTypeMeta/getStandardLabel
+  // kullanılıyordu — Mevzuat kaynaklı bir DİF'te dif.type "uygun_degil"/"kismen_uygun"
+  // olduğu ve dif.standard/clauseCode hiç set edilmediği için rozet "undefined —
+  // undefined" gösteriyordu. Artık jenerik auditScoring.js'teki getResultMeta kullanılıyor
+  // (aynı 5 durumlu skala, bkz. mevzuatChecklist.js) ve mevzuat dayanağı doğrudan
+  // dif.legislationName/dif.article'dan okunuyor.
+  const typeMeta = getResultMeta(dif.type);
   const overdue = isDifOverdue(dif);
   const currentIndex = getDifStageIndex(dif.stage);
 
@@ -103,10 +109,12 @@ export default function DifDetailDrawer({ dif, onClose, canManage, onStageChange
           <div>
             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
               <Badge tone={typeMeta.tone}>{typeMeta.label}</Badge>
-              <Badge tone="neutral">{getStandardLabel(dif.standard)} — {dif.clauseCode}</Badge>
+              {dif.legislationName && (
+                <Badge tone="neutral">{dif.legislationName}{dif.article ? ` — ${dif.article}` : ""}</Badge>
+              )}
               {overdue && <Badge tone="danger">Gecikti</Badge>}
             </div>
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{dif.description}</p>
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{dif.criterionTitle || dif.description}</p>
           </div>
           <button onClick={onClose} aria-label="Kapat"><X style={{ fontSize: "18px", color: theme.textMuted }} /></button>
         </div>

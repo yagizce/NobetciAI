@@ -57,6 +57,33 @@ html, body {
   display: none;
 }
 
+/* MASAÜSTÜ TELEFON ÇERÇEVESİ TEST KOLAYLIĞI: yukarıdaki kural yatay kaydırma
+   çubuğunu (filtre/sekme çipleri vb.) HER YERDE gizliyor — gerçek telefonda doğru
+   (dokunmatik kaydırma zaten çalışıyor, çubuk gereksiz), ama PhoneFrame.jsx'in
+   sahte telefon çerçevesi içinde fareyle test ederken (touch swipe yok) bu alanları
+   kaydırmak zorlaşıyor. Yalnızca `.app-framed` aktifken (bkz. PhoneFrame.jsx →
+   useIsFramedDesktop — gerçek masaüstü: fare + ≥640px) çubuğu GERİ görünür ve
+   sürüklenebilir yapıyoruz; gerçek telefonda `.app-framed` hiç eklenmediği için bu
+   kural devreye girmez, native görünüm bozulmaz. */
+html.app-framed .overflow-x-auto {
+  scrollbar-width: thin;
+  -ms-overflow-style: auto;
+}
+html.app-framed .overflow-x-auto::-webkit-scrollbar {
+  display: block;
+  height: 6px;
+}
+html.app-framed .overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+html.app-framed .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.45);
+  border-radius: 999px;
+}
+html.app-framed .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.7);
+}
+
 /* KAYDIRMA SAĞLAMLAŞTIRMASI 3: <main> için Layout.jsx'te ayrıca eklenenle aynı
    momentum-kaydırma düzeltmesi — burada GENEL kural olarak, uygulamadaki DİĞER dikey
    kaydırma kutularına da (Sidebar.jsx'teki menü listesi, GlobalSearchBar.jsx'teki

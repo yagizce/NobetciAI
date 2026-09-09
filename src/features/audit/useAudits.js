@@ -88,7 +88,11 @@ export function useAudits({ standard, standardLabel }) {
   const openFinding = useCallback(async (audit, checklistItem, extra) => {
     const dif = await openDifFromFinding(audit, checklistItem, extra);
     setFindings((prev) => (prev.some((f) => f.id === dif.id) ? prev : [dif, ...prev]));
-    logActivity({ actor: getRoleLabel(role), action: "DİF açıldı", details: `${checklistItem.clauseCode} — ${dif.description}`, entityType: "audit" });
+    // BUG FIX: checklistItem.clauseCode yalnızca ISO 45001'de var — Mevzuat
+    // kriterlerinde (article/legislationName kullanılır) "undefined" olarak
+    // loglanıyordu. Artık ikisini de kapsayan ortak bir referans etiketi kullanılıyor.
+    const criterionRef = checklistItem.clauseCode || checklistItem.article || checklistItem.id;
+    logActivity({ actor: getRoleLabel(role), action: "DİF açıldı", details: `${criterionRef} — ${dif.description}`, entityType: "audit" });
     if (dif.dueDate) {
       pushSystemNotification({ type: "difDue", title: "Yeni DİF açıldı", message: `${dif.description} — termin: ${dif.dueDate}` });
     }

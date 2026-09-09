@@ -1,13 +1,17 @@
 import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext.jsx";
+import { useRole } from "../contexts/RoleContext.jsx";
 import { Home, MessageSquare, ShieldAlert, FileText, Scale, UserRound, Settings, X, HardHat, BookOpen, ClipboardList } from "../components/icons/index.jsx";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: Home, emoji: "🏠" },
   { to: "/chat", label: "AI Chat", icon: MessageSquare, emoji: "🤖" },
   { to: "/risk-analysis", label: "Risk Analizi", icon: ShieldAlert, emoji: "⚠️" },
-  { to: "/audit", label: "Denetim", icon: ClipboardList, emoji: "📋" },
+  // Denetim: yalnızca İSG Uzmanı ve İşveren — Çalışan bu sekmeyi menüde hiç görmesin/
+  // ulaşamasın diye `roles` ile kısıtlı (bkz. aşağıdaki filtre). Diğer NAV_ITEMS'ta
+  // `roles` YOK — o kalemler tüm rollere açık kalmaya devam ediyor, davranış değişmedi.
+  { to: "/audit", label: "Denetim", icon: ClipboardList, emoji: "📋", roles: ["expert", "employer"] },
   { to: "/documents", label: "Dokümanlar", icon: FileText, emoji: "📄" },
   { to: "/legislation", label: "Mevzuat", icon: Scale, emoji: "📚" },
   { to: "/knowledge-center", label: "Bilgi Kütüphanesi", icon: BookOpen, emoji: "📖" },
@@ -28,6 +32,8 @@ const NAV_ITEMS = [
  */
 export default function Sidebar({ mobileOpen, onClose }) {
   const { theme } = useTheme();
+  const { role } = useRole();
+  const visibleItems = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
 
   // A11Y FIX: Modal.jsx'te olduğu gibi (bkz. o dosyadaki not) bu çekmece de Escape
   // tuşuna hiç yanıt vermiyordu — ayrı bir bileşen olduğu için oradaki düzeltme bunu
@@ -59,7 +65,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2">
-        {NAV_ITEMS.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

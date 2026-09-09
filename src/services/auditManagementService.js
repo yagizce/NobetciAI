@@ -91,30 +91,56 @@ export async function getAuditFindings() {
 }
 
 /**
- * Bir checklist maddesinden (majör/minör/gözlem/iyi uygulama) TEK TIKLA DİF açar.
- * Aynı checklist maddesi için zaten bir DİF varsa yenisi açılmaz, mevcut olan döner
- * (yanlışlıkla çift tıklamayla mükerrer kayıt oluşmasın diye).
+ * Bir checklist maddesinden (İSG Mevzuat Denetimi'nde "Uygun Değil" çıkan bir
+ * kriterden) DİF açılıp AÇILAMAYACAĞINI belirler — SAF fonksiyon, I/O yapmaz,
+ * bu yüzden gerçek IndexedDB'ye dokunmadan test edilebilir. UI'daki buton
+ * gizleme yalnızca UX'tir; asıl kural burada uygulanır (bkz. openDifFromFinding).
+ * @param {{ result?: string }} checklistItem
+ * @returns {{ allowed: boolean, reason: string|null }}
+ */
+export function canCreateDif(checklistItem) {
+  if (checklistItem?.result !== "uygun_degil") {
+    return { allowed: false, reason: "Yalnızca 'Uygun Değil' sonucundaki kriterlerden uygunsuzluk (DİF) oluşturulabilir." };
+  }
+  return { allowed: true, reason: null };
+}
+
+/**
+ * Verilen denetim/kriter için zaten açılmış bir DİF varsa döner — SAF fonksiyon,
+ * mükerrer kayıt engelinin gerçek mantığı (openDifFromFinding bunu I/O ile sarar).
+ * @param {object[]} findings
+ * @param {string|number} auditId
+ * @param {string} checklistItemId
+ * @returns {object|undefined}
+ */
+export function findExistingDif(findings, auditId, checklistItemId) {
+  return (findings || []).find((f) => String(f.auditId) === String(auditId) && f.checklistItemId === checklistItemId);
+}
+
+/**
+ * Bir checklist maddesinden yeni bir DİF NESNESİ üretir — SAF fonksiyon (I/O yok,
+ * `createId()` hariç hiçbir yan etkisi yok), bu yüzden gerçek IndexedDB'ye
+ * dokunmadan test edilebilir. Mevzuat dayanağı (legislationName/article) ve
+ * kriter başlığı KRİTERDEN otomatik kopyalanır — kullanıcı elle girmez.
  * @param {import("../types/index.js").Audit} audit
  * @param {object} checklistItem
  * @param {{ description?: string, responsible?: string, dueDate?: string }} [extra]
- * @returns {Promise<import("../types/index.js").AuditFinding>}
+ * @returns {import("../types/index.js").AuditFinding}
  */
-export async function openDifFromFinding(audit, checklistItem, extra = {}) {
-  const existing = (await getAuditFindings()).find(
-    (f) => String(f.auditId) === String(audit.id) && f.checklistItemId === checklistItem.id
-  );
-  if (existing) return existing;
-
-  const dif = {
+export function buildDifFromFinding(audit, checklistItem, extra = {}) {
+  return {
     id: createId(),
     companyId: audit.companyId,
     auditId: audit.id,
     checklistItemId: checklistItem.id,
+    criterionTitle: checklistItem.title,
+    legislationName: checklistItem.legislationName || null,
+    article: checklistItem.article || null,
     standard: checklistItem.standard,
     clauseCode: checklistItem.clauseCode,
     type: checklistItem.result,
     departmentId: checklistItem.departmentId || null,
-    description: extra.description || checklistItem.note || checklistItem.question,
+    description: extra.description || checklistItem.note || checklistItem.title || checklistItem.question,
     rootCause: "",
     correctiveAction: "",
     stage: "open",
@@ -128,7 +154,30 @@ export async function openDifFromFinding(audit, checklistItem, extra = {}) {
     closureNote: "",
     history: [],
   };
-  return findingsCrud.save(dif);
+}
+
+/**
+ * Bir checklist maddesinden (İSG Mevzuat Denetimi'nde "Uygun Değil" çıkan bir
+ * kriterden) TEK TIKLA DİF açar. OTOMATİK ÇAĞRILMAZ — yalnızca uzmanın
+ * AuditDetailDrawer.jsx'teki "Uygunsuzluk Oluştur" butonuna basmasıyla tetiklenir.
+ * Aynı checklist maddesi için zaten bir DİF varsa yenisi açılmaz, mevcut olan
+ * sessizce döner (mükerrer kayıt engeli). "Uygun Değil" DIŞINDA bir sonuçtan
+ * açma denemesi ise HATA fırlatır (bkz. canCreateDif) — bu, UI buton gizlemeyi
+ * atlatan bir çağrıya karşı gerçek koruma sağlar.
+ * @param {import("../types/index.js").Audit} audit
+ * @param {object} checklistItem
+ * @param {{ description?: string, responsible?: string, dueDate?: string }} [extra]
+ * @returns {Promise<import("../types/index.js").AuditFinding>}
+ * @throws {Error} checklistItem.result "uygun_degil" değilse
+ */
+export async function openDifFromFinding(audit, checklistItem, extra = {}) {
+  const existing = findExistingDif(await getAuditFindings(), audit.id, checklistItem.id);
+  if (existing) return existing;
+
+  const check = canCreateDif(checklistItem);
+  if (!check.allowed) throw new Error(check.reason);
+
+  return findingsCrud.save(buildDifFromFinding(audit, checklistItem, extra));
 }
 
 /**

@@ -308,7 +308,10 @@
  * @property {string|number} id
  * @property {string|number} companyId
  * @property {string|number} auditId
- * @property {string} checklistItemId - Kaynak checklist maddesinin id'si (bkz. Audit.checklist)
+ * @property {string} checklistItemId - Kaynak checklist maddesinin id'si (bkz. Audit.checklist) — "criterionId" karşılığı
+ * @property {string} [criterionTitle] - Kaynak kriterin başlığı, DİF açıldığı andaki anlık görüntü (kriter sonradan değişse de bu değişmez)
+ * @property {string|null} [legislationName] - Mevzuat dayanağı — KRİTERDEN otomatik gelir, elle girilmez (bkz. auditManagementService.js → openDifFromFinding). ISO 45001 kriterlerinde yok (null).
+ * @property {string|null} [article] - İlgili madde — aynı şekilde kriterden otomatik gelir
  * @property {string} standard
  * @property {string} clauseCode
  * @property {"major"|"minor"|"observation"|"good_practice"} type
