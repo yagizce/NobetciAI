@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useRole } from "../../contexts/RoleContext.jsx";
+import { getRoleLabel } from "../../constants/allRoles.js";
 import { useCompany } from "../../hooks/useCompany.js";
 import { canManageAudits } from "../../utils/permissions.js";
 import { useCompanyOrgLists } from "../risk-analysis/fineKinney/useCompanyOrgLists.js";
@@ -154,6 +155,7 @@ export default function AuditPage({ configs }) {
         company={company}
         onCreateDif={openFinding}
         onOpenDif={(dif) => setSelectedDifId(dif.id)}
+        currentUserLabel={getRoleLabel(role)}
       />
 
       <DifDetailDrawer

@@ -290,7 +290,7 @@
  * @property {string} scopeDescription - Denetim kapsamının serbest metin özeti
  * @property {Array<string|number>} scopeDepartmentIds - Kapsama dahil departmanlar (boşsa: tüm firma)
  * @property {string} plannedDate - ISO tarih, sahaya çıkış tarihi
- * @property {Array<{ id: string, categoryCode: string, title: string, result: "uygun"|"kismen_uygun"|"uygun_degil"|"kanit_yok"|"degerlendirilmedi", note: string, departmentId: string|number|null }>} checklist - bkz. constants/iso45001Checklist.js
+ * @property {Array<{ id: string, categoryCode: string, title: string, result: "uygun"|"kismen_uygun"|"uygun_degil"|"kanit_yok"|"degerlendirilmedi", note: string, departmentId: string|number|null, legislationName?: string, article?: string, controlPurpose?: string, expectedEvidence?: string, verified?: boolean, evidence?: Array<{ id: string, type: "photo"|"document"|"note", description: string, createdAt: string, createdBy: string, criterionId: string, stage: string|null }> }>} checklist - bkz. constants/iso45001Checklist.js, constants/mevzuatChecklist.js. `evidence` — Faz 6: kriter bazlı kanıt kayıtları (bkz. utils/criterionEvidence.js), DİF'in kendi `evidence`'ından (aşağıda) BAĞIMSIZDIR.
  * @property {string|null} completedAt - ISO zaman damgası; doluysa denetim "Tamamlandı" sayılır (bkz. computeAuditStatus)
  * @property {string} createdAt
  */

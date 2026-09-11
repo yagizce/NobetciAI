@@ -5,6 +5,8 @@ import Button from "../../components/ui/Button.jsx";
 import { getAuditStatusMeta, getDifStageMeta, isDifOverdue } from "../../constants/auditWorkflow.js";
 import { computeAuditPreparedness } from "../../utils/auditPreparedness.js";
 import { getDangerClassLabel } from "../../constants/company.js";
+import { createCriterionEvidence, addCriterionEvidence, removeCriterionEvidence } from "../../utils/criterionEvidence.js";
+import CriterionEvidenceSection from "./CriterionEvidenceSection.jsx";
 import { X, CheckCircle2, AlertTriangle, ChevronRight, ClipboardList } from "../../components/icons/index.jsx";
 
 /**
@@ -37,12 +39,13 @@ import { X, CheckCircle2, AlertTriangle, ChevronRight, ClipboardList } from "../
  *   computeProgressPercent: (c: object[]) => number, computeCategoryScores: (c: object[]) => Array<object>,
  *   getCategoryTitle?: (code: string) => string,
  *   findings?: object[], allAudits?: object[], company?: object|null,
- *   onCreateDif?: (audit, item) => Promise<void>, onOpenDif?: (dif) => void }} props
+ *   onCreateDif?: (audit, item) => Promise<void>, onOpenDif?: (dif) => void,
+ *   currentUserLabel?: string }} props
  */
 export default function AuditDetailDrawer({
   audit, onClose, canManage, departments, onUpdateItem, onComplete,
   standardLabel, checklistResults, getResultMeta, computeOverallScore, computeProgressPercent, computeCategoryScores,
-  getCategoryTitle, findings = [], allAudits = [], company = null, onCreateDif, onOpenDif,
+  getCategoryTitle, findings = [], allAudits = [], company = null, onCreateDif, onOpenDif, currentUserLabel = "",
 }) {
   const { theme } = useTheme();
 
@@ -60,6 +63,18 @@ export default function AuditDetailDrawer({
 
   function findDifFor(item) {
     return findings.find((f) => String(f.auditId) === String(audit.id) && f.checklistItemId === item.id);
+  }
+
+  // Kriter kanıtı ekleme/silme — SADECE `evidence` alanını patch'ler, `result`'a
+  // KESİNLİKLE dokunmaz (bkz. utils/criterionEvidence.js). Mevcut jenerik
+  // onUpdateItem (setChecklistResult) yeniden kullanılır — yeni bir servis
+  // fonksiyonuna gerek yok.
+  function handleAddEvidence(item, type, description) {
+    const entry = createCriterionEvidence({ type, description, criterionId: item.id, stage: audit.status, createdBy: currentUserLabel });
+    onUpdateItem(audit, item.id, { evidence: addCriterionEvidence(item.evidence, entry) });
+  }
+  function handleRemoveEvidence(item, evidenceId) {
+    onUpdateItem(audit, item.id, { evidence: removeCriterionEvidence(item.evidence, evidenceId) });
   }
 
   // Hazırlık kartındaki sayıları/alanları tıklayınca "ilgili DİF detayına geçebilsin"
@@ -205,6 +220,13 @@ export default function AuditDetailDrawer({
                             <strong style={{ color: theme.textMuted }}>Beklenen kanıt:</strong> {item.expectedEvidence}
                           </p>
                         )}
+
+                        <CriterionEvidenceSection
+                          item={item}
+                          editable={editable}
+                          onAdd={(type, description) => handleAddEvidence(item, type, description)}
+                          onRemove={(evidenceId) => handleRemoveEvidence(item, evidenceId)}
+                        />
 
                         {/* DİF köprüsü — yalnızca "Uygun Değil" sonucunda, yalnızca uzman
                             elle tetiklerse. DİF kapandığında bu sonuç OTOMATİK değişmez

@@ -354,6 +354,7 @@ export function generateChecklist() {
     controlPurpose: c.controlPurpose,
     expectedEvidence: c.expectedEvidence,
     verified: c.verified,
+    evidence: [],
   }));
 }
 
