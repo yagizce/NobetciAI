@@ -161,3 +161,28 @@ html.app-framed .frame-fill {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
+
+/* Denetim Raporu — yazdırma izolasyonu (bkz. features/audit/AuditReportView.jsx).
+   Klasik "print izolasyon" deseni: yazdırırken `body`'nin TÜMÜ önce gizlenir, sonra
+   yalnızca `.audit-report-print` (ve içindekiler) tekrar görünür kılınır — böylece
+   Header/BottomTabBar/diğer çekmeceler hiç basılmaz, tarayıcının kendi print
+   mekanizması yeni bir PDF kütüphanesi eklemeden yalnızca raporu çıktılar.
+   `.audit-report-print` bilinçli olarak `document.body`'e portallanır (AuditReportView.jsx'te
+   `createPortal` ile) — PhoneFrame.jsx'in masaüstü önizlemesindeki `transform:translateZ(0)`
+   sarmalayıcısı, `position: absolute` için kendi küçük (390px) kutusunu "containing
+   block" yapardı; portal sayesinde bu sınırlamanın dışında kalıp gerçek A4 sayfasını
+   kaplayabiliyor. */
+@media print {
+  body * { visibility: hidden; }
+  .audit-report-print, .audit-report-print * { visibility: visible; }
+  .audit-report-print {
+    position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; padding: 0 !important;
+  }
+  .audit-report-print > div { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
+  .audit-report-no-print { display: none !important; }
+  /* Kapak her zaman kendi sayfasında başlar; kartlar (kriter/DİF satırları) sayfa
+     arası bölünmez — bkz. AuditReportView.jsx'teki ilgili className kullanımları. */
+  .audit-report-page-break { break-after: page; }
+  .audit-report-avoid-break { break-inside: avoid; }
+  @page { size: A4; margin: 14mm 12mm; }
+}

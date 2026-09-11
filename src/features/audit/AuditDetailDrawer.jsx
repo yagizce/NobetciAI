@@ -7,7 +7,7 @@ import { computeAuditPreparedness } from "../../utils/auditPreparedness.js";
 import { getDangerClassLabel } from "../../constants/company.js";
 import { createCriterionEvidence, addCriterionEvidence, removeCriterionEvidence } from "../../utils/criterionEvidence.js";
 import CriterionEvidenceSection from "./CriterionEvidenceSection.jsx";
-import { X, CheckCircle2, AlertTriangle, ChevronRight, ClipboardList } from "../../components/icons/index.jsx";
+import { X, CheckCircle2, AlertTriangle, ChevronRight, ClipboardList, FileText } from "../../components/icons/index.jsx";
 
 /**
  * Denetim detay çekmecesi — kriterler kategoriye göre gruplanır, her kategori
@@ -40,12 +40,13 @@ import { X, CheckCircle2, AlertTriangle, ChevronRight, ClipboardList } from "../
  *   getCategoryTitle?: (code: string) => string,
  *   findings?: object[], allAudits?: object[], company?: object|null,
  *   onCreateDif?: (audit, item) => Promise<void>, onOpenDif?: (dif) => void,
- *   currentUserLabel?: string }} props
+ *   currentUserLabel?: string, onViewReport?: (audit: object) => void }} props
  */
 export default function AuditDetailDrawer({
   audit, onClose, canManage, departments, onUpdateItem, onComplete,
   standardLabel, checklistResults, getResultMeta, computeOverallScore, computeProgressPercent, computeCategoryScores,
   getCategoryTitle, findings = [], allAudits = [], company = null, onCreateDif, onOpenDif, currentUserLabel = "",
+  onViewReport,
 }) {
   const { theme } = useTheme();
 
@@ -295,11 +296,17 @@ export default function AuditDetailDrawer({
           ))}
         </div>
 
-        {editable && (
+        {editable ? (
           <Button onClick={() => onComplete(audit)} className="w-full flex items-center justify-center gap-1.5">
             <CheckCircle2 style={{ fontSize: "14px" }} /> Denetimi Tamamla ve Sonuçları Kilitle
           </Button>
-        )}
+        ) : audit.status === "completed" && onViewReport ? (
+          // Denetim tamamlandığında — Denetim Raporu özelliği: canlı veriden oluşan,
+          // ayrı ve yazdırılabilir rapor ekranını açar (bkz. AuditReportView.jsx).
+          <Button onClick={() => onViewReport(audit)} className="w-full flex items-center justify-center gap-1.5">
+            <FileText style={{ fontSize: "14px" }} /> Raporu Görüntüle
+          </Button>
+        ) : null}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import AuditWizard from "./AuditWizard.jsx";
 import AuditListPanel from "./AuditListPanel.jsx";
 import AuditDetailDrawer from "./AuditDetailDrawer.jsx";
 import DifDetailDrawer from "./DifDetailDrawer.jsx";
+import AuditReportView from "./AuditReportView.jsx";
 import { Plus, ClipboardList, ShieldAlert } from "../../components/icons/index.jsx";
 
 /**
@@ -54,6 +55,7 @@ export default function AuditPage({ configs }) {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedAuditId, setSelectedAuditId] = useState(null);
   const [selectedDifId, setSelectedDifId] = useState(null);
+  const [reportAuditId, setReportAuditId] = useState(null);
 
   const { audits, findings, loaded, loadError, addAudit, setChecklistResult, finishAudit, openFinding, setDifStage, addEvidence, removeEvidence, updateDif } = useAudits({
     standard: config.standard,
@@ -62,11 +64,13 @@ export default function AuditPage({ configs }) {
 
   const selectedAudit = audits.find((a) => a.id === selectedAuditId) || null;
   const selectedDif = findings.find((f) => f.id === selectedDifId) || null;
+  const reportAudit = audits.find((a) => a.id === reportAuditId) || null;
 
   function switchStandard(standard) {
     setActiveStandard(standard);
     setSelectedAuditId(null);
     setSelectedDifId(null);
+    setReportAuditId(null);
     setWizardOpen(false);
   }
 
@@ -156,6 +160,7 @@ export default function AuditPage({ configs }) {
         onCreateDif={openFinding}
         onOpenDif={(dif) => setSelectedDifId(dif.id)}
         currentUserLabel={getRoleLabel(role)}
+        onViewReport={(a) => setReportAuditId(a.id)}
       />
 
       <DifDetailDrawer
@@ -166,6 +171,21 @@ export default function AuditPage({ configs }) {
         onSaveFields={updateDif}
         onAddEvidence={addEvidence}
         onRemoveEvidence={removeEvidence}
+      />
+
+      <AuditReportView
+        audit={reportAudit}
+        onClose={() => setReportAuditId(null)}
+        findings={findings}
+        allAudits={audits}
+        company={company}
+        standardLabel={config.standardLabel}
+        checklistResults={config.checklistResults}
+        getResultMeta={config.getResultMeta}
+        computeOverallScore={config.computeOverallScore}
+        computeProgressPercent={config.computeProgressPercent}
+        computeCategoryScores={config.computeCategoryScores}
+        getCategoryTitle={config.getCategoryTitle}
       />
     </div>
   );
