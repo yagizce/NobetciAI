@@ -14,7 +14,7 @@
 //   - `verified: false` → kriterin dayandığı KONU/yönetmelik bilinsе de, tam madde
 //     numarası bu araştırmada teyit edilemedi. Kriter SİLİNMEDİ, `article: null`
 //     bırakıldı; UI bunu "⚠️ DOĞRULAMA GEREKLİ" rozetiyle açıkça gösterir
-//     (bkz. AuditDetailDrawer.jsx). Bu kayıtlar denetimde KULLANILABİLİR durumda
+//     (bkz. features/audit/CriterionGuidePanel.jsx). Bu kayıtlar denetimde KULLANILABİLİR durumda
 //     kalır — yalnızca kullanıcı mevzuat dayanağının teyide muhtaç olduğunu görür.
 // Kaynaklar (Faz 2 araştırması, tümü resmi/çok kaynaklı doğrulama ile):
 //   - 6331 sayılı İş Sağlığı ve Güvenliği Kanunu (10, 11, 12, 14, 15, 17, 20. maddeler)

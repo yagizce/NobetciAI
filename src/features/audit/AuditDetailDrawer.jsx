@@ -2,12 +2,12 @@ import { useMemo } from "react";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
-import { getAuditStatusMeta, getDifStageMeta, isDifOverdue } from "../../constants/auditWorkflow.js";
+import { getAuditStatusMeta, isDifOverdue } from "../../constants/auditWorkflow.js";
 import { computeAuditPreparedness } from "../../utils/auditPreparedness.js";
 import { getDangerClassLabel } from "../../constants/company.js";
 import { createCriterionEvidence, addCriterionEvidence, removeCriterionEvidence } from "../../utils/criterionEvidence.js";
-import CriterionEvidenceSection from "./CriterionEvidenceSection.jsx";
-import { X, CheckCircle2, AlertTriangle, ChevronRight, ClipboardList, FileText } from "../../components/icons/index.jsx";
+import CriterionGuidePanel from "./CriterionGuidePanel.jsx";
+import { X, CheckCircle2, ClipboardList, FileText } from "../../components/icons/index.jsx";
 
 /**
  * Denetim detay çekmecesi — kriterler kategoriye göre gruplanır, her kategori
@@ -113,7 +113,23 @@ export default function AuditDetailDrawer({
           <div className="grid grid-cols-2 gap-2 mb-2">
             <div className="rounded-md px-2.5 py-2" style={{ background: theme.surface }}>
               <p className="text-[10px]" style={{ color: theme.textFaint }}>Hazırlık Skoru</p>
-              <p className="text-xl font-bold" style={{ color: theme.textPrimary }}>%{preparedness.score}</p>
+              {preparedness.scoreAvailable ? (
+                <>
+                  <p className="text-xl font-bold" style={{ color: theme.textPrimary }}>%{preparedness.score}</p>
+                  <p className="text-[9.5px]" style={{ color: theme.textFaint }}>
+                    {preparedness.evaluatedCriterionCount}/{preparedness.totalCriterionCount} kriter değerlendirildi
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-bold" style={{ color: theme.textFaint }}>Henüz değerlendirilemedi</p>
+              )}
+              {/* Değerlendirilmemiş kriter varsa — %100 dahi olsa yanlış güven oluşturmasın diye
+                  her zaman AYRICA gösterilir (bkz. auditPreparedness.js dosya başı notu). */}
+              {preparedness.unevaluatedCriterionCount > 0 && (
+                <p className="text-[9.5px] mt-0.5" style={{ color: theme.warnText }}>
+                  {preparedness.unevaluatedCriterionCount} kriter değerlendirilmedi
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-1">
               <div className="rounded-md px-2 py-1 flex items-center justify-between" style={{ background: theme.surface }}>
@@ -196,73 +212,28 @@ export default function AuditDetailDrawer({
                   <div key={item.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
                     <p className="text-sm mb-1.5" style={{ color: theme.textPrimary }}>{item.title}</p>
 
-                    {/* Mevzuat dayanağı — YALNIZCA bu alanlara sahip checklist'lerde (İSG Mevzuat
-                        Denetimi) görünür. ISO 45001'in checklist maddelerinde bu alanlar YOK,
-                        bu yüzden koşullu render ISO 45001'i hiç etkilemez. */}
-                    {item.legislationName && (
-                      <div className="rounded-md px-2.5 py-2 mb-2" style={{ background: theme.surface, border: `1px dashed ${theme.border}` }}>
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="text-[11px] font-semibold" style={{ color: theme.textMuted }}>
-                            {item.legislationName}{item.article ? ` — ${item.article}` : ""}
-                          </p>
-                          {item.verified ? (
-                            <Badge tone="success">Doğrulandı</Badge>
-                          ) : (
-                            <Badge tone="warning">⚠️ DOĞRULAMA GEREKLİ</Badge>
-                          )}
-                        </div>
-                        {item.controlPurpose && (
-                          <p className="text-[10.5px] mb-0.5" style={{ color: theme.textFaint }}>
-                            <strong style={{ color: theme.textMuted }}>Kontrol amacı:</strong> {item.controlPurpose}
-                          </p>
-                        )}
-                        {item.expectedEvidence && (
-                          <p className="text-[10.5px]" style={{ color: theme.textFaint }}>
-                            <strong style={{ color: theme.textMuted }}>Beklenen kanıt:</strong> {item.expectedEvidence}
-                          </p>
-                        )}
-
-                        <CriterionEvidenceSection
-                          item={item}
-                          editable={editable}
-                          onAdd={(type, description) => handleAddEvidence(item, type, description)}
-                          onRemove={(evidenceId) => handleRemoveEvidence(item, evidenceId)}
-                        />
-
-                        {/* DİF köprüsü — yalnızca "Uygun Değil" sonucunda, yalnızca uzman
-                            elle tetiklerse. DİF kapandığında bu sonuç OTOMATİK değişmez
-                            (bilerek) — denetim kaydı, o anki bulguyu göstermeye devam eder. */}
-                        {item.result === "uygun_degil" && (() => {
-                          const dif = findDifFor(item);
-                          if (dif) {
-                            const stageMeta = getDifStageMeta(dif.stage);
-                            return (
-                              <button onClick={() => onOpenDif?.(dif)} disabled={!onOpenDif}
-                                className="w-full mt-1.5 flex items-center justify-between gap-2 rounded-md px-2 py-1.5" style={{ background: theme.surfaceAlt }}>
-                                <span className="text-[10.5px] font-semibold flex items-center gap-1" style={{ color: theme.textMuted }}>
-                                  <AlertTriangle style={{ fontSize: "10px", color: theme.highRiskText }} /> Uygunsuzluk (DİF): {stageMeta.label}
-                                </span>
-                                <span className="flex items-center gap-0.5 text-[10.5px] font-semibold" style={{ color: theme.accent }}>
-                                  Yönet <ChevronRight style={{ fontSize: "11px" }} />
-                                </span>
-                              </button>
-                            );
-                          }
-                          if (canManage && onCreateDif) {
-                            return (
-                              <button onClick={() => onCreateDif(audit, item).catch((err) => console.error("Uygunsuzluk oluşturulamadı:", err))}
-                                className="w-full mt-1.5 flex items-center justify-center gap-1.5 text-[11px] font-semibold rounded-md px-2 py-1.5"
-                                style={{ background: theme.highRiskBg, color: theme.highRiskText }}>
-                                <AlertTriangle style={{ fontSize: "11px" }} /> Uygunsuzluk Oluştur
-                              </button>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    )}
-
-                    {editable ? (
+                    {/* Kriter Bazlı Kontrol Rehberi — YALNIZCA bu alanlara sahip checklist'lerde
+                        (İSG Mevzuat) görünür. ISO 45001'in checklist maddelerinde bu alanlar YOK,
+                        bu yüzden koşullu render ISO 45001'i hiç etkilemez; ISO 45001 aşağıdaki
+                        eski/sade sonuç+not görünümünü DEĞİŞMEDEN kullanmaya devam eder. */}
+                    {item.legislationName ? (
+                      <CriterionGuidePanel
+                        item={item}
+                        editable={editable}
+                        canManage={canManage}
+                        checklistResults={checklistResults}
+                        getResultMeta={getResultMeta}
+                        departments={departments}
+                        onChangeResult={(value) => onUpdateItem(audit, item.id, { result: value })}
+                        onChangeNote={(value) => onUpdateItem(audit, item.id, { note: value })}
+                        onChangeDepartment={(id) => onUpdateItem(audit, item.id, { departmentId: id })}
+                        onAddEvidence={(type, description) => handleAddEvidence(item, type, description)}
+                        onRemoveEvidence={(evidenceId) => handleRemoveEvidence(item, evidenceId)}
+                        dif={findDifFor(item)}
+                        onCreateDif={canManage && onCreateDif ? () => onCreateDif(audit, item).catch((err) => console.error("Uygunsuzluk oluşturulamadı:", err)) : undefined}
+                        onOpenDif={onOpenDif}
+                      />
+                    ) : editable ? (
                       <>
                         <div className="flex flex-wrap gap-1.5 mb-2">
                           {checklistResults.map((r) => (

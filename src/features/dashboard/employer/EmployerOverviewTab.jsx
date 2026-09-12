@@ -90,7 +90,7 @@ export default function EmployerOverviewTab({ theme, data }) {
 
         {isVisible("departmentHeatMap") && (
           <DashboardWidget theme={theme} title="Departman Risk Analizi" icon={ShieldAlert}
-            description="Kayıt sayısına değil ortalama risk şiddetine göre sıralı — kritik kayıt sayısı ve artış uyarısı dahil tek widget.">
+            description="Kritik (yüksek/çok yüksek) açık risk sayısına göre sıralı — artış uyarısı dahil tek widget.">
             <DepartmentHeatMap fineKinneyEntries={fineKinneyEntries} departments={departments}
               periodicChecks={periodicChecks} notifications={notifications} employees={employees}
               trainingProgressRecords={trainingProgressRecords} trainingCompletionRecords={trainingCompletionRecords} />

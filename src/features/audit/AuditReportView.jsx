@@ -207,7 +207,9 @@ export default function AuditReportView({
               <SectionHeading index={2} title="Yönetici Özeti" icon={ClipboardList} />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
                 <StatCard label="Genel Sonuç" value={summary.overallScore !== null ? `%${summary.overallScore}` : "—"} sub={summary.scoreLevel?.label} />
-                {summary.preparednessScore !== null && <StatCard label="Hazırlık Skoru" value={`%${summary.preparednessScore}`} />}
+                {summary.preparednessScore !== null && (
+                  <StatCard label="Hazırlık Skoru" value={`%${summary.preparednessScore}`} sub={`${preparedness.evaluatedCriterionCount}/${preparedness.totalCriterionCount} kriter değerlendirildi`} />
+                )}
                 <StatCard label="Toplam Kriter" value={summary.totalCriteria} sub={`%${summary.progressPercent} değerlendirildi`} />
                 <StatCard label="Kritik Bulgu" value={summary.criticalFindingsCount} sub="Uygun Değil" />
                 <StatCard label="Açık DİF" value={summary.openDifCount} />

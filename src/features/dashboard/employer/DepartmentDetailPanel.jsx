@@ -5,11 +5,16 @@ import { TRAINING_COURSES } from "../../../constants/trainingCourses.js";
 import { Flame, AlertTriangle, BookOpen, Info } from "../../../components/icons/index.jsx";
 
 /**
- * Sprint: Risk Isı Haritası'na tıklanınca açılan Departman Detay Paneli. 6 alan:
- * açık riskler, ortalama risk puanı, son ramak kala, son iş kazası, eğitim oranı,
- * periyodik kontrol durumu. İlk 3 (+ periyodik kontrol) doğrudan departmentId'den,
- * son 2 (ramak kala/kaza) + eğitim oranı isim eşleştirmesinden (best-effort) gelir —
+ * Sprint: Risk Isı Haritası'na tıklanınca açılan Departman Detay Paneli. 5 alan:
+ * açık riskler, son ramak kala, son iş kazası, eğitim oranı, periyodik kontrol
+ * durumu. İlk alan (+ periyodik kontrol) doğrudan departmentId'den, son 2
+ * (ramak kala/kaza) + eğitim oranı isim eşleştirmesinden (best-effort) gelir —
  * ikisi ayrı görsel bölümlerde, best-effort olan açıkça etiketlenmiş.
+ *
+ * NOT: "Ortalama Risk Puanı" istatistiği kaldırıldı — İşveren için soyut/teknik
+ * bir Fine-Kinney sayısıydı, doğrudan aksiyon alınabilir bir anlam taşımıyordu.
+ * Altyapıdaki hesaplama (utils/departmentDetail.js → avgRiskScore/riskLevel)
+ * bilerek DOKUNULMADAN bırakıldı, yalnızca burada gösterimi kaldırıldı.
  *
  * @param {{ department: {id: string|number, name: string}|null, onClose: () => void,
  *   fineKinneyEntries: object[], periodicChecks: object[], notifications: object[],
@@ -30,11 +35,7 @@ export default function DepartmentDetailPanel({ department, onClose, fineKinneyE
     <Modal open={Boolean(department)} onClose={onClose} title={department.name}>
       <div className="flex flex-col gap-4">
         {/* Güvenilir bölüm */}
-        <div className="grid grid-cols-2 gap-2">
-          <StatCell theme={theme} icon={Flame} label="Açık Risk" value={detail.openRiskCount} unit="kayıt" />
-          <StatCell theme={theme} icon={Flame} label="Ort. Risk Puanı"
-            value={detail.avgRiskScore ?? "—"} unit={detail.riskLevel?.label || ""} valueColor={detail.riskLevel?.text} />
-        </div>
+        <StatCell theme={theme} icon={Flame} label="Açık Risk" value={detail.openRiskCount} unit="kayıt" />
 
         <div>
           <p className="text-[11px] font-semibold mb-1.5" style={{ color: theme.textMuted }}>Periyodik Kontrol Durumu</p>

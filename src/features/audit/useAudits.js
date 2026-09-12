@@ -8,6 +8,7 @@ import { pushSystemNotification } from "../../services/systemNotificationService
 import { useRole } from "../../contexts/RoleContext.jsx";
 import { useCompany } from "../../hooks/useCompany.js";
 import { getRoleLabel } from "../../constants/allRoles.js";
+import { scopeFindingsToAudits } from "../../utils/auditScope.js";
 
 /**
  * Denetim Modülü'nün tek veri kaynağı — usePeriodicChecks.js'teki AYNI desen
@@ -17,8 +18,11 @@ import { getRoleLabel } from "../../constants/allRoles.js";
  * bir DİF'in denetimi).
  *
  * `standard` parametresiyle filtrelenir — ISO 45001 ve İSG Mevzuat Denetimi AYNI
- * `audits` deposunu (bkz. db.js) paylaşır, birbirinin listesine karışmasınlar diye
- * her sayfa yalnızca kendi `standard` değerine ait kayıtları görür.
+ * `audits` VE `findings` deposunu (bkz. db.js) paylaşır, birbirinin listesine
+ * karışmasınlar diye her sayfa yalnızca kendi `standard` değerine ait kayıtları
+ * görür (bkz. utils/auditScope.js → scopeFindingsToAudits). Firma izolasyonu ayrıca
+ * ve bağımsız olarak servis katmanında (createCrudService.js → companyScoped:true)
+ * zaten sağlanır — buradaki filtre yalnızca AYNI firma İÇİNDEKİ iki standardı ayırır.
  *
  * @param {{ standard: string, standardLabel: string }} config
  * @returns {object}
@@ -34,8 +38,9 @@ export function useAudits({ standard, standardLabel }) {
   const reload = useCallback(() => {
     Promise.all([getAudits(), getAuditFindings()])
       .then(([a, f]) => {
-        setAudits(a.filter((audit) => audit.standard === standard));
-        setFindings(f);
+        const scopedAudits = a.filter((audit) => audit.standard === standard);
+        setAudits(scopedAudits);
+        setFindings(scopeFindingsToAudits(f, scopedAudits));
         setLoaded(true);
       })
       .catch((err) => {

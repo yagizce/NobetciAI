@@ -8,24 +8,69 @@
 // doldurulmaz — bir bilgi (ör. dangerClass) yoksa o bilgi yalnızca "eksik" olarak
 // işaretlenir, skor formülüne rastgele bir varsayılan değerle DAHİL EDİLMEZ.
 // Aynı şekilde denetim/DİF geçmişi hiç yoksa (audits=[], findings=[]) bu sinyaller
-// skoru hiç etkilemez — skor yalnızca gerçekten var olan eksik firma bilgisine göre
-// hesaplanır (bkz. computeAuditPreparedness'in en altındaki döngü).
+// skoru hiç etkilemez.
 //
 // SKORLAMA SİSTEMİYLE İLİŞKİSİ: bu, checklist "Uygun/Uygun Değil" sonuçlarından
 // hesaplanan denetim UYGUNLUK skorundan (bkz. constants/auditScoring.js →
 // computeOverallScore) TAMAMEN AYRI bir hesaplamadır — biri "bu denetimin sonucu
 // ne kadar uygun", diğeri "bir sonraki denetime ne kadar hazırız" sorusuna cevap
-// verir. Birbirini hiç çağırmaz, karıştırılmaz.
+// verir. Birbirini hiç çağırmaz, karıştırılmaz; auditScoring.js'e HİÇ dokunulmaz.
+//
+// EKSİK VERİ İLE OLUMSUZ SONUÇ AYNI ŞEY DEĞİLDİR — bu dosyanın merkezi kuralı:
+//   - "Değerlendirilmedi" (item.result) → ana skora hiç GİRMEZ (paydaya dahil
+//     edilmez), ama ayrı bir sayaçla ("unevaluatedCriterionCount") kullanıcıya
+//     gösterilir. Bu, "Uygun Değil" (0 puan) ile KARIŞTIRILMAZ.
+//   - "Kanıt Yok" (evidence durumu, bkz. criterionEvidence.js → computeEvidenceStatus)
+//     asla otomatik "Uygun Değil" sonucuna DÖNÜŞTÜRÜLMEZ — `item.result` bu
+//     fonksiyon tarafından ASLA yazılmaz/değiştirilmez, yalnızca OKUNUR.
+//   - Hiç değerlendirilmiş kriter yoksa (evaluatedCriterionCount === 0), `score`
+//     `null` döner — "%0 hazır" gibi YANILTICI bir sayı ASLA üretilmez; UI bunu
+//     "Henüz değerlendirilemedi" olarak göstermelidir.
 
 import { isDifOverdue } from "../constants/auditWorkflow.js";
+import { computeEvidenceStatus } from "./criterionEvidence.js";
 
-const MISSING_FIELD_PENALTY = 5;
-const OPEN_ACTION_PENALTY = 8;
-const OPEN_ACTION_PENALTY_CAP = 40;
-const OVERDUE_ACTION_PENALTY = 12;
-const OVERDUE_ACTION_PENALTY_CAP = 40;
-const UNRESOLVED_PENALTY = 6;
-const UNRESOLVED_PENALTY_CAP = 20;
+// Kriter Bazlı Hazırlık Skoru — her DEĞERLENDİRİLMİŞ kriter için 3 bağımsız
+// bileşenin (Sonuç / Kanıt / DİF) EŞİT AĞIRLIKLI ortalaması. Üçü de 0-100
+// arası, tek bir kritere ait üç FARKLI sinyal — biri diğerini gizlemez veya
+// yerine geçmez (ör. "Uygun" + kanıtsız kriter, kanıt bileşeninde 0 alır ama
+// SONUÇ "Uygun" olarak kalır, otomatik değişmez).
+
+// SONUÇ bileşeni — yalnızca checklist'in kendi 5 gerçek `result` değerinden.
+// "kanit_yok" burada "uygun_degil" ile AYNI SAYISAL katkıya (0) sahiptir — bu,
+// auditScoring.js'in KENDİ ağırlık tablosundaki (weight:0 hem "uygun_degil" hem
+// "kanit_yok" için) ZATEN VAR OLAN eşdeğerliğin buraya yansımasıdır. Bu SAYISAL
+// bir eşdeğerliktir — "Kanıt Yok" sonucu bu yüzden hiçbir yerde "Uygun Değil"
+// olarak YENİDEN ETİKETLENMEZ/DÖNÜŞTÜRÜLMEZ, `item.result` alanı ne ise o kalır.
+// "degerlendirilmedi" bilerek burada YOK — o zaten ayrı ele alınır (paydaya hiç
+// girmez, bkz. aşağıdaki computeAuditPreparedness döngüsü).
+const RESULT_COMPONENT = { uygun: 100, kismen_uygun: 50, uygun_degil: 0, kanit_yok: 0 };
+
+// KANIT bileşeni — computeEvidenceStatus'ün ("present"/"incomplete"/"none")
+// BİREBİR karşılığı; bu dosya kendi kanıt mantığını YENİDEN ÜRETMEZ, mevcut
+// criterionEvidence.js'i olduğu gibi çağırır.
+const EVIDENCE_COMPONENT = { present: 100, incomplete: 50, none: 0 };
+
+// DİF bileşeni — mevcut auditWorkflow.js → DIF_STAGES değerlerinin (open/
+// awaitingAction/pendingReview/closed) birebir karşılığı. Kriterde DİF YOKSA
+// bileşen 100 kabul edilir (aşağıda ayrıca ele alınır). Gecikme (isDifOverdue)
+// BİLEREK burada YOK — DİF durumu zaten skoru belirler, gecikmişlik AYRICA
+// (overdueActionCount üzerinden) gösterilir ama puanı İKİNCİ KEZ düşürmez.
+const DIF_STAGE_COMPONENT = { open: 0, awaitingAction: 25, pendingReview: 75, closed: 100 };
+
+/**
+ * Tek bir DEĞERLENDİRİLMİŞ checklist maddesinin 3 bileşenli hazırlık puanını
+ * (0-100) hesaplar. SAF fonksiyon — yalnızca okur, hiçbir alanı değiştirmez.
+ * @param {{ result: string, evidence?: object[] }} item
+ * @param {{ stage: string }|null|undefined} dif - bu kritere bağlı DİF (varsa)
+ * @returns {number}
+ */
+export function computeCriterionReadinessScore(item, dif) {
+  const resultComponent = RESULT_COMPONENT[item.result] ?? 0;
+  const evidenceComponent = EVIDENCE_COMPONENT[computeEvidenceStatus(item.evidence, item)];
+  const difComponent = dif ? (DIF_STAGE_COMPONENT[dif.stage] ?? 0) : 100;
+  return (resultComponent + evidenceComponent + difComponent) / 3;
+}
 
 /**
  * @param {import("../types/index.js").Company|null} company
@@ -47,7 +92,11 @@ function getMissingCompanyFields(company) {
  * @param {import("../types/index.js").Audit[]} [args.audits] - AYNI standardın TÜM denetimleri (geçmiş + güncel)
  * @param {import("../types/index.js").AuditFinding[]} [args.findings] - AYNI standardın TÜM DİF'leri
  * @returns {{
- *   score: number,
+ *   score: number|null,
+ *   scoreAvailable: boolean,
+ *   evaluatedCriterionCount: number,
+ *   totalCriterionCount: number,
+ *   unevaluatedCriterionCount: number,
  *   missingFields: string[],
  *   criticalWarningCount: number,
  *   openActionCount: number,
@@ -115,17 +164,39 @@ export function computeAuditPreparedness({ company, audits = [], findings = [] }
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
+  // Kritik uyarı — eksik firma bilgisi + DİF'siz "Uygun Değil" kriter sayısı.
+  // BİLEREK yalnızca advisory (uyarı) amaçlıdır; aşağıdaki `score`'a KATILMAZ
+  // (eksik firma profili metadata'sı, bir kriterin uygunluk sinyali DEĞİLDİR —
+  // "eksik veri ile olumsuz sonuç aynı şey değildir" kuralı burada da geçerli).
   const criticalWarningCount = missingFields.length + unresolvedWithoutDif.length;
 
-  let score = 100;
-  score -= missingFields.length * MISSING_FIELD_PENALTY;
-  score -= Math.min(openActions.length * OPEN_ACTION_PENALTY, OPEN_ACTION_PENALTY_CAP);
-  score -= Math.min(overdueActions.length * OVERDUE_ACTION_PENALTY, OVERDUE_ACTION_PENALTY_CAP);
-  score -= Math.min(unresolvedWithoutDif.length * UNRESOLVED_PENALTY, UNRESOLVED_PENALTY_CAP);
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  // ── Kriter Bazlı Hazırlık Skoru ─────────────────────────────────────────
+  // Yalnızca SONUCU DEĞERLENDİRİLMİŞ kriterler ("degerlendirilmedi" HARİÇ tüm
+  // 4 gerçek sonuç: uygun/kismen_uygun/uygun_degil/kanit_yok) paydaya girer.
+  let evaluatedCriterionCount = 0;
+  let totalCriterionCount = 0;
+  let criterionScoreSum = 0;
+  (audits || []).forEach((audit) => {
+    (audit.checklist || []).forEach((item) => {
+      totalCriterionCount += 1;
+      if (item.result === "degerlendirilmedi") return; // paydaya hiç girmez
+      evaluatedCriterionCount += 1;
+      const dif = (findings || []).find((f) => String(f.auditId) === String(audit.id) && f.checklistItemId === item.id);
+      criterionScoreSum += computeCriterionReadinessScore(item, dif);
+    });
+  });
+  const unevaluatedCriterionCount = totalCriterionCount - evaluatedCriterionCount;
+  const scoreAvailable = evaluatedCriterionCount > 0;
+  // Hiç değerlendirilmiş kriter yoksa `score` null — "%0 hazır" gibi yanıltıcı
+  // bir sayı ASLA üretilmez, UI "Henüz değerlendirilemedi" göstermelidir.
+  const score = scoreAvailable ? Math.round(criterionScoreSum / evaluatedCriterionCount) : null;
 
   return {
     score,
+    scoreAvailable,
+    evaluatedCriterionCount,
+    totalCriterionCount,
+    unevaluatedCriterionCount,
     missingFields,
     criticalWarningCount,
     openActionCount: openActions.length,
@@ -134,3 +205,4 @@ export function computeAuditPreparedness({ company, audits = [], findings = [] }
     priorityAreas,
   };
 }
+

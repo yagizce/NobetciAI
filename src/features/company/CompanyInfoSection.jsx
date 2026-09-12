@@ -161,7 +161,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
         <span>
           <span className="block text-sm font-medium" style={{ color: theme.textPrimary }}>İSG Uzmanı ve İşveren aynı kişi mi?</span>
           <span className="block text-[11px] mt-0.5" style={{ color: theme.textFaint }}>
-            Yalnızca küçük işletmelerde işaretleyin. İşaretlenirse İşveren rolü de Fine-Kinney risk
+            İşaretlenirse İşveren rolü de Fine-Kinney risk
             değerlendirmesi oluşturabilir/düzenleyebilir. Aksi halde İşveren risk değerlendirmelerini
             yalnızca görüntüler — ekleme/düzenleme/kapatma İSG Uzmanı'na özgü kalır.
           </span>
