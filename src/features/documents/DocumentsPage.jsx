@@ -56,7 +56,7 @@ export default function DocumentsPage() {
 
       {tab === "education" && <TrainingModule theme={theme} role={role} />}
 
-      {tab === "generator" && <DocumentGenerator />}
+      {tab === "generator" && <DocumentGenerator initialSearch={prefillSearch} />}
 
       {tab === "periodicChecks" && <PeriodicChecksPanel initialSearch={prefillSearch} />}
     </div>

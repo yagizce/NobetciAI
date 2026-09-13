@@ -54,6 +54,13 @@ describe("buildGlobalSearchResults", () => {
     assert.equal(kc.target.search, `?q=${encodeURIComponent("forklift güvenlik")}`);
   });
 
+  test("BUG FIX: Dokümanlar sonucu da (Bilgi Kütüphanesi/Periyodik Kontrol gibi) arama sorgusunu URL'e taşır — önceden yalnızca '?tab=generator' idi ve DocumentGenerator.jsx'e sorgu hiç ulaşmıyordu", () => {
+    const results = buildGlobalSearchResults("forklift", sampleData);
+    const docs = results.find((r) => r.key === "documents");
+    assert.equal(docs.target.path, "/documents");
+    assert.equal(docs.target.search, `?tab=generator&q=${encodeURIComponent("forklift")}`);
+  });
+
   test("eksik veri kaynakları (undefined) için çökmez, o kategoriler boş kalır", () => {
     const results = buildGlobalSearchResults("forklift", {});
     assert.deepEqual(results, []);

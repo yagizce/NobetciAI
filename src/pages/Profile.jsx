@@ -12,11 +12,6 @@ import Loading from "../components/Loading.jsx";
 import ErrorState from "../components/ErrorState.jsx";
 import PasswordChangeSection from "../features/profile/PasswordChangeSection.jsx";
 
-function formatLastLogin(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
 export default function Profile() {
   useDocumentTitle("Profil");
   const { theme } = useTheme();
@@ -91,7 +86,6 @@ export default function Profile() {
           ["Telefon", user.phone],
           ["Departman", user.department],
           ["Şirket", `${company?.name || "—"}${company?.sector ? ` (${company.sector})` : ""}`],
-          ["Son Giriş", formatLastLogin(user.lastLoginAt)],
         ].map(([label, value], i, arr) => (
           <div key={label} className="flex justify-between items-center gap-3 py-1.5" style={i !== arr.length - 1 ? { borderBottom: `1px solid ${theme.border}` } : {}}>
             <span className="text-xs" style={{ color: theme.textFaint }}>{label}</span>

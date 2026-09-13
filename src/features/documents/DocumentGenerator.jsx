@@ -7,6 +7,7 @@ import { getDocuments, saveDocument, deleteDocument, generateDocumentDraft } fro
 import { DOCUMENT_TYPES, getDocumentTypeLabel } from "../../constants/documentTypes.js";
 import { MOCK_USERS } from "../../constants/mockUsers.js";
 import { todayLabel } from "../../utils/dateUtils.js";
+import { turkishLower } from "../../utils/text.js";
 import { logActivity } from "../../services/auditService.js";
 import { createId } from "../../utils/id.js";
 import Button from "../../components/ui/Button.jsx";
@@ -16,9 +17,14 @@ import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import DocumentDetailDrawer from "./DocumentDetailDrawer.jsx";
-import { Plus, FileText, Trash2 } from "../../components/icons/index.jsx";
+import { Plus, FileText, Trash2, Search } from "../../components/icons/index.jsx";
 
-export default function DocumentGenerator() {
+/**
+ * @param {{ initialSearch?: string }} props - Genel arama (bkz. layout/GlobalSearchBar.jsx →
+ *   constants/globalSearch.js) buradan `?q=` parametresiyle gelir; DocumentsPage.jsx bunu
+ *   `initialSearch` olarak geçirir — usePeriodicChecks.js'teki AYNI ön-doldurma deseni.
+ */
+export default function DocumentGenerator({ initialSearch = "" } = {}) {
   const { theme } = useTheme();
   const { showToast } = useToast();
   const { role } = useRole();
@@ -28,6 +34,7 @@ export default function DocumentGenerator() {
   const [formOpen, setFormOpen] = useState(false);
   const [type, setType] = useState(DOCUMENT_TYPES[0].value);
   const [title, setTitle] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState(null);
@@ -129,9 +136,12 @@ export default function DocumentGenerator() {
   if (!loaded) return <Loading label="Belgeler yükleniyor..." />;
   if (loadError) return <ErrorState title="Belgeler yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />;
 
+  const q = turkishLower(search.trim());
+  const filteredDocuments = q ? documents.filter((d) => turkishLower(d.title || "").includes(q)) : documents;
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 gap-2">
         <p className="text-xs" style={{ color: theme.textFaint }}>
           Belge türü ve başlık seçin — AI düzenlemeye hazır bir ilk taslak oluşturur.
         </p>
@@ -160,11 +170,21 @@ export default function DocumentGenerator() {
         </div>
       )}
 
+      {documents.length > 0 && (
+        <div className="relative mb-3">
+          <Search style={{ fontSize: "13px", color: theme.textFaint, position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Belge başlığında ara..."
+            className="w-full text-sm rounded-lg pl-8 pr-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+        </div>
+      )}
+
       {documents.length === 0 ? (
         <EmptyState icon={FileText} title="Henüz belge yok" description="Yukarıdan yeni bir belge taslağı oluşturabilirsin." />
+      ) : filteredDocuments.length === 0 ? (
+        <EmptyState icon={FileText} title="Sonuç bulunamadı" description={`"${search}" ile eşleşen bir belge yok.`} />
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
-          {documents.map((d) => (
+          {filteredDocuments.map((d) => (
             <div key={d.id} onClick={() => setSelectedDocId(d.id)} role="button" tabIndex={0} className="rounded-lg border px-3.5 py-3 text-left cursor-pointer" style={{ borderColor: theme.border, background: theme.surface }}>
               <div className="flex items-start justify-between gap-2 mb-1">
                 <p className="text-sm font-semibold min-w-0 break-words" style={{ color: theme.textPrimary }}>{d.title}</p>

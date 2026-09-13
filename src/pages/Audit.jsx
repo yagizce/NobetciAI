@@ -7,18 +7,10 @@ import * as mevzuat from "../constants/mevzuatChecklist.js";
 // (Faz 3: 9001/14001/27001) eklendiğinde tek yapılması gereken kendi
 // `constants/isoXXXXChecklist.js` dosyasını yazıp burada bir CONFIGS girdisi
 // eklemek — AuditPage.jsx ve alt bileşenler DEĞİŞMEDEN çalışır.
+// SIRALAMA NOTU: dizideki sıra hem sekme sırasını hem de varsayılan aktif standardı
+// belirler (bkz. AuditPage.jsx → `useState(configs[0].standard)`) — İSG Mevzuat
+// Denetimi ilk, ISO 45001 ikinci sırada görünsün diye buradaki sıra değiştirildi.
 const CONFIGS = [
-  {
-    standard: "45001",
-    standardLabel: "ISO 45001",
-    generateChecklist: iso45001.generateChecklist,
-    checklistResults: iso45001.CHECKLIST_RESULTS,
-    getResultMeta: iso45001.getResultMeta,
-    computeOverallScore: iso45001.computeOverallScore,
-    computeProgressPercent: iso45001.computeProgressPercent,
-    computeCategoryScores: iso45001.computeCategoryScores,
-    getCategoryTitle: iso45001.getCategoryTitle,
-  },
   {
     standard: "mevzuat",
     standardLabel: "İSG Mevzuat",
@@ -29,6 +21,17 @@ const CONFIGS = [
     computeProgressPercent: mevzuat.computeProgressPercent,
     computeCategoryScores: mevzuat.computeCategoryScores,
     getCategoryTitle: mevzuat.getCategoryTitle,
+  },
+  {
+    standard: "45001",
+    standardLabel: "ISO 45001",
+    generateChecklist: iso45001.generateChecklist,
+    checklistResults: iso45001.CHECKLIST_RESULTS,
+    getResultMeta: iso45001.getResultMeta,
+    computeOverallScore: iso45001.computeOverallScore,
+    computeProgressPercent: iso45001.computeProgressPercent,
+    computeCategoryScores: iso45001.computeCategoryScores,
+    getCategoryTitle: iso45001.getCategoryTitle,
   },
 ];
 

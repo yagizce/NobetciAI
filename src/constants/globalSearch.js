@@ -52,9 +52,7 @@ export function buildGlobalSearchResults(query, data) {
   const documentItems = documents
     .filter((d) => turkishLower(d.title || "").includes(q))
     .slice(0, MAX_RESULTS_PER_CATEGORY)
-    .map((d) => ({ id: d.id, title: d.title, subtitle: getDocumentTypeLabel(d.type) }));
-
-  const knowledgeItems = knowledgeDocs
+    .map((d) => ({ id: d.id, title: d.title, subtitle: getDocumentTypeLabel(d.type) }));  const knowledgeItems = knowledgeDocs
     .filter((d) => turkishLower(d.title || "").includes(q) || turkishLower(d.summary || "").includes(q))
     .slice(0, MAX_RESULTS_PER_CATEGORY)
     .map((d) => ({ id: d.id, title: d.title, subtitle: d.summary || "" }));
@@ -63,7 +61,7 @@ export function buildGlobalSearchResults(query, data) {
     { key: "fineKinney", label: "Fine-Kinney", items: fineKinneyItems, target: { path: "/risk-analysis", state: { targetTab: "fineKinney", prefillSearch: query } } },
     { key: "riskDetection", label: "Risk Tespiti", items: riskDetectionItems, target: { path: "/risk-analysis", state: { targetTab: "riskDetection", prefillSearch: query } } },
     { key: "periodicChecks", label: "Periyodik Kontrol", items: periodicCheckItems, target: { path: "/documents", search: `?tab=periodicChecks&q=${encodeURIComponent(query)}` } },
-    { key: "documents", label: "Dokümanlar", items: documentItems, target: { path: "/documents", search: "?tab=generator" } },
+    { key: "documents", label: "Dokümanlar", items: documentItems, target: { path: "/documents", search: `?tab=generator&q=${encodeURIComponent(query)}` } },
     { key: "knowledge", label: "Bilgi Kütüphanesi", items: knowledgeItems, target: { path: "/knowledge-center", search: `?q=${encodeURIComponent(query)}` } },
   ];
 

@@ -12,6 +12,7 @@ import ErrorState from "../../components/ErrorState.jsx";
 import Button from "../../components/ui/Button.jsx";
 import AuditWizard from "./AuditWizard.jsx";
 import AuditListPanel from "./AuditListPanel.jsx";
+import AuditReadinessPanel from "./AuditReadinessPanel.jsx";
 import AuditDetailDrawer from "./AuditDetailDrawer.jsx";
 import DifDetailDrawer from "./DifDetailDrawer.jsx";
 import AuditReportView from "./AuditReportView.jsx";
@@ -117,6 +118,26 @@ export default function AuditPage({ configs }) {
             <p className="text-xs mb-3" style={{ color: theme.textFaint }}>
               Görüntüleme modu — denetim planlama ve yürütme İSG Uzmanı'na özgüdür.
             </p>
+          )}
+
+          {/* Denetime Hazırlık — "eksikler" ekranı. YALNIZCA İSG Mevzuat Denetimi'nde
+              gösterilir (istek → kapsam maddesi); ISO 45001 sekmesi bu paneli hiç
+              render etmez, ISO 45001 akışına dokunulmaz. `loaded`/`loadError` burada
+              zaten garanti true/null olduğu için bileşenin kendi yükleniyor/hata
+              dalları bu kullanımda tetiklenmez (audit listesiyle ikinci bir spinner
+              göstermemek için) — ama bileşen kendi başına da doğru/bağımsız çalışacak
+              şekilde yazıldı (bkz. AuditReadinessPanel.jsx). */}
+          {config.standard === "mevzuat" && (
+            <AuditReadinessPanel
+              loaded={loaded}
+              loadError={loadError}
+              onRetry={() => window.location.reload()}
+              audits={audits}
+              findings={findings}
+              getCategoryTitle={config.getCategoryTitle}
+              onOpenAudit={(auditId) => setSelectedAuditId(auditId)}
+              onOpenDif={(difId) => setSelectedDifId(difId)}
+            />
           )}
 
           {audits.length === 0 ? (

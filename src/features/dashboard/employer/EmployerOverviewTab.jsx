@@ -45,11 +45,13 @@ export default function EmployerOverviewTab({ theme, data }) {
   const { isVisible, toggleWidget } = useWidgetVisibility();
   const [editMode, setEditMode] = useState(false);
 
+  // NOT: "Risk Kapanma Süresi" ve "Ortalama Risk Puanı" kartları kaldırıldı —
+  // İşveren için soyut/teknik sayılardı (istek üzerine). Altyapıdaki hesaplama
+  // (useEmployerDashboardData.js → avgClosureDays/avgRiskScore) bilerek
+  // DOKUNULMADAN bırakıldı, yalnızca burada gösterimi kaldırıldı.
   const CARDS = [
     { label: "Toplam Çalışan", value: metrics.totalEmployees, bg: theme.surfaceAlt, color: theme.textPrimary },
     { label: "Son AI Analizleri", value: metrics.recentAiAnalyses, bg: theme.surfaceAlt, color: theme.textPrimary },
-    { label: "Risk Kapanma Süresi", value: metrics.avgClosureDays !== null ? `${metrics.avgClosureDays} gün` : "—", bg: theme.surfaceAlt, color: theme.textPrimary },
-    { label: "Ortalama Risk Puanı", value: fineKinneyEntries.length > 0 ? metrics.avgRiskScore : "—", bg: theme.surfaceAlt, color: theme.textPrimary },
   ];
 
   return (
@@ -112,7 +114,7 @@ export default function EmployerOverviewTab({ theme, data }) {
         )}
 
         {isVisible("kpiCards") && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {CARDS.map((c) => (
               <div key={c.label} className="rounded-lg p-3" style={{ background: c.bg }}>
                 <p className="text-[10.5px]" style={{ color: theme.textFaint }}>{c.label}</p>

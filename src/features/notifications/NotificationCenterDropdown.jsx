@@ -80,10 +80,10 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-xl shadow-lg overflow-hidden z-40"
+          className="absolute right-0 mt-2 w-80 max-w-[90vw] max-h-[min(30rem,calc(100vh-6rem))] rounded-xl shadow-lg overflow-hidden z-40 flex flex-col"
           style={{ background: theme.surface, border: `1px solid ${theme.border}` }}
         >
-          <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: `1px solid ${theme.border}` }}>
+          <div className="shrink-0 flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: `1px solid ${theme.border}` }}>
             <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Bildirimler</p>
             {unreadCount > 0 && (
               <button onClick={handleMarkAllRead} className="text-[11px] font-semibold" style={{ color: theme.accent }}>
@@ -92,7 +92,7 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
             )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {!loaded ? (
               <div className="px-3.5 py-6 text-center text-xs" style={{ color: theme.textFaint }}>Yükleniyor...</div>
             ) : loadError ? (
@@ -126,7 +126,7 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
             <Link
               to="/risk-analysis"
               onClick={() => setOpen(false)}
-              className="block px-3.5 py-2.5 text-xs font-semibold text-center"
+              className="shrink-0 block px-3.5 py-2.5 text-xs font-semibold text-center"
               style={{ color: theme.accent, borderTop: `1px solid ${theme.border}` }}
             >
               {pendingReportsCount} bekleyen bildirim incelemesi → Bildirim Merkezi'ne git
