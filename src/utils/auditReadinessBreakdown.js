@@ -20,6 +20,10 @@
 // DEĞİŞTİRİLMEZ — bu dosya yalnızca "hangi kayıtlar" sorusuna cevap verir, "kaç puan"
 // sorusuna değil.
 //
+// "Denetim Öncesi Tamamlanması Gerekenler": aynı kritere ait TÜM sorunlar (Uygun
+// Değil + Kanıt Eksik + Açık DİF gibi) AYRI satırlar değil, rozetli TEK satır ve
+// TEK ana aksiyon olarak birleştirilir — bkz. ISSUE_PRIORITY sabit öncelik sırası.
+//
 // UYDURMA VERİ YASAĞI: Her liste yalnızca kendisine geçirilen gerçek audit/findings
 // verisinden okunur. Boş bir kategori boş dizi döner — UI bunu "bölüm gizli" veya
 // "X bulunmuyor" olarak yorumlar (bkz. AuditReadinessPanel.jsx), burada hiçbir sahte
@@ -50,10 +54,53 @@ import { getDifStageMeta, isDifOverdue } from "../constants/auditWorkflow.js";
 import { computeEvidenceStatus } from "./criterionEvidence.js";
 import { getResultMeta } from "../constants/auditScoring.js";
 
-// "Denetim Öncesi Tamamlanması Gerekenler" alanı için sabit, 3 değerli aksiyon
-// kelime dağarcığı (bkz. istek → satır formatı "İncele / Düzenle / Yönet"). Yeni
-// bir öncelik/aksiyon TÜRÜ İCAT EDİLMEZ — yalnızca bu 3 kelime kullanılır.
-const ACTION_LABEL = { review: "İncele", edit: "Düzenle", manage: "Yönet" };
+// "Denetim Öncesi Tamamlanması Gerekenler" — bir kriterin sahip olabileceği TÜM
+// sorun türleri, SABİT öncelik sırasıyla. Bu sıra hem (a) bir kriterde birden çok
+// sorun varken TEK ana aksiyonun hangisi olacağını, hem de (b) tüm listenin genel
+// sıralamasını belirler — YENİ bir risk/öncelik PUANI değildir, yalnızca kullanıcının
+// "önce hangisine bakmalıyım" sorusuna cevap veren sabit bir sıra listesidir.
+//
+// ÖNCELİK SIRASI (istek üzerine):
+//   1. Değerlendirilmedi  → Değerlendir   (henüz hiç karar verilmemiş kriter her şeyden önce gelir)
+//   2. Uygun Değil        → İncele
+//   3. Gecikmiş DİF       → DİF'i Yönet
+//   4. Açık DİF           → DİF'i Yönet
+//   5. Kısmen Uygun       → İncele
+//   6. Eksik Kanıt        → Kanıt Ekle
+//   7. Mevzuat Doğrulaması → Doğrulamayı İncele
+const ISSUE_PRIORITY = [
+  { key: "unevaluated", badge: "Değerlendirilmedi", actionLabel: "Değerlendir", actionKind: "criterion" },
+  { key: "uygun_degil", badge: "Uygun Değil", actionLabel: "İncele", actionKind: "criterion" },
+  { key: "difOverdue", badge: "DİF Gecikmiş", actionLabel: "DİF'i Yönet", actionKind: "dif" },
+  { key: "difOpen", badge: "DİF Açık", actionLabel: "DİF'i Yönet", actionKind: "dif" },
+  { key: "kismen_uygun", badge: "Kısmen Uygun", actionLabel: "İncele", actionKind: "criterion" },
+  { key: "missingEvidence", badge: "Kanıt Eksik", actionLabel: "Kanıt Ekle", actionKind: "criterion" },
+  { key: "unverified", badge: "Mevzuat Doğrulaması", actionLabel: "Doğrulamayı İncele", actionKind: "criterion" },
+];
+
+/**
+ * TEK merkezi ana aksiyon seçim fonksiyonu — bir kriterin sahip olduğu sorun
+ * anahtarlarından (issueKeys, ör. ["uygun_degil","missingEvidence","difOpen"])
+ * TEK bir ana aksiyonu belirler: ISSUE_PRIORITY'de en üstte (en yüksek öncelikli)
+ * olan sorun kazanır. TÜM eşleşen sorunlar `badges` içinde KORUNUR — ana aksiyon
+ * değişse bile diğer sorunlar rozet olarak kaybolmaz. Testler bu fonksiyonu
+ * DOĞRUDAN çağırıp davranışı doğrular (bkz. auditReadinessBreakdown.test.js).
+ *
+ * @param {string[]} issueKeys - ISSUE_PRIORITY'deki `key` değerlerinden biri veya birkaçı
+ * @returns {{ badges: string[], actionLabel: string, actionKind: "criterion"|"dif", priorityIndex: number }|null}
+ *   issueKeys boşsa (hiçbir sorun yoksa) null döner.
+ */
+export function pickPrimaryAction(issueKeys) {
+  const matched = ISSUE_PRIORITY.filter((p) => issueKeys.includes(p.key));
+  if (matched.length === 0) return null;
+  const top = matched[0]; // ISSUE_PRIORITY zaten öncelik sırasında tanımlı
+  return {
+    badges: matched.map((p) => p.badge),
+    actionLabel: top.actionLabel,
+    actionKind: top.actionKind,
+    priorityIndex: ISSUE_PRIORITY.indexOf(top),
+  };
+}
 
 /**
  * @param {object} audit
@@ -109,6 +156,7 @@ function collectCriteria(audits, getCategoryTitle, matches, statusLabel) {
  *   actions: object[],
  *   unverifiedLegislation: object[],
  *   preAuditActions: object[],
+ *   preAuditSummary: { criterionCount: number, issueCount: number },
  *   isFullyReady: boolean,
  * }}
  */
@@ -155,6 +203,7 @@ export function buildAuditReadinessBreakdown({ audits = [], findings = [], getCa
     return {
       id: f.id,
       auditId: f.auditId,
+      checklistItemId: f.checklistItemId,
       criterionTitle: f.criterionTitle || f.description || "İsimsiz bulgu",
       stage: f.stage,
       stageLabel: stageMeta.label,
@@ -181,22 +230,80 @@ export function buildAuditReadinessBreakdown({ audits = [], findings = [], getCa
     unverifiedLegislation.length === 0;
 
   // ── Denetim Öncesi Tamamlanması Gerekenler ─────────────────────────────
-  // 6 kategoriyi SABİT sırayla (istek → madde 4) tek bir aksiyon-odaklı listeye
-  // düzleştirir — YENİ bir hesaplama/veri değil, yukarıdaki listelerin aynı
-  // kayıtlarının aksiyon fiiliyle yeniden etiketlenmiş hâli. Bir kriter birden
-  // fazla kategoriye giriyorsa (ör. hem Uygunsuzluk hem Eksik Kanıt), BURADA da
-  // ayrı ayrı iki satır olarak görünür — bu bilinçlidir, ikisi farklı iştir.
-  const preAuditActions = [
-    ...nonconformities.map((r) => ({ kind: "criterion", actionLabel: ACTION_LABEL.review, sectionLabel: "Uygunsuzluk", ...r })),
-    ...partiallyCompliant.map((r) => ({ kind: "criterion", actionLabel: ACTION_LABEL.edit, sectionLabel: "Kısmen Uygun", ...r })),
-    ...missingEvidence.map((r) => ({ kind: "criterion", actionLabel: ACTION_LABEL.edit, sectionLabel: "Eksik Kanıt", ...r })),
-    ...unevaluated.map((r) => ({ kind: "criterion", actionLabel: ACTION_LABEL.edit, sectionLabel: "Değerlendirilmemiş", ...r })),
-    ...actions.map((f) => ({
-      kind: "dif", actionLabel: ACTION_LABEL.manage, sectionLabel: f.overdue ? "Gecikmiş DİF" : "Açık DİF",
-      id: f.id, auditId: f.auditId, criterionTitle: f.criterionTitle, statusLabel: f.stageLabel, overdue: f.overdue,
-    })),
-    ...unverifiedLegislation.map((r) => ({ kind: "criterion", actionLabel: ACTION_LABEL.review, sectionLabel: "Mevzuat Doğrulaması", ...r })),
-  ];
+  // Aynı kriterin BÜTÜN sorunları (bkz. ISSUE_PRIORITY) TEK satırda birleştirilir —
+  // "Uygun Değil + Kanıt Eksik + Açık DİF" 3 ayrı satır DEĞİL, 3 rozetli TEK satır
+  // olur. Ana aksiyon, o kriterin sahip olduğu sorunlardan ÖNCELİK SIRASINDA EN
+  // ÜSTTEKİ ile belirlenir (istek → madde 2/4) — yeni bir hesaplama/veri YOKTUR,
+  // yalnızca yukarıdaki 6 kategorinin AYNI kayıtlarının kritere göre gruplanmış hâli.
+  const criterionRows = new Map(); // key: `${auditId}::${criterionId}`
+  (audits || []).forEach((audit) => {
+    (audit.checklist || []).forEach((item) => {
+      const issueKeys = [];
+      if (item.result === "uygun_degil") issueKeys.push("uygun_degil");
+      if (item.result === "kismen_uygun") issueKeys.push("kismen_uygun");
+      if (computeEvidenceStatus(item.evidence, item) !== "present") issueKeys.push("missingEvidence");
+      if (item.result === "degerlendirilmedi") issueKeys.push("unevaluated");
+      if (item.verified === false) issueKeys.push("unverified");
+
+      // Kriterin kendi DİF'i (varsa) — kapalı DİF'ler zaten `actions`'ta yok,
+      // bu yüzden burada da otomatik olarak hariç kalır.
+      const dif = actions.find((f) => String(f.auditId) === String(audit.id) && f.checklistItemId === item.id);
+      if (dif) issueKeys.push(dif.overdue ? "difOverdue" : "difOpen");
+
+      if (issueKeys.length === 0) return; // sorun yoksa satır oluşturulmaz
+
+      const primary = pickPrimaryAction(issueKeys);
+      criterionRows.set(`${audit.id}::${item.id}`, {
+        kind: "criterion",
+        auditId: audit.id,
+        auditLabel: auditLabel(audit),
+        criterionId: item.id,
+        criterionTitle: item.title,
+        legislationName: item.legislationName || null,
+        article: item.article || null,
+        badges: primary.badges,
+        actionLabel: primary.actionLabel,
+        actionKind: primary.actionKind,
+        difId: dif ? dif.id : null,
+        overdue: issueKeys.includes("difOverdue"),
+        priorityIndex: primary.priorityIndex,
+      });
+    });
+  });
+
+  // Savunma amaçlı: bir DİF'in checklistItemId'si (olağan dışı bir veri durumunda)
+  // yukarıdaki taramada hiçbir kritere eşleşmediyse yine de kaybolmasın.
+  actions.forEach((f) => {
+    const key = `${f.auditId}::${f.checklistItemId}`;
+    if (criterionRows.has(key)) return;
+    const primary = pickPrimaryAction([f.overdue ? "difOverdue" : "difOpen"]);
+    criterionRows.set(`dif::${f.id}`, {
+      kind: "dif",
+      auditId: f.auditId,
+      auditLabel: null,
+      criterionId: null,
+      criterionTitle: f.criterionTitle,
+      legislationName: null,
+      article: null,
+      badges: primary.badges,
+      actionLabel: primary.actionLabel,
+      actionKind: primary.actionKind,
+      difId: f.id,
+      overdue: f.overdue,
+      priorityIndex: primary.priorityIndex,
+    });
+  });
+
+  const preAuditActions = Array.from(criterionRows.values())
+    .sort((a, b) => a.priorityIndex - b.priorityIndex || (a.auditLabel || "").localeCompare(b.auditLabel || ""));
+
+  // X kriterde Y konu — kriter sayısı = preAuditActions.length (birleştirildiği için
+  // aynı kriter tekrar sayılmaz), konu sayısı = tüm satırlardaki rozetlerin TOPLAMI
+  // (aynı kriterde 2 sorun varsa konu sayısına 2 olarak yansır).
+  const preAuditSummary = {
+    criterionCount: preAuditActions.length,
+    issueCount: preAuditActions.reduce((sum, r) => sum + r.badges.length, 0),
+  };
 
   return {
     hasAnyAudits,
@@ -208,6 +315,22 @@ export function buildAuditReadinessBreakdown({ audits = [], findings = [], getCa
     actions,
     unverifiedLegislation,
     preAuditActions,
+    preAuditSummary,
     isFullyReady,
   };
+}
+
+/**
+ * "Şimdi Yapılmalı" bölümü için preAuditActions'ın İLK N kaydını döner. YENİ bir
+ * sıralama/skor/öncelik sistemi DEĞİLDİR — preAuditActions zaten pickPrimaryAction()
+ * önceliğine göre sıralı gelir (bkz. yukarısı); bu fonksiyon yalnızca görüntüleme
+ * sınırı uygular, sırayı asla değiştirmez. Ayrı, saf ve doğrudan test edilebilir
+ * tutulmasının nedeni: "en fazla 5 aksiyon gösteriliyor" ve "sıralama korunuyor"
+ * davranışlarının, bileşen render'ından bağımsız olarak doğrulanabilmesidir.
+ * @param {object[]} preAuditActions
+ * @param {number} [limit=5]
+ * @returns {object[]}
+ */
+export function getTopPriorityActions(preAuditActions, limit = 5) {
+  return (preAuditActions || []).slice(0, limit);
 }

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
-import { buildAuditReadinessBreakdown } from "../../utils/auditReadinessBreakdown.js";
+import { buildAuditReadinessBreakdown, getTopPriorityActions } from "../../utils/auditReadinessBreakdown.js";
 import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { CheckCircle2, ClipboardList, ShieldAlert, Scale, AlertTriangle, ChevronRight } from "../../components/icons/index.jsx";
@@ -9,10 +9,11 @@ import { CheckCircle2, ClipboardList, ShieldAlert, Scale, AlertTriangle, Chevron
  * Bir kriter/DİF satırı — istenen sabit format:
  *   Kriter başlığı
  *   Kategori · mevcut durum · varsa mevzuat
- *   → İncele / Düzenle / Yönet
- * `actionLabel` YALNIZCA bu 3 sabit kelimeden biridir (yeni bir aksiyon türü İCAT
- * EDİLMEZ) — hangi kelimenin kullanılacağı auditReadinessBreakdown.js'te (ACTION_LABEL)
- * kategoriye göre SABİTLENMİŞTİR, burada yeniden yorumlanmaz.
+ *   → (aksiyon)
+ * `actionLabel`/`onAction` bu bileşende ASLA sabitlenmez — çağıran taraf her zaman
+ * `resolveAction()` ile `pickPrimaryAction()`'ın (auditReadinessBreakdown.js) sonucunu
+ * okuyup geçirir; böylece aynı kriter, "Denetim Öncesi" birleşik satırıyla kendi
+ * kategori bölümünde HER ZAMAN aynı aksiyonu gösterir.
  */
 function ReadinessRow({ theme, title, sectionLabel, statusLabel, legislationName, article, badge, actionLabel, onAction }) {
   const subtitle = [sectionLabel, statusLabel, legislationName ? `${legislationName}${article ? ` ${article}` : ""}` : null]
@@ -30,6 +31,32 @@ function ReadinessRow({ theme, title, sectionLabel, statusLabel, legislationName
           {actionLabel} <ChevronRight style={{ fontSize: "11px" }} />
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Birleşik aksiyon satırı — "Denetim Öncesi Tamamlanması Gerekenler" listesi için.
+ * Aynı kriterin TÜM sorunları burada küçük rozetler olarak yan yana gösterilir
+ * (istek → madde 1/3), TEK bir ana aksiyon butonuyla (madde 2).
+ */
+function MergedActionRow({ theme, title, badges, overdue, actionLabel, onAction }) {
+  return (
+    <div className="rounded-lg px-3 py-2 flex items-center justify-between gap-2" style={{ background: theme.surfaceAlt }}>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold truncate mb-1" style={{ color: theme.textPrimary }}>{title}</p>
+        <div className="flex flex-wrap gap-1">
+          {badges.map((b) => (
+            <span key={b} className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ background: (overdue && b === "DİF Gecikmiş") ? theme.highRiskBg : theme.surface, color: (overdue && b === "DİF Gecikmiş") ? theme.highRiskText : theme.textFaint }}>
+              {b}
+            </span>
+          ))}
+        </div>
+      </div>
+      <button onClick={onAction} className="shrink-0 flex items-center gap-0.5 text-[10.5px] font-semibold px-2 py-1 rounded-full" style={{ background: theme.surface, color: theme.accent }}>
+        {actionLabel} <ChevronRight style={{ fontSize: "11px" }} />
+      </button>
     </div>
   );
 }
@@ -54,7 +81,25 @@ function ReadinessSection({ theme, icon: Icon, title, tone = "neutral", items, c
 }
 
 function actionHandlerFor(row, onOpenAudit, onOpenDif) {
-  return row.kind === "dif" ? () => onOpenDif(row.id) : () => onOpenAudit(row.auditId);
+  return row.actionKind === "dif" ? () => onOpenDif(row.difId) : () => onOpenAudit(row.auditId);
+}
+
+/**
+ * Kategori bölümlerindeki bir satırın aksiyonunu, "Denetim Öncesi Tamamlanması
+ * Gerekenler" listesiyle AYNI kaynaktan (pickPrimaryAction sonucu, bkz.
+ * auditReadinessBreakdown.js → preAuditActions) okur — burada YENİ bir aksiyon
+ * mantığı YOKTUR, yalnızca preAuditActions'ın o kritere ait satırı bulunur. Bu
+ * sayede aynı kriter, birleşik satırda ve kendi kategori bölümünde HER ZAMAN aynı
+ * aksiyonu gösterir (ör. bir "Uygunsuzluk" aynı zamanda açık bir DİF'e sahipse ve
+ * pickPrimaryAction "İncele"yi seçtiyse, Aksiyonlar bölümündeki o DİF satırı da
+ * "Yönet" değil "İncele" gösterir — kriter bazında TEK doğru vardır).
+ * @param {Map<string, object>} actionByCriterion
+ * @param {string|number} auditId
+ * @param {string} criterionId
+ * @param {{ actionLabel: string, actionKind: string, auditId: string|number, difId: string|number|null }} fallback
+ */
+function resolveAction(actionByCriterion, auditId, criterionId, fallback) {
+  return actionByCriterion.get(`${auditId}::${criterionId}`) || fallback;
 }
 
 /**
@@ -69,8 +114,8 @@ function actionHandlerFor(row, onOpenAudit, onOpenDif) {
  * Mevzuat Doğrulaması (bkz. auditReadinessBreakdown.js).
  *
  * Durum sırası: Yükleniyor → Hata → (denetim yoksa hiç render edilmez) →
- * "Denetim Öncesi Tamamlanması Gerekenler" özet listesi → Denetime Hazır (sorun
- * yoksa) → 6 kategori bölümü.
+ * "Şimdi Yapılmalı" (en fazla 5, öncelik sıralı hızlı özet) → Denetime Hazır
+ * (sorun yoksa) → 6 kategori bölümü (tam liste, kapsız).
  *
  * @param {{ loaded: boolean, loadError: string|null, onRetry: () => void,
  *   audits: object[], findings: object[], getCategoryTitle?: (code: string) => string,
@@ -99,8 +144,16 @@ export default function AuditReadinessPanel({ loaded, loadError, onRetry, audits
 
   const {
     hasAnyEvaluatedCriteria, nonconformities, partiallyCompliant, missingEvidence,
-    unevaluated, actions, unverifiedLegislation, preAuditActions, isFullyReady,
+    unevaluated, actions, unverifiedLegislation, preAuditActions, preAuditSummary, isFullyReady,
   } = breakdown;
+
+  // TEK kaynak: preAuditActions zaten pickPrimaryAction() ile hesaplanmış aksiyonu
+  // taşıyor (bkz. auditReadinessBreakdown.js). Kategori bölümleri kendi aksiyon
+  // mantığını ÜRETMEZ, yalnızca bu haritadan okur — bkz. resolveAction().
+  const actionByCriterion = new Map();
+  preAuditActions.forEach((row) => {
+    if (row.criterionId != null) actionByCriterion.set(`${row.auditId}::${row.criterionId}`, row);
+  });
 
   return (
     <div className="rounded-lg border px-3 py-3 mb-4" style={{ borderColor: theme.border, background: theme.surface }}>
@@ -117,34 +170,42 @@ export default function AuditReadinessPanel({ loaded, loadError, onRetry, audits
         </p>
       )}
 
-      {/* Denetim Öncesi Tamamlanması Gerekenler — kullanıcıya YALNIZCA sorunları değil,
-          hangi işi yapması gerektiğini hızlıca gösteren, 6 kategoriyi sabit sırayla
-          düzleştiren özet liste. Aşağıdaki kategorili bölümlerle AYNI veriyi kullanır,
-          yeni bir hesaplama YOKTUR — yalnızca aksiyon fiiliyle öne çıkarılmış hâlidir. */}
-      {preAuditActions.length > 0 && (
-        <div className="mb-4">
-          <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: theme.textPrimary }}>
-            Denetim Öncesi Tamamlanması Gerekenler
-            <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: theme.surfaceAlt, color: theme.textMuted }}>{preAuditActions.length}</span>
-          </p>
+      {/* Şimdi Yapılmalı — "Ne eksik?" değil "Şimdi ne yapmalıyım?" sorusuna cevap
+          veren, EN FAZLA 5 satırlık hızlı özet. Aynı preAuditActions dizisinden
+          (zaten pickPrimaryAction() ile merkezi önceliğe göre sıralanmış — bkz.
+          auditReadinessBreakdown.js) yalnızca İLK 5 kaydı gösterir; yeni bir
+          sıralama/skor/hesaplama YOKTUR, yalnızca görüntüleme sınırı. Sayaç
+          (preAuditSummary) da aynı şekilde HİÇ değiştirilmeden, olduğu gibi
+          kullanılır — gerçek toplam kriter/konu sayısını gösterir (yalnızca 5'i
+          render edilse bile, kullanıcı gerçek toplamı görür; tüm liste aşağıdaki
+          6 kategori bölümünde zaten eksiksiz mevcuttur). */}
+      <div className="mb-4">
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <p className="text-xs font-bold uppercase tracking-wide" style={{ color: theme.textPrimary }}>Şimdi Yapılmalı</p>
+          {preAuditActions.length > 0 && (
+            <span className="text-[10.5px]" style={{ color: theme.textFaint }}>
+              {preAuditSummary.criterionCount} önemli aksiyon / {preAuditSummary.issueCount} açık konu
+            </span>
+          )}
+        </div>
+        {preAuditActions.length === 0 ? (
+          <p className="text-xs" style={{ color: theme.successText }}>Denetime hazırlık için açık aksiyon bulunmuyor.</p>
+        ) : (
           <div className="flex flex-col gap-1.5">
-            {preAuditActions.map((row, i) => (
-              <ReadinessRow
-                key={`${row.kind}-${row.id || row.criterionId}-${row.auditId}-${row.sectionLabel}-${i}`}
+            {getTopPriorityActions(preAuditActions).map((row, i) => (
+              <MergedActionRow
+                key={`${row.kind}-${row.criterionId || row.difId}-${row.auditId}-${i}`}
                 theme={theme}
                 title={row.criterionTitle}
-                sectionLabel={row.sectionLabel}
-                statusLabel={row.statusLabel}
-                legislationName={row.legislationName}
-                article={row.article}
-                badge={row.overdue ? <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: theme.highRiskBg, color: theme.highRiskText }}>Gecikti</span> : undefined}
+                badges={row.badges}
+                overdue={row.overdue}
                 actionLabel={row.actionLabel}
                 onAction={actionHandlerFor(row, onOpenAudit, onOpenDif)}
               />
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Başarılı + sorun yok: olumlu durum. verified:false gibi gerçek bir veri
           doğrulama uyarısı varsa isFullyReady zaten false'tur (auditReadinessBreakdown.js),
@@ -166,22 +227,28 @@ export default function AuditReadinessPanel({ loaded, loadError, onRetry, audits
         )
       ) : (
         <ReadinessSection theme={theme} icon={AlertTriangle} tone="danger" title="Uygunsuzluklar" items={nonconformities}>
-          {nonconformities.map((r) => (
-            <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
-              sectionLabel="Uygunsuzluk" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
-              actionLabel="İncele" onAction={() => onOpenAudit(r.auditId)} />
-          ))}
+          {nonconformities.map((r) => {
+            const action = resolveAction(actionByCriterion, r.auditId, r.criterionId, { actionLabel: "İncele", actionKind: "criterion", auditId: r.auditId });
+            return (
+              <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
+                sectionLabel="Uygunsuzluk" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
+                actionLabel={action.actionLabel} onAction={actionHandlerFor(action, onOpenAudit, onOpenDif)} />
+            );
+          })}
         </ReadinessSection>
       )}
 
       {/* 2. Kısmen Uygunlar — yoksa bölüm tamamen GİZLİ (istek gereği). */}
       {partiallyCompliant.length > 0 && (
         <ReadinessSection theme={theme} icon={AlertTriangle} tone="warning" title="Kısmen Uygunlar" items={partiallyCompliant}>
-          {partiallyCompliant.map((r) => (
-            <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
-              sectionLabel="Kısmen Uygun" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
-              actionLabel="Düzenle" onAction={() => onOpenAudit(r.auditId)} />
-          ))}
+          {partiallyCompliant.map((r) => {
+            const action = resolveAction(actionByCriterion, r.auditId, r.criterionId, { actionLabel: "İncele", actionKind: "criterion", auditId: r.auditId });
+            return (
+              <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
+                sectionLabel="Kısmen Uygun" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
+                actionLabel={action.actionLabel} onAction={actionHandlerFor(action, onOpenAudit, onOpenDif)} />
+            );
+          })}
         </ReadinessSection>
       )}
 
@@ -192,22 +259,28 @@ export default function AuditReadinessPanel({ loaded, loadError, onRetry, audits
         )
       ) : (
         <ReadinessSection theme={theme} icon={ClipboardList} tone="warning" title="Eksik Kanıtlar" items={missingEvidence}>
-          {missingEvidence.map((r) => (
-            <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
-              sectionLabel="Eksik Kanıt" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
-              actionLabel="Düzenle" onAction={() => onOpenAudit(r.auditId)} />
-          ))}
+          {missingEvidence.map((r) => {
+            const action = resolveAction(actionByCriterion, r.auditId, r.criterionId, { actionLabel: "Kanıt Ekle", actionKind: "criterion", auditId: r.auditId });
+            return (
+              <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
+                sectionLabel="Eksik Kanıt" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
+                actionLabel={action.actionLabel} onAction={actionHandlerFor(action, onOpenAudit, onOpenDif)} />
+            );
+          })}
         </ReadinessSection>
       )}
 
       {/* 4. Değerlendirilmemişler — yoksa bölüm tamamen GİZLİ. */}
       {unevaluated.length > 0 && (
         <ReadinessSection theme={theme} icon={ClipboardList} title="Değerlendirilmemişler" items={unevaluated}>
-          {unevaluated.map((r) => (
-            <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
-              sectionLabel="Değerlendirilmemiş" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
-              actionLabel="Düzenle" onAction={() => onOpenAudit(r.auditId)} />
-          ))}
+          {unevaluated.map((r) => {
+            const action = resolveAction(actionByCriterion, r.auditId, r.criterionId, { actionLabel: "Değerlendir", actionKind: "criterion", auditId: r.auditId });
+            return (
+              <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
+                sectionLabel="Değerlendirilmemiş" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
+                actionLabel={action.actionLabel} onAction={actionHandlerFor(action, onOpenAudit, onOpenDif)} />
+            );
+          })}
         </ReadinessSection>
       )}
 
@@ -216,23 +289,29 @@ export default function AuditReadinessPanel({ loaded, loadError, onRetry, audits
           Yoksa bölüm tamamen GİZLİ. */}
       {actions.length > 0 && (
         <ReadinessSection theme={theme} icon={ShieldAlert} tone="danger" title="Aksiyonlar" items={actions}>
-          {actions.map((f) => (
-            <ReadinessRow key={f.id} theme={theme} title={f.criterionTitle}
-              sectionLabel={f.overdue ? "Gecikmiş DİF" : "Açık DİF"} statusLabel={f.responsible ? `Sorumlu: ${f.responsible}` : f.stageLabel}
-              badge={f.overdue ? <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: theme.highRiskBg, color: theme.highRiskText }}>Gecikti</span> : undefined}
-              actionLabel="Yönet" onAction={() => onOpenDif(f.id)} />
-          ))}
+          {actions.map((f) => {
+            const action = resolveAction(actionByCriterion, f.auditId, f.checklistItemId, { actionLabel: "DİF'i Yönet", actionKind: "dif", difId: f.id });
+            return (
+              <ReadinessRow key={f.id} theme={theme} title={f.criterionTitle}
+                sectionLabel={f.overdue ? "Gecikmiş DİF" : "Açık DİF"} statusLabel={f.responsible ? `Sorumlu: ${f.responsible}` : f.stageLabel}
+                badge={f.overdue ? <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: theme.highRiskBg, color: theme.highRiskText }}>Gecikti</span> : undefined}
+                actionLabel={action.actionLabel} onAction={actionHandlerFor(action, onOpenAudit, onOpenDif)} />
+            );
+          })}
         </ReadinessSection>
       )}
 
       {/* 6. Mevzuat Doğrulaması — gerekmiyorsa (liste boş) HİÇBİR UYARI gösterilmez. */}
       {unverifiedLegislation.length > 0 && (
         <ReadinessSection theme={theme} icon={Scale} tone="warning" title="Mevzuat Doğrulaması" items={unverifiedLegislation}>
-          {unverifiedLegislation.map((r) => (
-            <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
-              sectionLabel="Mevzuat Doğrulaması" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
-              actionLabel="İncele" onAction={() => onOpenAudit(r.auditId)} />
-          ))}
+          {unverifiedLegislation.map((r) => {
+            const action = resolveAction(actionByCriterion, r.auditId, r.criterionId, { actionLabel: "Doğrulamayı İncele", actionKind: "criterion", auditId: r.auditId });
+            return (
+              <ReadinessRow key={`${r.auditId}-${r.criterionId}`} theme={theme} title={r.criterionTitle}
+                sectionLabel="Mevzuat Doğrulaması" statusLabel={r.statusLabel} legislationName={r.legislationName} article={r.article}
+                actionLabel={action.actionLabel} onAction={actionHandlerFor(action, onOpenAudit, onOpenDif)} />
+            );
+          })}
         </ReadinessSection>
       )}
     </div>
