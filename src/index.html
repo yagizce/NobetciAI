@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Nöbetçi — İSG Yönetim Platformu</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#F2B705" />
+  <!-- NATIVE APP HİSSİ: bu üç etiket olmadan bile PWA yüklenebilir (manifest yeterli),
+       ama iOS'ta ana ekrana eklendiğinde adres çubuğu/Safari kromu olmadan tam ekran
+       açılmasını ve durum çubuğunun uygulama içeriğiyle aynı hizada (saydam) görünmesini
+       SADECE bu meta etiketleri sağlar — manifest.json'daki display:standalone Android'i
+       kapsar ama iOS bu üçünü ayrıca ister. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Nöbetçi" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="icon" href="/icon-192.png" />
+  <script>
+    // PhoneFrame.jsx'teki useIsFramedDesktop ile AYNI ölçüt, React mount olmadan ÖNCE
+    // senkron çalışır — aksi halde ilk karede her zaman "mobil" (çerçevesiz) görünüp
+    // React yüklenince aniden çerçeveye "zıplardı" (FOUC/layout shift). Tek doğruluk
+    // kaynağı yine PhoneFrame.jsx'tekiyle birebir aynı matchMedia sorgusu.
+    (function () {
+      try {
+        if (window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 640px)").matches) {
+          document.documentElement.classList.add("app-framed");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
