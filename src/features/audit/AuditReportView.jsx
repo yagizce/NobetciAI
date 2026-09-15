@@ -245,10 +245,14 @@ export default function AuditReportView({
             </div>
 
             {/* ── 4. Tespitler ve Uygunsuzluklar ─────────────────────── */}
+            {/* Her kayıt izlenebilir tek bir zincir: Kriter → Tespit → Mevzuat Dayanağı
+                → Kanıt → DİF → Güncel Durum. Her halka kendi gerçek kaynağından gelir
+                (bkz. utils/auditReport.js); boş bir halka için metin UYDURULMAZ, yalnızca
+                "belirtilmemiş/açılmamış" gibi nötr bir not gösterilir. */}
             <div>
               <SectionHeading index={4} title="Tespitler ve Uygunsuzluklar" icon={AlertTriangle} />
               {nonconformities.length === 0 ? <EmptyNote>Bu denetimde tespit edilen uygunsuzluk yok.</EmptyNote> : (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-3">
                   {nonconformities.map((n) => (
                     <div key={n.criterionId} className="audit-report-avoid-break rounded-lg px-3 py-2.5" style={{ border: `1px solid ${REPORT_COLORS.border}` }}>
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
@@ -261,25 +265,76 @@ export default function AuditReportView({
                         <RBadge tone={n.evidenceStatus === "present" ? "success" : n.evidenceStatus === "incomplete" ? "warning" : "neutral"}>
                           Kanıt: {n.evidenceStatus === "present" ? "Mevcut" : n.evidenceStatus === "incomplete" ? "Eksik" : "Kanıt Yok"}
                         </RBadge>
+                        {n.dif && (
+                          <RBadge tone={n.dif.stage === "closed" ? "success" : n.dif.overdue ? "danger" : "pending"}>
+                            DİF: {n.dif.stageLabel}{n.dif.overdue ? " — Gecikti" : ""}
+                          </RBadge>
+                        )}
                       </div>
+
+                      {/* 1) Kriter */}
                       <p className="text-sm font-semibold mb-0.5" style={{ color: REPORT_COLORS.textPrimary }}>{n.criterionTitle}</p>
-                      <p className="text-[10.5px] mb-1" style={{ color: REPORT_COLORS.textFaint }}>{n.categoryTitle}</p>
-                      {n.note && <p className="text-xs mb-1.5" style={{ color: REPORT_COLORS.textMuted }}><strong>Tespit/Açıklama:</strong> {n.note}</p>}
+                      <p className="text-[10.5px] mb-1.5" style={{ color: REPORT_COLORS.textFaint }}>{n.categoryTitle}</p>
+
+                      {/* 2) Tespit — yalnızca item.note, boşsa metin uydurulmaz */}
+                      <p className="text-xs mb-1.5" style={{ color: REPORT_COLORS.textMuted }}>
+                        <strong>Tespit:</strong> {n.note || <span style={{ color: REPORT_COLORS.textFaint, fontStyle: "italic" }}>Denetçi notu girilmemiş.</span>}
+                      </p>
+
+                      {/* 3) Mevzuat Dayanağı — checklist'ten aynen, madde uydurulmaz */}
                       {n.legislationName && (
                         <p className="text-[10.5px] mb-1.5" style={{ color: REPORT_COLORS.textMuted }}>
-                          <strong>Mevzuat dayanağı:</strong> {n.legislationName}{n.article ? ` — ${n.article}` : ""}
-                          {!n.verified && <span style={{ color: REPORT_COLORS.warnText }}> (⚠️ doğrulama gerekli)</span>}
+                          <strong>Mevzuat Dayanağı:</strong> {n.legislationName}{n.article ? ` — ${n.article}` : ""}
+                          {!n.verified && <span style={{ color: REPORT_COLORS.warnText }}> (⚠️ Mevzuat doğrulaması gerekli)</span>}
                         </p>
                       )}
+
+                      {/* 4) Kanıt — YALNIZCA checklist[].evidence; DİF'in kendi aksiyon
+                          kanıtı burada DEĞİL, aşağıdaki DİF bloğunda ayrı gösterilir. */}
+                      <div className="mb-1.5">
+                        <p className="text-[10.5px]" style={{ color: REPORT_COLORS.textMuted }}><strong>Kanıt:</strong></p>
+                        {n.evidenceEntries.length === 0 ? (
+                          <p className="text-[10.5px] pl-2" style={{ color: REPORT_COLORS.textFaint }}>Kriter için kanıt eklenmemiş.</p>
+                        ) : (
+                          <div className="pl-2 flex flex-col gap-0.5">
+                            {n.evidenceEntries.map((e) => (
+                              <p key={e.id} className="text-[10.5px]" style={{ color: REPORT_COLORS.textMuted }}>
+                                • <strong>{e.typeLabel}</strong>{e.description ? `: ${e.description}` : ""}
+                                {e.createdAt && <span style={{ color: REPORT_COLORS.textFaint }}> — {new Date(e.createdAt).toLocaleDateString("tr-TR")}</span>}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 5) DİF → 6) Güncel Durum — yoksa "DİF oluşturulmadı", otomatik
+                          DİF ÜRETİLMEZ; kapalı bir DİF asla açık gösterilmez. */}
                       {n.dif ? (
-                        <div className="flex items-center gap-1.5 flex-wrap text-[10.5px]" style={{ color: REPORT_COLORS.textMuted }}>
-                          <strong>İlgili DİF:</strong>
-                          <RBadge tone={n.dif.overdue ? "danger" : "neutral"}>{n.dif.stageLabel}{n.dif.overdue ? " — Gecikti" : ""}</RBadge>
-                          {n.dif.responsible && <span>Sorumlu: {n.dif.responsible}</span>}
-                          {n.dif.dueDate && <span>Termin: {n.dif.dueDate}</span>}
+                        <div className="rounded-md px-2.5 py-2" style={{ background: REPORT_COLORS.surfaceAlt }}>
+                          <p className="text-[10.5px] mb-1" style={{ color: REPORT_COLORS.textMuted }}>
+                            <strong>DİF Durumu:</strong> {n.dif.stageLabel}
+                            {n.dif.stage === "closed" && n.dif.closedAt ? ` — ${new Date(n.dif.closedAt).toLocaleDateString("tr-TR")} tarihinde kapatıldı` : ""}
+                            {n.dif.overdue && <span style={{ color: REPORT_COLORS.dangerText }}> (termini geçti)</span>}
+                          </p>
+                          {(n.dif.responsible || n.dif.dueDate) && (
+                            <p className="text-[10.5px] mb-1" style={{ color: REPORT_COLORS.textFaint }}>
+                              {n.dif.responsible && `Sorumlu: ${n.dif.responsible}`}{n.dif.responsible && n.dif.dueDate ? " · " : ""}{n.dif.dueDate && `Termin: ${n.dif.dueDate}`}
+                            </p>
+                          )}
+                          <p className="text-[10.5px] mb-1" style={{ color: REPORT_COLORS.textMuted }}>
+                            <strong>Düzeltici Faaliyet:</strong> {n.dif.correctiveAction || <span style={{ color: REPORT_COLORS.textFaint, fontStyle: "italic" }}>Henüz belirtilmedi.</span>}
+                          </p>
+                          <p className="text-[10.5px] mb-1" style={{ color: REPORT_COLORS.textMuted }}>
+                            <strong>Aksiyon Kanıtı:</strong> {n.dif.actionEvidence || <span style={{ color: REPORT_COLORS.textFaint, fontStyle: "italic" }}>Henüz eklenmedi.</span>}
+                          </p>
+                          {n.dif.stage === "closed" && (
+                            <p className="text-[10.5px]" style={{ color: REPORT_COLORS.textMuted }}>
+                              <strong>Kapanış Açıklaması:</strong> {n.dif.closureNote || <span style={{ color: REPORT_COLORS.textFaint, fontStyle: "italic" }}>Belirtilmedi.</span>}
+                            </p>
+                          )}
                         </div>
                       ) : (
-                        <p className="text-[10.5px]" style={{ color: REPORT_COLORS.textFaint }}>İlgili DİF açılmamış.</p>
+                        <p className="text-[10.5px]" style={{ color: REPORT_COLORS.textFaint }}>DİF oluşturulmadı.</p>
                       )}
                     </div>
                   ))}

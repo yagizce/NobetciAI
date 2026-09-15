@@ -44,6 +44,23 @@ import { getSafetyScoreLevel } from "./safetyScore.js";
 const NONCONFORMITY_RESULTS = ["uygun_degil", "kismen_uygun", "kanit_yok"];
 
 /**
+ * Bir kriterin `evidence[]` dizisini rapor için görüntülenebilir satırlara çevirir.
+ * TEK yer — hem "Tespitler ve Uygunsuzluklar" (her bulgunun kendi kanıt zinciri)
+ * hem "Kanıtlar" bölümü AYNI eşlemeyi kullanır, iki farklı mantık YOKTUR. DİF'in
+ * kendi `evidence`/`actionEvidence` alanına KESİNLİKLE bakmaz — yalnızca kriterin
+ * checklist[].evidence dizisini okur (bkz. dosya başı UYDURMA VERİ YASAĞI notu).
+ * @param {Array<{id, type, description, createdAt}>} evidence
+ */
+function mapEvidenceEntries(evidence) {
+  return (evidence || []).map((e) => ({
+    id: e.id,
+    typeLabel: getEvidenceTypeLabel(e.type),
+    description: e.description || "",
+    createdAt: e.createdAt || "",
+  }));
+}
+
+/**
  * Denetime ait TÜM DİF'leri (bu auditId'ye bağlı) döner — kapanmış olanlar dahil,
  * hiçbiri filtrelenmez (kapalı/açık ayrımı çağıran tarafta yapılır).
  * @param {object[]} findings
@@ -51,6 +68,31 @@ const NONCONFORMITY_RESULTS = ["uygun_degil", "kismen_uygun", "kanit_yok"];
  */
 function findingsForAudit(findings, auditId) {
   return (findings || []).filter((f) => String(f.auditId) === String(auditId));
+}
+
+/**
+ * Bir DİF kaydını rapor için görüntülenebilir bir nesneye çevirir — istenen
+ * zincirin "DİF → Güncel Durum" halkası: mevcut stage, düzeltici faaliyet
+ * (correctiveAction), aksiyon kanıtı (actionEvidence), kapanış açıklaması
+ * (closureNote) ve gecikme durumu. Tamamı AuditFinding'in KENDİ alanlarından
+ * (bkz. types/index.js) AYNEN okunur — hiçbiri üretilmez; boşsa "" olarak kalır,
+ * metin uydurulmaz. Kapalı bir DİF asla "açık" gibi gösterilmez (`stage`/`overdue`
+ * olduğu gibi aktarılır, burada yeniden yorumlanmaz).
+ * @param {object} dif
+ */
+function mapDifDetail(dif) {
+  return {
+    id: dif.id,
+    stage: dif.stage,
+    stageLabel: getDifStageMeta(dif.stage).label,
+    overdue: isDifOverdue(dif),
+    dueDate: dif.dueDate || "",
+    responsible: dif.responsible || "",
+    correctiveAction: dif.correctiveAction || "",
+    actionEvidence: dif.actionEvidence || "",
+    closureNote: dif.closureNote || "",
+    closedAt: dif.closedAt || null,
+  };
 }
 
 /**
@@ -126,6 +168,9 @@ export function buildAuditReportData({
   const categoryResults = computeCategoryScores(checklist);
 
   // ── Bölüm 4: Tespitler ve Uygunsuzluklar ───────────────────────────────
+  // İstenen zincir: Kriter → Tespit → Mevzuat Dayanağı → Kanıt → DİF → Güncel
+  // Durum. Her alan aşağıda AYRI AYRI, kendi gerçek kaynağından okunur — hiçbiri
+  // diğerinden türetilmez (ör. kanıt yokluğu asla "uygun_degil" sonucuna dönüştürülmez).
   const nonconformities = checklist
     .filter((item) => NONCONFORMITY_RESULTS.includes(item.result))
     .map((item) => {
@@ -137,21 +182,13 @@ export function buildAuditReportData({
         categoryTitle: getCategoryTitle ? getCategoryTitle(item.categoryCode) : item.categoryCode,
         result: item.result,
         resultLabel: getResultMeta(item.result).label,
-        note: item.note || "",
-        legislationName: item.legislationName || null,
+        note: item.note || "", // Tespit — item.note AYNEN, boşsa "" (metin uydurulmaz)
+        legislationName: item.legislationName || null, // Mevzuat Dayanağı — checklist'ten
         article: item.article || null,
         verified: item.verified ?? null,
-        evidenceStatus: computeEvidenceStatus(item.evidence, item),
-        dif: dif
-          ? {
-              id: dif.id,
-              stage: dif.stage,
-              stageLabel: getDifStageMeta(dif.stage).label,
-              overdue: isDifOverdue(dif),
-              dueDate: dif.dueDate || "",
-              responsible: dif.responsible || "",
-            }
-          : null,
+        evidenceStatus: computeEvidenceStatus(item.evidence, item), // Kanıt — checklist[].evidence
+        evidenceEntries: mapEvidenceEntries(item.evidence), // DİF'in kendi kanıtı DEĞİL, yalnızca kriterin
+        dif: dif ? mapDifDetail(dif) : null, // DİF → Güncel Durum — yoksa null, uydurulmaz
       };
     });
 
@@ -165,12 +202,7 @@ export function buildAuditReportData({
       categoryTitle: getCategoryTitle ? getCategoryTitle(item.categoryCode) : item.categoryCode,
       resultLabel: getResultMeta(item.result).label,
       evidenceStatus: computeEvidenceStatus(item.evidence, item),
-      entries: (item.evidence || []).map((e) => ({
-        id: e.id,
-        typeLabel: getEvidenceTypeLabel(e.type),
-        description: e.description || "",
-        createdAt: e.createdAt || "",
-      })),
+      entries: mapEvidenceEntries(item.evidence),
     }));
 
   // ── Bölüm 6: Düzeltici Faaliyetler (bu denetime bağlı TÜM DİF'ler) ─────

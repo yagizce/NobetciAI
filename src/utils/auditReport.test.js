@@ -201,6 +201,109 @@ describe("buildAuditReportData — Tespitler ve Uygunsuzluklar", () => {
   });
 });
 
+describe("buildAuditReportData — Bulgu Zinciri (Kriter → Tespit → Mevzuat Dayanağı → Kanıt → DİF → Güncel Durum)", () => {
+  test("her bulgu kaydı, kriterin KENDİ checklist[].evidence dizisini taşır (evidenceEntries)", () => {
+    const checklist = [
+      makeItem("1", "risk", "uygun_degil", {
+        evidence: [{ id: "e1", type: "photo", description: "Yangın söndürücü eksik", createdAt: "2026-01-05T00:00:00.000Z" }],
+      }),
+    ];
+    const audit = makeAudit({ checklist });
+    const report = buildAuditReportData({ audit, findings: [], ...baseConfig() });
+    assert.equal(report.nonconformities[0].evidenceEntries.length, 1);
+    assert.equal(report.nonconformities[0].evidenceEntries[0].description, "Yangın söndürücü eksik");
+    assert.equal(report.nonconformities[0].evidenceEntries[0].typeLabel, "Fotoğraf");
+  });
+
+  test("kanıtsız bir bulgu kaydında evidenceEntries boş dizi döner, uydurulmaz", () => {
+    const checklist = [makeItem("1", "risk", "uygun_degil", { evidence: [] })];
+    const audit = makeAudit({ checklist });
+    const report = buildAuditReportData({ audit, findings: [], ...baseConfig() });
+    assert.deepEqual(report.nonconformities[0].evidenceEntries, []);
+  });
+
+  test("DİF'in kendi actionEvidence/evidence alanı KESİNLİKLE kriter kanıtı (evidenceEntries) olarak sayılmaz", () => {
+    const checklist = [makeItem("1", "risk", "uygun_degil", { evidence: [] })]; // kriterin kendi kanıtı YOK
+    const audit = makeAudit({ id: "audit-11", checklist });
+    const findings = [{
+      id: "dif-1", auditId: "audit-11", checklistItemId: "1", stage: "pendingReview",
+      actionEvidence: "Yangın söndürücü değiştirildi, fotoğraf eklendi.",
+      evidence: [{ id: "dif-e1", name: "kapanis-foto.jpg", type: "photo", addedAt: "2026-01-06T00:00:00.000Z" }],
+    }];
+    const report = buildAuditReportData({ audit, findings, ...baseConfig() });
+    // Kriterin kanıt zinciri hâlâ boş — DİF'in kendi kanıtı/aksiyon açıklaması bunu doldurmaz.
+    assert.deepEqual(report.nonconformities[0].evidenceEntries, []);
+    assert.equal(report.nonconformities[0].evidenceStatus, "none");
+    // DİF'in kendi aksiyon kanıtı YALNIZCA dif.actionEvidence alanında durur.
+    assert.equal(report.nonconformities[0].dif.actionEvidence, "Yangın söndürücü değiştirildi, fotoğraf eklendi.");
+  });
+
+  test("DİF bilgisi genişletildi: düzeltici faaliyet, aksiyon kanıtı, kapanış açıklaması ve kapanış tarihi AYNEN aktarılır", () => {
+    const checklist = [makeItem("1", "risk", "uygun_degil")];
+    const audit = makeAudit({ id: "audit-12", checklist });
+    const findings = [{
+      id: "dif-1", auditId: "audit-12", checklistItemId: "1", stage: "closed",
+      correctiveAction: "Yangın söndürücüler değiştirilecek.",
+      actionEvidence: "Yeni söndürücüler temin edildi.",
+      closureNote: "Kontrol edildi, uygunluk sağlandı.",
+      closedAt: "2026-01-20T00:00:00.000Z",
+    }];
+    const report = buildAuditReportData({ audit, findings, ...baseConfig() });
+    const dif = report.nonconformities[0].dif;
+    assert.equal(dif.correctiveAction, "Yangın söndürücüler değiştirilecek.");
+    assert.equal(dif.actionEvidence, "Yeni söndürücüler temin edildi.");
+    assert.equal(dif.closureNote, "Kontrol edildi, uygunluk sağlandı.");
+    assert.equal(dif.closedAt, "2026-01-20T00:00:00.000Z");
+  });
+
+  test("DİF alanları boşsa (henüz doldurulmamışsa) boş string/null döner, metin UYDURULMAZ", () => {
+    const checklist = [makeItem("1", "risk", "uygun_degil")];
+    const audit = makeAudit({ id: "audit-13", checklist });
+    const findings = [{ id: "dif-1", auditId: "audit-13", checklistItemId: "1", stage: "open" }];
+    const report = buildAuditReportData({ audit, findings, ...baseConfig() });
+    const dif = report.nonconformities[0].dif;
+    assert.equal(dif.correctiveAction, "");
+    assert.equal(dif.actionEvidence, "");
+    assert.equal(dif.closureNote, "");
+    assert.equal(dif.closedAt, null);
+  });
+
+  test("kapalı bir DİF, bulgu zincirinde ASLA açık/gecikmiş olarak görünmez", () => {
+    const checklist = [makeItem("1", "risk", "uygun_degil")];
+    const audit = makeAudit({ id: "audit-14", checklist });
+    const findings = [{ id: "dif-1", auditId: "audit-14", checklistItemId: "1", stage: "closed", dueDate: "2020-01-01", closedAt: "2020-02-01" }];
+    const report = buildAuditReportData({ audit, findings, ...baseConfig() });
+    const dif = report.nonconformities[0].dif;
+    assert.equal(dif.stage, "closed");
+    assert.equal(dif.overdue, false); // kapalı DİF asla gecikmiş sayılmaz
+  });
+
+  test("boş tespit (item.note boş) durumunda metin uydurulmaz — note '' olarak kalır", () => {
+    const checklist = [makeItem("1", "risk", "uygun_degil", { note: "" })];
+    const audit = makeAudit({ checklist });
+    const report = buildAuditReportData({ audit, findings: [], ...baseConfig() });
+    assert.equal(report.nonconformities[0].note, "");
+  });
+
+  test("mevcut item.note dolu ise AYNEN aktarılır", () => {
+    const checklist = [makeItem("1", "risk", "uygun_degil", { note: "Sahada acil çıkış kapısı kilitli bulundu." })];
+    const audit = makeAudit({ checklist });
+    const report = buildAuditReportData({ audit, findings: [], ...baseConfig() });
+    assert.equal(report.nonconformities[0].note, "Sahada acil çıkış kapısı kilitli bulundu.");
+  });
+
+  test("ISO 45001 tipi bir uygunsuzlukta (legislationName yok) rapor bozulmaz, diğer alanlar doğru kalır", () => {
+    const checklist = [makeItem("1", "4", "uygun_degil", { note: "Politika belgesi güncel değil.", evidence: [{ id: "e1", type: "note" }] })];
+    const audit = makeAudit({ standard: "45001", checklist });
+    const findings = [{ id: "dif-1", auditId: audit.id, checklistItemId: "1", stage: "open" }];
+    const report = buildAuditReportData({ audit, findings, ...baseConfig({ standardLabel: "ISO 45001" }) });
+    assert.equal(report.nonconformities[0].legislationName, null);
+    assert.equal(report.nonconformities[0].note, "Politika belgesi güncel değil.");
+    assert.equal(report.nonconformities[0].evidenceEntries.length, 1);
+    assert.equal(report.nonconformities[0].dif.stage, "open");
+  });
+});
+
 describe("buildAuditReportData — Kanıtlar", () => {
   test("yalnızca kanıtı olan kriterler listelenir, kanıt kayıtları olduğu gibi aktarılır", () => {
     const checklist = [
