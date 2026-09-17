@@ -141,7 +141,9 @@ export default function ChatPanel({ contextId: initialContextId }) {
     try {
       // AI Chat metin sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz. services/chatService.js
       // → sendKimiChatMessage, api/kimi-chat.js). Fotoğraf analizi (handlePhotoSelected)
-      // bilinçli olarak Claude/sendPhotoAnalysis üzerinde kaldı, buraya dokunulmadı.
+      // artık NVIDIA Cosmos3-Nano-Reasoner'a bağlı (analyzePhotoWithCosmos,
+      // api/cosmos-vision.js) — bu akışların hiçbiri Anthropic/sendChatMessage/
+      // sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
       const reply = await sendKimiChatMessage({
         system: activeContext ? `${SYSTEM_PROMPT}\n\n${activeContext.promptAddendum}` : SYSTEM_PROMPT,
         max_tokens: 1200,
