@@ -5,7 +5,12 @@ import { useToast } from "../../contexts/ToastContext.jsx";
 import { QUICK_ACTIONS } from "../../constants/quickActions.js";
 import { SYSTEM_PROMPT } from "../../constants/systemPrompt.js";
 import { getChatContext } from "../../constants/chatContexts.js";
-import { sendKimiChatMessage, sendPhotoAnalysis } from "../../services/chatService.js";
+import { sendKimiChatMessage } from "../../services/chatService.js";
+// DÜZELTME: fotoğraf risk analizi artık Anthropic/Claude (api/chat.js, ANTHROPIC_API_KEY
+// gerektirir) yerine mevcut Cosmos Vision entegrasyonuna (api/cosmos-vision.js, yalnızca
+// NVIDIA_API_KEY) bağlı — bkz. handlePhotoSelected. cosmosVisionService.js,
+// api/cosmos-vision.js ve CosmosVisionTest.jsx'e HİÇ dokunulmadı, aynen kullanılıyor.
+import { analyzePhotoWithCosmos } from "../../services/cosmosVisionService.js";
 import { nowLabel } from "../../utils/dateUtils.js";
 import { validateImageFile } from "../../utils/fileValidation.js";
 import { HardHat, Camera, Send, Copy, Trash2, X, AlertTriangle } from "../../components/icons/index.jsx";
@@ -235,31 +240,22 @@ export default function ChatPanel({ contextId: initialContextId }) {
       setMessages((prev) => [...prev, { role: "user", text: "Bu fotoğrafta tehlike var mı?", image: dataUrl, time: nowLabel() }]);
       setLoading(true);
       try {
-        const reply = await sendPhotoAnalysis({
-          system: SYSTEM_PROMPT,
+        // DÜZELTME: Cosmos endpoint'i (api/cosmos-vision.js) genel amaçlı bir proxy değil —
+        // system/instruction/max_tokens kabul etmiyor, analiz istemi sunucu tarafında
+        // sabit (SAFETY_ANALYSIS_PROMPT). Bu yüzden yalnızca görüntü gönderiliyor.
+        const reply = await analyzePhotoWithCosmos({
           imageBase64: base64,
           mediaType: file.type || "image/jpeg",
-          // DÜZELTME (yanıt kalitesi): önceki talimat tek cümleydi ("tehlike analizi yap
-          // ve risk seviyesini gerekçeli belirt") — SYSTEM_PROMPT'taki "Fotoğraf
-          // analizinde" bölümünün beklediği yapıyı (Tehlike/Risk Seviyesi/Olası Sonuç/
-          // Önerilen Önlem/Etkilenen Kişiler) açıkça hatırlatmıyordu, bu da tutarsız
-          // formatta cevaplara yol açabiliyordu. Artık SYSTEM_PROMPT'taki yapıyı birebir
-          // referans veriyor.
-          instruction: "Saha fotoğrafı. SYSTEM_PROMPT'taki 'Fotoğraf analizinde' bölümündeki yapıyı (Tehlike / Risk Seviyesi / Olası Sonuç / Önerilen Önlem / Etkilenen Kişiler) TAM OLARAK kullanarak bu görüntüyü analiz et. Yalnızca görüntüde gerçekten görülen tehlikeleri değerlendir.",
-          max_tokens: 1200,
         });
         setMessages((prev) => [...prev, { role: "assistant", text: reply || "Analiz yapılamadı.", time: nowLabel() }]);
       } catch (err) {
         console.error("AI fotoğraf analizi başarısız:", err);
-        const statusMatch = /^api_error_(\d+)$/.exec(err.message || "");
-        const status = statusMatch ? Number(statusMatch[1]) : null;
-        const errorText = status === 429
-          ? "Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin."
-          : status && status >= 500
-            ? "Sunucu tarafında geçici bir sorun oluştu. Lütfen birazdan tekrar deneyin."
-            : status
-              ? "Fotoğraf işlenemedi. Lütfen tekrar deneyin."
-              : "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.";
+        // DÜZELTME: sendPhotoAnalysis (Claude) "api_error_STATUS" formatında hata
+        // fırlatıyordu, status koduna göre mesaj seçiliyordu. analyzePhotoWithCosmos
+        // (Cosmos) ise cosmosVisionService.js'te zaten okunabilir bir mesajla
+        // (data?.error veya "Sunucu hatası (status)") Error fırlatıyor — o servise HİÇ
+        // dokunulmadı, burada onun ürettiği mesaj doğrudan kullanılıyor.
+        const errorText = err.message || "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.";
         setMessages((prev) => [...prev, { role: "assistant", text: errorText, time: nowLabel(), isError: true }]);
       } finally {
         setLoading(false);
