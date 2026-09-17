@@ -150,8 +150,13 @@ npm run preview # üretilen build'i yerel olarak önizler
    `api/` klasöründeki dosyalar Vercel tarafından otomatik olarak Serverless
    Function'a çevrilir — ayrı bir yapılandırma gerekmez.
 4. Vercel ortam değişkenlerine (Project → Settings → Environment Variables)
-   `ANTHROPIC_API_KEY` değerini ekleyin (AI özellikleri bu anahtar olmadan
-   çalışmaz).
+   `ANTHROPIC_API_KEY` değerini ekleyin (Fine-Kinney AI önerileri, mevzuat
+   taraması, doküman/fotoğraf analizi ve Bilgi Merkezi bu anahtar olmadan
+   çalışmaz). `NVIDIA_API_KEY`'i de aynı şekilde ekleyin — bu tek anahtar hem
+   Cosmos3-Nano-Reasoner test sayfası (`/cosmos-vision-test`, bkz.
+   `api/cosmos-vision.js`, yalnızca test amaçlı izole bir entegrasyon) hem de
+   AI Chat sekmesinin metin sohbeti (moonshotai/kimi-k3, bkz.
+   `api/kimi-chat.js`) tarafından kullanılır.
 5. `main` dalına yapılan her push, otomatik build ve dağıtım tetikler.
 
 > Not: Proje bir React uygulaması olduğundan, statik dosyaları doğrudan Vercel'e

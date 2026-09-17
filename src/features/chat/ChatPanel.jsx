@@ -5,7 +5,7 @@ import { useToast } from "../../contexts/ToastContext.jsx";
 import { QUICK_ACTIONS } from "../../constants/quickActions.js";
 import { SYSTEM_PROMPT } from "../../constants/systemPrompt.js";
 import { getChatContext } from "../../constants/chatContexts.js";
-import { sendChatMessage, sendPhotoAnalysis } from "../../services/chatService.js";
+import { sendKimiChatMessage, sendPhotoAnalysis } from "../../services/chatService.js";
 import { nowLabel } from "../../utils/dateUtils.js";
 import { validateImageFile } from "../../utils/fileValidation.js";
 import { HardHat, Camera, Send, Copy, Trash2, X, AlertTriangle } from "../../components/icons/index.jsx";
@@ -13,6 +13,40 @@ import QuickActionButton from "./QuickActionButton.jsx";
 import MarkdownLite from "../../components/MarkdownLite.jsx";
 
 const MAX_MESSAGE_LENGTH = 2000;
+
+// DÜZELTME (API bağlam bütünlüğü): API'ye "geçmiş" olarak gönderilen mesaj listesi,
+// EKRANDA gösterilen `messages` state'iyle birebir aynı DEĞİL. İki ayrı sorun vardı:
+//   1) Hata balonları (isError: true — örn. "İnternet bağlantınıza ulaşılamadı...")
+//      da messages state'ine yazılıyor ve bir sonraki istekte modele "kendi önceki
+//      cevabıymış" gibi geri gönderiliyordu — model kafası karışıp o hatayı gerçek bir
+//      yanıtmış gibi referans alabiliyordu. Artık `isError` mesajlar API bağlamından
+//      FİLTRELENİYOR (ekranda hâlâ görünüyorlar, yalnızca modele gönderilmiyorlar).
+//   2) Sohbet süresince `messages` state'i sınırsız büyüyebiliyordu (yalnızca
+//      localStorage'a YAZILIRKEN son 50 mesajla sınırlanıyordu, state'in kendisi
+//      değil) — uzun bir oturumda her yeni mesajda tüm geçmiş yeniden API'ye
+//      gönderilip token maliyetini ve gecikmeyi katlayarak artırabilirdi. Artık API'ye
+//      gönderilen bağlam da son N mesajla sınırlı.
+const MAX_CONTEXT_MESSAGES = 24; // ~12 karşılıklı tur — normal bir sohbet için yeterli bağlam
+
+function toApiMessages(messages) {
+  return messages
+    .filter((m) => !m.isError)
+    .slice(-MAX_CONTEXT_MESSAGES)
+    .map((m) => {
+      const base = { role: m.role, content: m.text };
+      // DÜZELTME (Kimi K3 "preserved thinking"): önceki asistan turlarına ait
+      // reasoning_content/tool_calls varsa (yalnızca Kimi'den gelen gerçek cevaplarda
+      // olur — karşılama mesajı, hızlı eylem cevapları gibi yerlerde yoktur) aynen
+      // geri gönderiliyor. bkz. api/kimi-chat.js'teki aynı notun uzun açıklaması.
+      if (m.role === "assistant" && m.kimiMeta?.reasoningContent) {
+        base.reasoning_content = m.kimiMeta.reasoningContent;
+      }
+      if (m.role === "assistant" && m.kimiMeta?.toolCalls?.length) {
+        base.tool_calls = m.kimiMeta.toolCalls;
+      }
+      return base;
+    });
+}
 
 // Sprint 10 — Chat Geçmişi UX iyileştirmesi. Yalnızca GENEL sohbet (contextId===null,
 // yani BottomTabBar'daki "AI Chat" sekmesinden doğrudan açılan sohbet) kalıcı tutulur.
@@ -36,7 +70,12 @@ function loadChatHistory() {
 
 function saveChatHistory(messages) {
   try {
-    const trimmed = messages.slice(-MAX_HISTORY_MESSAGES).map(({ image, ...rest }) => rest);
+    // DÜZELTME: `image` gibi `kimiMeta.reasoningContent` de (Kimi K3'ün "high" reasoning
+    // effort'ta ürettiği düşünce metni, bazen yanıttan daha uzun olabiliyor) localStorage
+    // kotasını gereksiz yere şişirir — yalnızca API bağlamı için gerekliydi, ekranda hiç
+    // gösterilmiyor. Kaydetmeden önce çıkarılıyor (sayfa yenilendiğinde eski asistan
+    // turları için preserved-thinking bağlamı kaybolur, yeni turlar etkilenmez).
+    const trimmed = messages.slice(-MAX_HISTORY_MESSAGES).map(({ image, kimiMeta, ...rest }) => rest);
     localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmed));
   } catch {
     // localStorage dolu/kullanılamıyor — sessizce vazgeç, sohbetin kendisi etkilenmez
@@ -95,12 +134,20 @@ export default function ChatPanel({ contextId: initialContextId }) {
     setInput("");
     setLoading(true);
     try {
-      const reply = await sendChatMessage({
+      // AI Chat metin sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz. services/chatService.js
+      // → sendKimiChatMessage, api/kimi-chat.js). Fotoğraf analizi (handlePhotoSelected)
+      // bilinçli olarak Claude/sendPhotoAnalysis üzerinde kaldı, buraya dokunulmadı.
+      const reply = await sendKimiChatMessage({
         system: activeContext ? `${SYSTEM_PROMPT}\n\n${activeContext.promptAddendum}` : SYSTEM_PROMPT,
         max_tokens: 1200,
-        messages: newMessages.map((m) => ({ role: m.role, content: m.text })),
+        messages: toApiMessages(newMessages),
       });
-      setMessages((prev) => [...prev, { role: "assistant", text: reply || "Cevap oluşturulamadı.", time: nowLabel() }]);
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        text: reply?.text || "Cevap oluşturulamadı.",
+        time: nowLabel(),
+        kimiMeta: reply ? { reasoningContent: reply.reasoningContent, toolCalls: reply.toolCalls } : null,
+      }]);
     } catch (err) {
       // BUG FIX (Sprint 10 AI UX cilası): önceden TÜM hata türleri (ağ kopması, API
       // limiti, sunucu hatası) için tek, ayrımsız bir mesaj gösteriliyordu. chatService.js
@@ -168,6 +215,11 @@ export default function ChatPanel({ contextId: initialContextId }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    // DÜZELTME: metin gönderimindeki AYNI çift-tıklama koruması (yukarıdaki sendingRef
+    // notuna bkz.) fotoğraf analizinde eksikti — yalnızca `loading` state'ine güvenmek
+    // aynı senkron-an yarış durumuna açıktı. Kamera butonu zaten `disabled={loading}`
+    // ile korunuyor ama state güncellemesi bir sonraki render'a kadar yansımıyor.
+    if (sendingRef.current) return;
 
     const { valid, error } = await validateImageFile(file);
     if (!valid) {
@@ -175,6 +227,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
       return;
     }
 
+    sendingRef.current = true;
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result;
@@ -186,7 +239,13 @@ export default function ChatPanel({ contextId: initialContextId }) {
           system: SYSTEM_PROMPT,
           imageBase64: base64,
           mediaType: file.type || "image/jpeg",
-          instruction: "Saha fotoğrafı — tehlike analizi yap ve risk seviyesini gerekçeli belirt.",
+          // DÜZELTME (yanıt kalitesi): önceki talimat tek cümleydi ("tehlike analizi yap
+          // ve risk seviyesini gerekçeli belirt") — SYSTEM_PROMPT'taki "Fotoğraf
+          // analizinde" bölümünün beklediği yapıyı (Tehlike/Risk Seviyesi/Olası Sonuç/
+          // Önerilen Önlem/Etkilenen Kişiler) açıkça hatırlatmıyordu, bu da tutarsız
+          // formatta cevaplara yol açabiliyordu. Artık SYSTEM_PROMPT'taki yapıyı birebir
+          // referans veriyor.
+          instruction: "Saha fotoğrafı. SYSTEM_PROMPT'taki 'Fotoğraf analizinde' bölümündeki yapıyı (Tehlike / Risk Seviyesi / Olası Sonuç / Önerilen Önlem / Etkilenen Kişiler) TAM OLARAK kullanarak bu görüntüyü analiz et. Yalnızca görüntüde gerçekten görülen tehlikeleri değerlendir.",
           max_tokens: 1200,
         });
         setMessages((prev) => [...prev, { role: "assistant", text: reply || "Analiz yapılamadı.", time: nowLabel() }]);
@@ -204,7 +263,12 @@ export default function ChatPanel({ contextId: initialContextId }) {
         setMessages((prev) => [...prev, { role: "assistant", text: errorText, time: nowLabel(), isError: true }]);
       } finally {
         setLoading(false);
+        sendingRef.current = false;
       }
+    };
+    reader.onerror = () => {
+      sendingRef.current = false;
+      showToast("Dosya okunamadı, tekrar deneyin.", "error");
     };
     reader.readAsDataURL(file);
   }

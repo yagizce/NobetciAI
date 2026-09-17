@@ -14,6 +14,7 @@ const KnowledgeCenter = lazy(() => import("./pages/KnowledgeCenter.jsx"));
 const Audit = lazy(() => import("./pages/Audit.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
+const CosmosVisionTest = lazy(() => import("./pages/CosmosVisionTest.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
@@ -41,6 +42,10 @@ export default function App() {
             <Route path="audit" element={<Audit />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
+            {/* NVIDIA Cosmos3-Nano-Reasoner — SADECE TEST sayfası, bilerek Sidebar/
+                BottomTabBar navigasyonuna eklenmedi (bkz. pages/CosmosVisionTest.jsx
+                dosya başı notu). Yalnızca doğrudan URL ile erişilir. */}
+            <Route path="cosmos-vision-test" element={<CosmosVisionTest />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
