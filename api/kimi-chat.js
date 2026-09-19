@@ -32,7 +32,10 @@ const RATE_LIMIT_MAX_PER_WINDOW = 20; // api/chat.js ile aynı tavan
 // bağlantı sorununun bir parçası muhtemelen buydu. "high", derinlik/hız dengesini "max"tan
 // daha iyi kurar (resmi dokümantasyonun kendi önerisi: "'high' is the middle ground").
 // Model server-side sabitlendi (max_tokens ile aynı mantık) — istemci bunu değiştiremez.
-const REASONING_EFFORT = "high";
+// DÜZELTME (gecikme): "high" gerçek testte ~126 saniyeye kadar sürebildiği görüldü
+// (reasoning token üretimi max_tokens tarafından sınırlanmıyor). "low" ile gecikme
+// azaltılıyor, karmaşık sorularda cevap derinliği hafifçe azalabilir — gözlemlenmeli.
+const REASONING_EFFORT = "low";
 
 // BİLİNÇLİ SINIRLAMA: api/chat.js'teki AYNI not geçerli — Vercel fonksiyonları
 // durumsuzdur, bu yalnızca "sıcak" instance'lar arası ek bir sürtünme katmanıdır,
