@@ -8,7 +8,7 @@ platformda toplamak.
 
 ## Hedef Kitle
 
-- **Küçük/orta ölçekli işletmeler** — kendi İSG uzmanı olmayan veya dışarıdan hizmet alan
+- **Küçük,orta ve büyük ölçekli işletmeler** — kendi İSG uzmanı olmayan veya dışarıdan hizmet alan
   firmalar.
 - **İSG uzmanları/OSGB'ler** — birden fazla firmayı tek panelden yönetmek isteyenler
   (çoklu firma mimarisi bu ihtiyaca yöneliktir).
