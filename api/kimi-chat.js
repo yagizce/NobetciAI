@@ -22,6 +22,7 @@ const MAX_PAYLOAD_BYTES = 512 * 1024; // düz metin sohbet — görüntü/PDF i�
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 20; // api/chat.js ile aynı tavan
 
+<<<<<<< HEAD
 // DÜZELTME (yanıt kalitesi + gecikme): Kimi K3, NVIDIA/Moonshot'un resmi dokümantasyonuna
 // göre HER ZAMAN "düşünerek" (reasoning) cevap veriyor ve `reasoning_effort` belirtilmezse
 // varsayılan "max" kullanılıyor — bu, tek bir cevap için bir dakikanın üzerinde sürebiliyor
@@ -40,6 +41,10 @@ const REASONING_EFFORT = "low";
 // BİLİNÇLİ SINIRLAMA: api/chat.js'teki AYNI not geçerli — Vercel fonksiyonları
 // durumsuzdur, bu yalnızca "sıcak" instance'lar arası ek bir sürtünme katmanıdır,
 // kesin bir rate limit değildir.
+=======
+const REASONING_EFFORT = "low";
+
+>>>>>>> 15fde3ccff649d7d7a89a9b9b71f6e848bbc6fb2
 const requestLog = new Map();
 
 function isRateLimited(ip) {
@@ -102,6 +107,7 @@ export default async function handler(req, res) {
 
   const safeMaxTokens = Math.min(Math.max(1, Number(payload.max_tokens) || 1000), MAX_TOKENS_CAP);
 
+<<<<<<< HEAD
   // NVIDIA'nın OpenAI-uyumlu chat completions şeması: system ayrı bir mesaj olarak
   // en başa eklenir, geri kalan mesajlar { role, content } (düz metin) olarak geçer.
   // DÜZELTME (çok turlu tutarlılık): Kimi K3'ün resmi kullanım kılavuzu, çok turlu
@@ -110,6 +116,8 @@ export default async function handler(req, res) {
   // thinking" modu) — aksi halde model önceki turlardaki akıl yürütme bağlamını kaybeder.
   // İstemci (chatService.js → sendKimiChatMessage, ChatPanel.jsx) artık asistan
   // mesajlarına bu alanları ekleyip geri gönderiyor; burada varsa aynen korunuyor.
+=======
+>>>>>>> 15fde3ccff649d7d7a89a9b9b71f6e848bbc6fb2
   const kimiMessages = [
     ...(system ? [{ role: "system", content: String(system) }] : []),
     ...messages.map((m) => {

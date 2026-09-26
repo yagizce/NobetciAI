@@ -146,7 +146,11 @@ export default function ChatPanel({ contextId: initialContextId }) {
       // sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
       const reply = await sendKimiChatMessage({
         system: activeContext ? `${SYSTEM_PROMPT}\n\n${activeContext.promptAddendum}` : SYSTEM_PROMPT,
+<<<<<<< HEAD
         max_tokens: 800,
+=======
+        max_tokens: 1200,
+>>>>>>> 15fde3ccff649d7d7a89a9b9b71f6e848bbc6fb2
         messages: toApiMessages(newMessages),
       });
       setMessages((prev) => [...prev, {
