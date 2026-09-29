@@ -143,6 +143,20 @@ export default async function handler(req, res) {
       });
       return;
     }
+    // DÜZELTME (teşhis edilebilirlik): NVIDIA hata durumunda {status,title,detail} veya
+    // {error:{message}} gibi JSON döndürüyor; istemci yalnızca `error` alanını okuduğu için
+    // ekranda sadece "Sunucu hatası (404)" görünüyordu. Hata detayı `error` alanına taşınır.
+    if (!response.ok) {
+      const detail =
+        (typeof data.error === "string" && data.error) ||
+        data.error?.message ||
+        data.detail ||
+        data.message ||
+        data.title ||
+        JSON.stringify(data).slice(0, 300);
+      res.status(response.status).json({ error: `NVIDIA API hatası (HTTP ${response.status}): ${detail}` });
+      return;
+    }
     res.status(response.status).json(data);
   } catch (err) {
     res.status(502).json({ error: "NVIDIA API'sine ulaşılamadı: " + err.message });
