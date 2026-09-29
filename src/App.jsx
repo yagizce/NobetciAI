@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./layout/Layout.jsx";
 import PhoneFrame from "./layout/PhoneFrame.jsx";
 import Loading from "./components/Loading.jsx";
+import RouteGuard from "./components/RouteGuard.jsx";
 
 // Route-based code splitting — each page is its own chunk, only downloaded when visited.
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
@@ -14,11 +15,12 @@ const KnowledgeCenter = lazy(() => import("./pages/KnowledgeCenter.jsx"));
 const Audit = lazy(() => import("./pages/Audit.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
-const CosmosVisionTest = lazy(() => import("./pages/CosmosVisionTest.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const NotFound = lazy(() => import("./pages/NotFound.jsx"));
+// SADECE TEST — NVIDIA Cosmos Vision deneme sayfası, menüde görünmez (yalnızca /cosmos-test adresi).
+const CosmosVisionTest = lazy(() => import("./pages/CosmosVisionTest.jsx"));
 
 export default function App() {
   return (
@@ -42,10 +44,7 @@ export default function App() {
             <Route path="audit" element={<Audit />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
-            {/* NVIDIA Cosmos3-Nano-Reasoner — SADECE TEST sayfası, bilerek Sidebar/
-                BottomTabBar navigasyonuna eklenmedi (bkz. pages/CosmosVisionTest.jsx
-                dosya başı notu). Yalnızca doğrudan URL ile erişilir. */}
-            <Route path="cosmos-vision-test" element={<CosmosVisionTest />} />
+            <Route path="cosmos-test" element={<RouteGuard allowedRoles={["expert", "employer"]}><CosmosVisionTest /></RouteGuard>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
