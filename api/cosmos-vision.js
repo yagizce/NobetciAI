@@ -128,7 +128,19 @@ export default async function handler(req, res) {
       }),
     });
 
-    const data = await response.json();
+    // DÜZELTME (teşhis edilebilirlik): NVIDIA bazı hatalarda JSON değil düz metin döndürüyor
+    // (örn. "404 page not found"); doğrudan response.json() bu durumda anlamsız bir
+    // "Unexpected non-whitespace character" hatası veriyordu. Önce metin olarak okunur,
+    // JSON ise olduğu gibi iletilir, değilse durum kodu + yanıtın başı hata olarak döner.
+    const rawText = await response.text();
+    let data = null;
+    try { data = JSON.parse(rawText); } catch { data = null; }
+    if (data === null || typeof data !== "object") {
+      res.status(response.status >= 400 ? response.status : 502).json({
+        error: `NVIDIA API beklenmeyen yanıt döndürdü (HTTP ${response.status}): ${rawText.slice(0, 300)}`,
+      });
+      return;
+    }
     res.status(response.status).json(data);
   } catch (err) {
     res.status(502).json({ error: "NVIDIA API'sine ulaşılamadı: " + err.message });
