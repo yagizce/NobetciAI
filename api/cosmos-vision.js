@@ -16,11 +16,7 @@ const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024; // ~8MB — tipik bir telefon fotoğr
 const MAX_TOKENS_CAP = 1200;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 10; // görüntü analizi maliyetli — chat.js'ten daha sıkı
-<<<<<<< HEAD
  
-=======
-
->>>>>>> d537832341fa899f6e88b5a63351d6b42c8059f7
 // BİLİNÇLİ SINIRLAMA: api/chat.js'teki AYNI not geçerli — Vercel fonksiyonları
 // durumsuzdur, bu yalnızca "sıcak" instance'lar arası ek bir sürtünme katmanıdır,
 // kesin bir rate limit değildir.
@@ -39,11 +35,7 @@ function getClientIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   return (forwarded ? forwarded.split(",")[0].trim() : null) || req.socket?.remoteAddress || "unknown";
 }
-<<<<<<< HEAD
  
-=======
-
->>>>>>> d537832341fa899f6e88b5a63351d6b42c8059f7
 // İstemin SUNUCU TARAFINDA sabit tutulması bilinçli bir tercih: bu endpoint genel bir
 // AI proxy'si değil, tek bir amaca (İSG fotoğraf analizi) kilitli. Kullanıcının
 // isteğindeki prensip birebir kullanıldı.
@@ -65,11 +57,7 @@ export default async function handler(req, res) {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-<<<<<<< HEAD
  
-=======
-
->>>>>>> d537832341fa899f6e88b5a63351d6b42c8059f7
   // Origin kontrolü — bkz. api/chat.js'teki AYNI bilinçli sınırlama notu.
   const origin = req.headers.origin;
   if (origin) {
