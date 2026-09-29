@@ -2,17 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-<<<<<<< HEAD
-<<<<<<< HEAD
     { "source": "/((?!api/|@|.*\\..*).*)", "destination": "/index.html" }
-=======
-    {
-  "source": "/((?!api/|@|.*\\..*).*)","destination": "/index.html"
-}
->>>>>>> 15fde3ccff649d7d7a89a9b9b71f6e848bbc6fb2
-=======
-    { "source": "/((?!api/|@|.*\\..*).*)", "destination": "/index.html" }
->>>>>>> 379bc43b0ccad93d4a579dfcb87dd2854f6971c5
   ],
   "headers": [
     {
