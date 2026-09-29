@@ -114,7 +114,9 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "nvidia/cosmos3-nano-reasoner",
+        // DÜZELTME: barındırılan (integrate.api.nvidia.com) uç nokta, hesabın /v1/models
+        // listesinde yalnızca bu Cosmos modelini sunuyor; "cosmos3-nano-reasoner" 404 dönüyordu.
+        model: "nvidia/cosmos-reason2-8b",
         max_tokens: MAX_TOKENS_CAP,
         messages: [
           {
