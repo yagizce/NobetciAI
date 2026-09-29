@@ -11,14 +11,17 @@
 // daha eklendi. Genel amaçlı bir proxy DEĞİLDİR (chat.js gibi keyfi `system`/`messages`
 // kabul etmez): yalnızca bir fotoğraf alır, İSG analiz istemini SUNUCU TARAFINDA
 // SABİT tutar — istemci promptu değiştiremez, bu da kapsamı kasıtlı olarak dar tutar.
-
+ 
 const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024; // ~8MB — tipik bir telefon fotoğrafı için yeterli
 const MAX_TOKENS_CAP = 1200;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 10; // görüntü analizi maliyetli — chat.js'ten daha sıkı
-
+ 
+// BİLİNÇLİ SINIRLAMA: api/chat.js'teki AYNI not geçerli — Vercel fonksiyonları
+// durumsuzdur, bu yalnızca "sıcak" instance'lar arası ek bir sürtünme katmanıdır,
+// kesin bir rate limit değildir.
 const requestLog = new Map();
-
+ 
 function isRateLimited(ip) {
   const now = Date.now();
   const timestamps = (requestLog.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
@@ -27,14 +30,17 @@ function isRateLimited(ip) {
   if (requestLog.size > 5000) requestLog.clear();
   return timestamps.length > RATE_LIMIT_MAX_PER_WINDOW;
 }
-
+ 
 function getClientIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   return (forwarded ? forwarded.split(",")[0].trim() : null) || req.socket?.remoteAddress || "unknown";
 }
-
+ 
+// İstemin SUNUCU TARAFINDA sabit tutulması bilinçli bir tercih: bu endpoint genel bir
+// AI proxy'si değil, tek bir amaca (İSG fotoğraf analizi) kilitli. Kullanıcının
+// isteğindeki prensip birebir kullanıldı.
 const SAFETY_ANALYSIS_PROMPT = `Bu görüntüyü bir İSG uzmanına yardımcı olacak şekilde analiz et. Yalnızca görüntüde gerçekten görülebilen veya makul şekilde çıkarılabilen riskleri belirt. Görüntüde olmayan bir şeyi varsayma veya uydurma. Görüntü yeterli değilse ya da belirsizse bunu açıkça belirt.
-
+ 
 Birden fazla bulgu varsa hepsini ayrı ayrı listele. Her bulgu için TAM OLARAK şu formatı kullan:
 - Risk/Uygunsuzluk:
 - Tehlike:
@@ -43,15 +49,16 @@ Birden fazla bulgu varsa hepsini ayrı ayrı listele. Her bulgu için TAM OLARAK
 - Etkilenen kişiler:
 - Güven seviyesi (düşük/orta/yüksek):
 - Belirsizlik/kısıtlar: (görüntüden emin olamadığın, doğrulama gerektiren noktalar; yoksa "yok" yaz)
-
+ 
 Net bir tehlike tespit edemiyorsan bunu dürüstçe belirt, olmayan bir bulgu uydurma.`;
-
+ 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-
+ 
+  // Origin kontrolü — bkz. api/chat.js'teki AYNI bilinçli sınırlama notu.
   const origin = req.headers.origin;
   if (origin) {
     let originHost;
@@ -61,13 +68,13 @@ export default async function handler(req, res) {
       return;
     }
   }
-
+ 
   const ip = getClientIp(req);
   if (isRateLimited(ip)) {
     res.status(429).json({ error: "Çok fazla istek gönderildi. Lütfen bir dakika sonra tekrar deneyin." });
     return;
   }
-
+ 
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) {
     res.status(500).json({
@@ -75,25 +82,30 @@ export default async function handler(req, res) {
     });
     return;
   }
-
+ 
   const payload = req.body || {};
   const { imageBase64, mediaType } = payload;
-
+ 
   if (!imageBase64 || typeof imageBase64 !== "string") {
     res.status(400).json({ error: "imageBase64 alanı zorunludur." });
     return;
   }
+  // DÜZELTME: istemci tarafı ortak doğrulayıcı (utils/fileValidation.js →
+  // validateImageFile, bu sayfa VE Chat'teki fotoğraf analizi TARAFINDAN paylaşılıyor)
+  // GIF'i geçerli bir görsel formatı olarak kabul ediyor; burada da kabul edilmezse
+  // kullanıcı istemcide "geçerli" görüp sunucudan 400 alır. Regex, ortak doğrulayıcıyla
+  // hizalandı.
   if (!mediaType || !/^image\/(jpeg|jpg|png|webp|gif)$/.test(mediaType)) {
     res.status(400).json({ error: "Geçersiz veya desteklenmeyen mediaType (yalnızca jpeg/png/webp/gif)." });
     return;
   }
-
+ 
   const payloadSize = Buffer.byteLength(imageBase64, "utf8");
   if (payloadSize > MAX_PAYLOAD_BYTES) {
     res.status(413).json({ error: "Görüntü çok büyük (maksimum ~8MB). Lütfen daha küçük bir fotoğraf deneyin." });
     return;
   }
-
+ 
   try {
     const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
@@ -115,7 +127,7 @@ export default async function handler(req, res) {
         ],
       }),
     });
-
+ 
     const data = await response.json();
     res.status(response.status).json(data);
   } catch (err) {
