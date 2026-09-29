@@ -14,6 +14,16 @@
 
 const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024; // ~8MB — tipik bir telefon fotoğrafı için yeterli
 const MAX_TOKENS_CAP = 1200;
+// Hesabın /v1/models listesinde görünen görsel-anlayan modeller, tercih sırasıyla. Barındırılan
+// uç noktada bazı modeller "Not found for account" (404) dönebiliyor; bu yüzden sırayla
+// denenir, ilk 404 OLMAYAN yanıt kullanılır. (cosmos3-nano-reasoner ve cosmos-reason2-8b
+// bu hesapta 404 verdi.)
+const VISION_MODELS = [
+  "meta/llama-3.2-90b-vision-instruct",
+  "meta/llama-3.2-11b-vision-instruct",
+  "google/gemma-3-12b-it",
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+];
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 10; // görüntü analizi maliyetli — chat.js'ten daha sıkı
 
@@ -107,45 +117,49 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        // DÜZELTME: barındırılan (integrate.api.nvidia.com) uç nokta, hesabın /v1/models
-        // listesinde yalnızca bu Cosmos modelini sunuyor; "cosmos3-nano-reasoner" 404 dönüyordu.
-        model: "nvidia/cosmos-reason2-8b",
-        max_tokens: MAX_TOKENS_CAP,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: SAFETY_ANALYSIS_PROMPT },
-              { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
-            ],
-          },
-        ],
-      }),
-    });
+    let response = null;
+    let rawText = "";
+    let usedModel = null;
+    for (const model of VISION_MODELS) {
+      usedModel = model;
+      response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: MAX_TOKENS_CAP,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: SAFETY_ANALYSIS_PROMPT },
+                { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+              ],
+            },
+          ],
+        }),
+      });
+      rawText = await response.text();
+      if (response.status !== 404) break; // bu model hesapta yok → sıradakini dene
+    }
 
     // DÜZELTME (teşhis edilebilirlik): NVIDIA bazı hatalarda JSON değil düz metin döndürüyor
     // (örn. "404 page not found"); doğrudan response.json() bu durumda anlamsız bir
     // "Unexpected non-whitespace character" hatası veriyordu. Önce metin olarak okunur,
     // JSON ise olduğu gibi iletilir, değilse durum kodu + yanıtın başı hata olarak döner.
-    const rawText = await response.text();
     let data = null;
     try { data = JSON.parse(rawText); } catch { data = null; }
     if (data === null || typeof data !== "object") {
       res.status(response.status >= 400 ? response.status : 502).json({
-        error: `NVIDIA API beklenmeyen yanıt döndürdü (HTTP ${response.status}): ${rawText.slice(0, 300)}`,
+        error: `NVIDIA API beklenmeyen yanıt döndürdü (HTTP ${response.status}, model: ${usedModel}): ${rawText.slice(0, 300)}`,
       });
       return;
     }
-    // DÜZELTME (teşhis edilebilirlik): NVIDIA hata durumunda {status,title,detail} veya
-    // {error:{message}} gibi JSON döndürüyor; istemci yalnızca `error` alanını okuduğu için
-    // ekranda sadece "Sunucu hatası (404)" görünüyordu. Hata detayı `error` alanına taşınır.
+    // Hata durumunda NVIDIA {status,title,detail} veya {error:{message}} döndürüyor; istemci
+    // yalnızca `error` alanını okuduğu için detay `error` alanına taşınır.
     if (!response.ok) {
       const detail =
         (typeof data.error === "string" && data.error) ||
@@ -154,7 +168,7 @@ export default async function handler(req, res) {
         data.message ||
         data.title ||
         JSON.stringify(data).slice(0, 300);
-      res.status(response.status).json({ error: `NVIDIA API hatası (HTTP ${response.status}): ${detail}` });
+      res.status(response.status).json({ error: `NVIDIA API hatası (HTTP ${response.status}, model: ${usedModel}): ${detail}` });
       return;
     }
     res.status(response.status).json(data);
