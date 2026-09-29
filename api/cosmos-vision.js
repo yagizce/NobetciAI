@@ -17,9 +17,12 @@ const MAX_TOKENS_CAP = 1200;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 10; // görüntü analizi maliyetli — chat.js'ten daha sıkı
 
+<<<<<<< HEAD
 // BİLİNÇLİ SINIRLAMA: api/chat.js'teki AYNI not geçerli — Vercel fonksiyonları
 // durumsuzdur, bu yalnızca "sıcak" instance'lar arası ek bir sürtünme katmanıdır,
 // kesin bir rate limit değildir.
+=======
+>>>>>>> 379bc43b0ccad93d4a579dfcb87dd2854f6971c5
 const requestLog = new Map();
 
 function isRateLimited(ip) {
@@ -36,9 +39,12 @@ function getClientIp(req) {
   return (forwarded ? forwarded.split(",")[0].trim() : null) || req.socket?.remoteAddress || "unknown";
 }
 
+<<<<<<< HEAD
 // İstemin SUNUCU TARAFINDA sabit tutulması bilinçli bir tercih: bu endpoint genel bir
 // AI proxy'si değil, tek bir amaca (İSG fotoğraf analizi) kilitli. Kullanıcının
 // isteğindeki prensip birebir kullanıldı.
+=======
+>>>>>>> 379bc43b0ccad93d4a579dfcb87dd2854f6971c5
 const SAFETY_ANALYSIS_PROMPT = `Bu görüntüyü bir İSG uzmanına yardımcı olacak şekilde analiz et. Yalnızca görüntüde gerçekten görülebilen veya makul şekilde çıkarılabilen riskleri belirt. Görüntüde olmayan bir şeyi varsayma veya uydurma. Görüntü yeterli değilse ya da belirsizse bunu açıkça belirt.
 
 Birden fazla bulgu varsa hepsini ayrı ayrı listele. Her bulgu için TAM OLARAK şu formatı kullan:
@@ -58,7 +64,10 @@ export default async function handler(req, res) {
     return;
   }
 
+<<<<<<< HEAD
   // Origin kontrolü — bkz. api/chat.js'teki AYNI bilinçli sınırlama notu.
+=======
+>>>>>>> 379bc43b0ccad93d4a579dfcb87dd2854f6971c5
   const origin = req.headers.origin;
   if (origin) {
     let originHost;
@@ -90,11 +99,14 @@ export default async function handler(req, res) {
     res.status(400).json({ error: "imageBase64 alanı zorunludur." });
     return;
   }
+<<<<<<< HEAD
   // DÜZELTME: istemci tarafı ortak doğrulayıcı (utils/fileValidation.js →
   // validateImageFile, bu sayfa VE Chat'teki fotoğraf analizi TARAFINDAN paylaşılıyor)
   // GIF'i geçerli bir görsel formatı olarak kabul ediyor; burada da kabul edilmezse
   // kullanıcı istemcide "geçerli" görüp sunucudan 400 alır. Regex, ortak doğrulayıcıyla
   // hizalandı.
+=======
+>>>>>>> 379bc43b0ccad93d4a579dfcb87dd2854f6971c5
   if (!mediaType || !/^image\/(jpeg|jpg|png|webp|gif)$/.test(mediaType)) {
     res.status(400).json({ error: "Geçersiz veya desteklenmeyen mediaType (yalnızca jpeg/png/webp/gif)." });
     return;
