@@ -6,11 +6,6 @@ import { QUICK_ACTIONS } from "../../constants/quickActions.js";
 import { SYSTEM_PROMPT } from "../../constants/systemPrompt.js";
 import { getChatContext } from "../../constants/chatContexts.js";
 import { sendKimiChatMessage } from "../../services/chatService.js";
-// DÜZELTME: fotoğraf risk analizi artık Anthropic/Claude (api/chat.js, ANTHROPIC_API_KEY
-// gerektirir) yerine mevcut Cosmos Vision entegrasyonuna (api/cosmos-vision.js, yalnızca
-// NVIDIA_API_KEY) bağlı — bkz. handlePhotoSelected. cosmosVisionService.js,
-// api/cosmos-vision.js ve CosmosVisionTest.jsx'e HİÇ dokunulmadı, aynen kullanılıyor.
-import { analyzePhotoWithCosmos } from "../../services/cosmosVisionService.js";
 import { nowLabel } from "../../utils/dateUtils.js";
 import { validateImageFile } from "../../utils/fileValidation.js";
 import { HardHat, Camera, Send, Copy, Trash2, X, AlertTriangle } from "../../components/icons/index.jsx";
@@ -139,14 +134,12 @@ export default function ChatPanel({ contextId: initialContextId }) {
     setInput("");
     setLoading(true);
     try {
-      // AI Chat metin sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz. services/chatService.js
-      // → sendKimiChatMessage, api/kimi-chat.js). Fotoğraf analizi (handlePhotoSelected)
-      // artık NVIDIA Cosmos3-Nano-Reasoner'a bağlı (analyzePhotoWithCosmos,
-      // api/cosmos-vision.js) — bu akışların hiçbiri Anthropic/sendChatMessage/
-      // sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
+      // AI Chat metin VE fotoğraf sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz.
+      // services/chatService.js → sendKimiChatMessage, api/kimi-chat.js — Kimi K3 native
+      // multimodal, fotoğraf da aynı endpoint'ten gidiyor, bkz. handlePhotoSelected).
       const reply = await sendKimiChatMessage({
         system: activeContext ? `${SYSTEM_PROMPT}\n\n${activeContext.promptAddendum}` : SYSTEM_PROMPT,
-        max_tokens: 1200,
+        max_tokens: 800,
         messages: toApiMessages(newMessages),
       });
       setMessages((prev) => [...prev, {
@@ -242,22 +235,39 @@ export default function ChatPanel({ contextId: initialContextId }) {
       setMessages((prev) => [...prev, { role: "user", text: "Bu fotoğrafta tehlike var mı?", image: dataUrl, time: nowLabel() }]);
       setLoading(true);
       try {
-        // DÜZELTME: Cosmos endpoint'i (api/cosmos-vision.js) genel amaçlı bir proxy değil —
-        // system/instruction/max_tokens kabul etmiyor, analiz istemi sunucu tarafında
-        // sabit (SAFETY_ANALYSIS_PROMPT). Bu yüzden yalnızca görüntü gönderiliyor.
-        const reply = await analyzePhotoWithCosmos({
-          imageBase64: base64,
-          mediaType: file.type || "image/jpeg",
+        // DÜZELTME: Kimi K3 native multimodal (NVIDIA dokümantasyonu doğrulandı) — fotoğraf
+        // analizi artık Cosmos yerine BURADAN, Kimi'ye gidiyor. system olarak SYSTEM_PROMPT
+        // gönderiliyor (o zaten "Fotoğraf analizinde" bölümünde yapılandırılmış bir format
+        // tanımlıyor: Tehlike/Risk Seviyesi/Olası Sonuç/Önerilen Önlem/Etkilenen Kişiler).
+        const reply = await sendKimiChatMessage({
+          system: SYSTEM_PROMPT,
+          max_tokens: 800,
+          messages: [{
+            role: "user",
+            content: "Bu fotoğrafta tehlike var mı? SYSTEM_PROMPT'taki 'Fotoğraf analizinde' bölümündeki yapıyı kullan.",
+            image: { mediaType: file.type || "image/jpeg", base64 },
+          }],
         });
-        setMessages((prev) => [...prev, { role: "assistant", text: reply || "Analiz yapılamadı.", time: nowLabel() }]);
+        setMessages((prev) => [...prev, {
+          role: "assistant",
+          text: reply?.text || "Analiz yapılamadı.",
+          time: nowLabel(),
+          kimiMeta: reply ? { reasoningContent: reply.reasoningContent, toolCalls: reply.toolCalls } : null,
+        }]);
       } catch (err) {
         console.error("AI fotoğraf analizi başarısız:", err);
-        // DÜZELTME: sendPhotoAnalysis (Claude) "api_error_STATUS" formatında hata
-        // fırlatıyordu, status koduna göre mesaj seçiliyordu. analyzePhotoWithCosmos
-        // (Cosmos) ise cosmosVisionService.js'te zaten okunabilir bir mesajla
-        // (data?.error veya "Sunucu hatası (status)") Error fırlatıyor — o servise HİÇ
-        // dokunulmadı, burada onun ürettiği mesaj doğrudan kullanılıyor.
-        const errorText = err.message || "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.";
+        // DÜZELTME: artık sendKimiChatMessage kullanıldığı için hata formatı metin
+        // sohbetindeki AYNI "api_error_STATUS" deseni — status koduna göre mesaj seçiliyor
+        // (yukarıdaki sendMessage'ın catch bloğuyla aynı mantık).
+        const statusMatch = /^api_error_(\d+)$/.exec(err.message || "");
+        const status = statusMatch ? Number(statusMatch[1]) : null;
+        const errorText = status === 429
+          ? "Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin."
+          : status && status >= 500
+            ? "Sunucu tarafında geçici bir sorun oluştu. Lütfen birazdan tekrar deneyin."
+            : status
+              ? "Fotoğraf işlenemedi. Lütfen tekrar deneyin."
+              : "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.";
         setMessages((prev) => [...prev, { role: "assistant", text: errorText, time: nowLabel(), isError: true }]);
       } finally {
         setLoading(false);

@@ -18,12 +18,33 @@
 // endpoint (bu dosya) üzerinden NVIDIA'ya bağlandı.
 
 const MAX_TOKENS_CAP = 1200; // ChatPanel.jsx'in gönderdiği tavanla aynı
-const MAX_PAYLOAD_BYTES = 512 * 1024; // düz metin sohbet — görüntü/PDF içermez, küçük tavan yeterli
+// DÜZELTME (fotoğraf desteği): Kimi K3 native multimodal (metin+görüntü) — NVIDIA'nın
+// kendi dokümantasyonu doğruluyor (aynı image_url formatı, api/cosmos-vision.js'teki ile
+// birebir aynı şema). Chat'teki fotoğraf analizi artık Cosmos yerine BURADAN, Kimi'ye
+// gidiyor — bu yüzden tavan artık düz metinle sınırlı değil, cosmos-vision.js'teki AYNI
+// ~8MB görüntü tavanına çıkarıldı.
+const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 20; // api/chat.js ile aynı tavan
 
+// DÜZELTME (yanıt kalitesi + gecikme): Kimi K3, NVIDIA/Moonshot'un resmi dokümantasyonuna
+// göre HER ZAMAN "düşünerek" (reasoning) cevap veriyor ve `reasoning_effort` belirtilmezse
+// varsayılan "max" kullanılıyor — bu, tek bir cevap için bir dakikanın üzerinde sürebiliyor
+// (bkz. platform.kimi.ai/docs/guide/use-reasoning-effort, huggingface.co/moonshotai/Kimi-K3).
+// Bir sohbet arayüzünde bu hem kötü UX (kullanıcı dakikalarca bekler) hem de bir risktir:
+// Vercel serverless fonksiyonlarının varsayılan çalışma süresi sınırı bu süreyi aşarsa
+// istek zaman aşımına uğrar ve istemci bunu "ağa hiç ulaşılamadı" gibi görür — dünkü
+// bağlantı sorununun bir parçası muhtemelen buydu. "high", derinlik/hız dengesini "max"tan
+// daha iyi kurar (resmi dokümantasyonun kendi önerisi: "'high' is the middle ground").
+// Model server-side sabitlendi (max_tokens ile aynı mantık) — istemci bunu değiştiremez.
+// DÜZELTME (gecikme): "high" gerçek testte ~126 saniyeye kadar sürebildiği görüldü
+// (reasoning token üretimi max_tokens tarafından sınırlanmıyor). "low" ile gecikme
+// azaltılıyor, karmaşık sorularda cevap derinliği hafifçe azalabilir — gözlemlenmeli.
 const REASONING_EFFORT = "low";
 
+// BİLİNÇLİ SINIRLAMA: api/chat.js'teki AYNI not geçerli — Vercel fonksiyonları
+// durumsuzdur, bu yalnızca "sıcak" instance'lar arası ek bir sürtünme katmanıdır,
+// kesin bir rate limit değildir.
 const requestLog = new Map();
 
 function isRateLimited(ip) {
@@ -86,11 +107,38 @@ export default async function handler(req, res) {
 
   const safeMaxTokens = Math.min(Math.max(1, Number(payload.max_tokens) || 1000), MAX_TOKENS_CAP);
 
+  // NVIDIA'nın OpenAI-uyumlu chat completions şeması: system ayrı bir mesaj olarak
+  // en başa eklenir, geri kalan mesajlar { role, content } (düz metin) olarak geçer.
+  // DÜZELTME (çok turlu tutarlılık): Kimi K3'ün resmi kullanım kılavuzu, çok turlu
+  // sohbetlerde önceki asistan cevaplarının yalnızca `content` değil, `reasoning_content`
+  // (ve varsa `tool_calls`) ile BİRLİKTE geri gönderilmesini şart koşuyor ("preserved
+  // thinking" modu) — aksi halde model önceki turlardaki akıl yürütme bağlamını kaybeder.
+  // İstemci (chatService.js → sendKimiChatMessage, ChatPanel.jsx) artık asistan
+  // mesajlarına bu alanları ekleyip geri gönderiyor; burada varsa aynen korunuyor.
+  //
+  // DÜZELTME (fotoğraf desteği): bir mesajın `image: { mediaType, base64 }` alanı varsa,
+  // `content` düz metin yerine [text, image_url] içerik bloklarından oluşan bir dizi
+  // olarak kuruluyor (api/cosmos-vision.js'teki AYNI mediaType doğrulaması ile).
+  const IMAGE_MEDIA_TYPE_RE = /^image\/(jpeg|jpg|png|webp|gif)$/;
+  let imageValidationError = null;
   const kimiMessages = [
     ...(system ? [{ role: "system", content: String(system) }] : []),
     ...messages.map((m) => {
       const role = m.role === "assistant" ? "assistant" : "user";
-      const msg = { role, content: String(m.content ?? "") };
+      const text = String(m.content ?? "");
+      let content = text;
+      if (role === "user" && m.image && typeof m.image === "object") {
+        const { mediaType, base64 } = m.image;
+        if (typeof base64 !== "string" || !base64 || !IMAGE_MEDIA_TYPE_RE.test(mediaType || "")) {
+          imageValidationError = "Geçersiz veya desteklenmeyen görüntü (yalnızca jpeg/png/webp/gif).";
+        } else {
+          content = [
+            { type: "text", text },
+            { type: "image_url", image_url: { url: `data:${mediaType};base64,${base64}` } },
+          ];
+        }
+      }
+      const msg = { role, content };
       if (role === "assistant" && typeof m.reasoning_content === "string" && m.reasoning_content) {
         msg.reasoning_content = m.reasoning_content;
       }
@@ -100,6 +148,11 @@ export default async function handler(req, res) {
       return msg;
     }),
   ];
+
+  if (imageValidationError) {
+    res.status(400).json({ error: imageValidationError });
+    return;
+  }
 
   try {
     const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {

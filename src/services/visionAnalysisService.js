@@ -1,24 +1,22 @@
-// visionAnalysisService — Phase 6 / Vision AI v1. Bir fotoğraftan YAPISAL, ÇOKLU
-// tehlike bulgusu üretir. Bu, eski (artık kaldırılmış) tek-tespit fotoğraf akışının
-// tek-kategori+not önerisinden daha zengin bir çıktı — bu servis Risk Tespiti
-// panelindeki "Fotoğrafla Tespit Et" akışını besler.
+// visionAnalysisService — bir fotoğraftan YAPISAL, ÇOKLU tehlike bulgusu üretir. Risk
+// Tespiti panelindeki "Fotoğrafla Tespit Et" akışını besler.
 //
-// ÖNEMLİ — ROADMAP.md Phase 6 kapsamı gereği bugün GERÇEK bir Vision AI API'sine
-// BAĞLI DEĞİL. Bilinçli olarak mock/adapter yapısı kullanılıyor. Adapter arayüzü,
-// ileride gerçek bir sağlayıcıya (Anthropic/OpenAI Vision) geçilebilecek şekilde
-// tasarlandı: dışa açılan tek fonksiyon `analyzePhotoForHazards(file)`, hangi
-// adapter'ın çalıştığını geri kalan uygulamaya SIZDIRMAZ.
+// DÜZELTME: artık GERÇEK bir Vision AI'ye (NVIDIA Kimi K3, native multimodal) bağlı —
+// bkz. `kimiVisionAdapter`. `mockVisionAdapter` referans/test amacıyla dosyada kalıyor
+// (test ortamında gerçek ağ isteği yapılamadığı için testler onu doğruluyor — bkz.
+// visionAnalysisService.test.js), ama artık aktif adapter DEĞİL.
 //
-// Gerçek bir adaptere geçiş için (bugün YAPILMADI, yalnızca referans):
-//   1. Aynı imzaya sahip yeni bir fonksiyon yaz: (file: File) => Promise<VisionFinding[]>
-//      — örn. services/chatService.js → sendPhotoAnalysis() + constants/systemPrompt.js
-//      deseninde çoklu-tehlike JSON isteyen yeni bir prompt kullanılabilir.
-//   2. Aşağıdaki `activeAdapter` değişkenini yeni fonksiyonla değiştir.
-//   3. `VISION_ADAPTER_NAME` sabitini güncelle (UI'daki "mock" etiketi buna bağlı).
+// Adapter arayüzü değişmedi: dışa açılan tek fonksiyon `analyzePhotoForHazards(file)`,
+// hangi adapter'ın çalıştığını geri kalan uygulamaya SIZDIRMAZ. Üretilen hiçbir bulgu
+// kullanıcı onayı olmadan kaydolmaz — bu servis yalnızca öneri üretir, kayıt
+// oluşturma/düzenleme yetkisi RiskDetectionPanel.jsx'teki ayrı "Seçilenleri Ekle"
+// eyleminde (bkz. useVisionFindings.js).
 
 import { createId } from "../utils/id.js";
+import { sendKimiChatMessage } from "./chatService.js";
+import { VISION_FINDINGS_PROMPT } from "../constants/systemPrompt.js";
 
-export const VISION_ADAPTER_NAME = "mock-v1";
+export const VISION_ADAPTER_NAME = "kimi-k3-vision-v1";
 
 /**
  * @typedef {Object} VisionFinding
@@ -105,11 +103,13 @@ function seededPseudoRandom(seed) {
 
 /**
  * MOCK adapter — gerçek bir görüntü analizi YAPMAZ. Dosya adı/boyutunu tohum olarak
- * kullanıp gerçekçi görünen 1-3 tehlike bulgusu üretir (bkz. dosya başındaki not).
+ * kullanıp gerçekçi görünen 1-3 tehlike bulgusu üretir. Artık aktif adapter değil
+ * (bkz. kimiVisionAdapter) — burada REFERANS/TEST amacıyla export ediliyor, testler
+ * ağ isteği yapamayan bir ortamda bu deterministik davranışı doğruluyor.
  * @param {File} file
  * @returns {Promise<VisionFinding[]>}
  */
-async function mockVisionAdapter(file) {
+export async function mockVisionAdapter(file) {
   await new Promise((resolve) => setTimeout(resolve, 700)); // gerçek bir API çağrısı hissi
   const seed = `${file.name}:${file.size}:${file.lastModified || 0}`;
   const rand = seededPseudoRandom(seed);
@@ -130,8 +130,72 @@ async function mockVisionAdapter(file) {
   });
 }
 
-// Aktif adapter — bugün her zaman mock. Bkz. dosya başındaki "gerçek adaptere geçiş" notu.
-const activeAdapter = mockVisionAdapter;
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = () => reject(new Error("Dosya okunamadı"));
+    reader.readAsDataURL(file);
+  });
+}
+
+// AI'nin JSON cevabındaki tek bir ham nesneyi güvenli bir VisionFinding'e dönüştürür —
+// eksik/hatalı alanlar sessizce makul varsayılanlara düşer, uygulama çökmez (diğer
+// parser'larla (bkz. systemPrompt.js) aynı savunmacı yaklaşım).
+function sanitizeFinding(raw) {
+  const confidence = Number(raw?.confidenceScore);
+  return {
+    id: createId(),
+    hazard: String(raw?.hazard || "").trim(),
+    description: String(raw?.description || "").trim(),
+    category: String(raw?.category || "").trim(),
+    recommendedAction: String(raw?.recommendedAction || "").trim(),
+    affected: String(raw?.affected || "").trim(),
+    legislationRef: String(raw?.legislationRef || "").trim(),
+    confidenceScore: Number.isFinite(confidence) ? Math.max(0, Math.min(100, Math.round(confidence))) : 50,
+  };
+}
+
+/**
+ * GERÇEK adapter — NVIDIA Kimi K3 (native multimodal) ile fotoğraftan yapılandırılmış,
+ * çoklu İSG tehlike bulgusu üretir. /api/kimi-chat üzerinden (chatService.js →
+ * sendKimiChatMessage) — AI Chat'in kullandığı AYNI, ispatlanmış proxy; yeni bir
+ * backend/endpoint eklenmedi.
+ * @param {File} file
+ * @returns {Promise<VisionFinding[]>}
+ */
+async function kimiVisionAdapter(file) {
+  const base64 = await fileToBase64(file);
+  const reply = await sendKimiChatMessage({
+    system: VISION_FINDINGS_PROMPT,
+    max_tokens: 1200,
+    messages: [{
+      role: "user",
+      content: "Bu saha fotoğrafını analiz et.",
+      image: { mediaType: file.type || "image/jpeg", base64 },
+    }],
+  });
+
+  const text = reply?.text || "[]";
+  // DÜZELTME: model talimata uymayıp ```json kod bloğu ekleyebilir — savunmacı olarak
+  // temizleniyor.
+  const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error("AI'dan geçerli bir JSON yanıtı alınamadı.");
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error("AI'dan beklenen formatta (dizi) bir yanıt alınamadı.");
+  }
+  return parsed.map(sanitizeFinding).filter((f) => f.hazard);
+}
+
+// Aktif adapter — artık GERÇEK Vision AI (Kimi K3). Mock, yukarıda test/referans
+// amacıyla ayrıca export edilmiş durumda.
+const activeAdapter = kimiVisionAdapter;
 
 /**
  * @param {File} file

@@ -32,8 +32,8 @@ const SUMMARY_ITEMS = [
  * Otomatik Simülasyon" (sistem periyodik olarak örnek tespit üretir) veya kullanıcının
  * kendi telefonuyla çektiği/galeriden seçtiği fotoğrafın AI analizi (Phase 6 — bkz.
  * useVisionFindings.js/visionAnalysisService.js; AI_ROADMAP.md → "AI Vision" maddesinin
- * karşılığı, kamera KURULUMU değil — mock/adapter yapısı, bkz. visionAnalysisService.js
- * başındaki not). Üçü de aynı veri modelini kullanır; gerçek sabit kamera geldiğinde
+ * karşılığı, kamera KURULUMU değil — gerçek bir Vision AI adapter'ına (Kimi K3) bağlı,
+ * bkz. visionAnalysisService.js başındaki not). Üçü de aynı veri modelini kullanır; gerçek sabit kamera geldiğinde
  * yalnızca dördüncü bir "source" (`"camera"`) eklenmesi yeterli olacaktır.
  *
  * @param {{ onSendToFineKinney: (hazard: string, risk: string, extra?: object) => void, canCreateFineKinney?: boolean }} props

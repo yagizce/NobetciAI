@@ -22,7 +22,7 @@
 // numarası manuel yönetiliyor, bu yüzden büyük bir SW değişikliği yapıldığında bu
 // sabiti artırmayı unutmayın.
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const RUNTIME_CACHE = `nobetci-isg-runtime-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/manifest.json"];

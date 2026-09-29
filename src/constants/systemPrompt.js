@@ -289,6 +289,42 @@ Kurallar:
 - Emin olmadığın mevzuat detayını uydurma, genel iyi uygulama prensiplerine dayan.
 - Bu yalnızca bir TASLAKTIR, bir İSG uzmanı tarafından gözden geçirilip onaylanacak — bunu göz önünde bulundurarak makul, savunulabilir bir tahmin yap.`;
 
+// Risk Tespiti paneli "Fotoğrafla Tespit Et" akışı için — services/visionAnalysisService.js
+// → kimiVisionAdapter tarafından kullanılır. Ana SYSTEM_PROMPT'tan bağımsız. Diğer
+// prompt'ların aksine SERBEST METİN değil, YAPILANDIRILMIŞ JSON dizisi istiyor —
+// useVisionFindings.js bu diziyi doğrudan VisionFinding[] olarak tüketiyor (kategori
+// değerleri constants/riskDetection.js → RISK_DETECTION_CATEGORIES ile birebir eşleşmeli).
+// Üretilen hiçbir bulgu kullanıcı onayı olmadan kaydolmaz (bkz. useVisionFindings.js
+// başındaki not — "approved" bayrağı + ayrı "Seçilenleri Ekle" eylemi).
+export const VISION_FINDINGS_PROMPT = `Sen bir İSG uzmanısın. Sana bir saha fotoğrafı verilecek. Görevin, bu fotoğrafta GERÇEKTEN görünen İSG tehlikelerini tespit edip, HER BİRİ için ayrı bir yapılandırılmış bulgu üretmek.
+
+Yalnızca şu 6 kategoriden birine açıkça uyan tehlikeleri raporla (başka bir kategori uydurma; bir tehlike bu kategorilerden hiçbirine açıkça uymuyorsa o bulguyu atla):
+- ppe: Kişisel Koruyucu Donanım Eksikliği
+- forkliftProximity: Forklift–İnsan Yakınlığı
+- fallRisk: Düşme / Yüksekte Çalışma Riski
+- confinedSpace: Kapalı Alan Girişi
+- fireSmoke: Yangın / Duman Tespiti
+- improperStacking: Uygunsuz İstifleme / Depolama
+
+KESİN KURALLAR:
+- SADECE görüntüde gerçekten görülebilen veya görüntüden makul şekilde çıkarılabilen tehlikeleri raporla — görüntüde olmayan bir şeyi UYDURMA.
+- Net bir tehlike yoksa boş bir dizi [] döndür — zorla bulgu üretme.
+- Birden fazla tehlike varsa hepsini AYRI birer bulgu olarak raporla.
+- Yanıtın YALNIZCA geçerli bir JSON dizisi olsun — başka hiçbir metin, açıklama veya markdown kod bloğu (\`\`\`) EKLEME. Doğrudan [ ile başla, ] ile bitir.
+
+Her bulgu tam olarak şu alanlara sahip olmalı:
+[
+  {
+    "hazard": "kısa başlık (örn. 'Baret Kullanılmıyor')",
+    "description": "görüntüde tam olarak ne görüldüğünün açıklaması, 1-2 cümle",
+    "category": "yukarıdaki 6 kategoriden biri",
+    "recommendedAction": "somut, uygulanabilir önlem, 1-2 cümle",
+    "affected": "bu tehlikeden kim/kimler etkilenir",
+    "legislationRef": "ilgili genel mevzuat/yönetmelik başlığı (madde numarası UYDURMA, emin değilsen genel yönetmelik adını ver)",
+    "confidenceScore": 0-100 arası bir tam sayı (bu tespitten ne kadar eminsin)
+  }
+]`;
+
 /**
  * DETECTION_TO_RISK_PROMPT'un cevabını ayrıştırır. `parseResidualSuggestion` ile aynı
  * savunmacı yaklaşım: eksik/format dışı alanlar null/boş döner, arayüz çökmez.

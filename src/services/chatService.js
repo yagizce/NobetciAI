@@ -41,9 +41,22 @@ export async function sendKimiChatMessage({ system, messages, max_tokens = 1000 
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+<<<<<<< HEAD
+    // DÜZELTME (teşhis edilebilirlik): önceden yalnızca HTTP durum kodu taşınıyordu,
+    // NVIDIA/sunucu tarafının döndürdüğü asıl hata metni (örn. eksik NVIDIA_API_KEY,
+    // model adı hatası) hiçbir yere yazılmıyordu — prod'da "neden başarısız oldu"
+    // sorusu yalnızca status koduyla cevaplanamıyordu. Kullanıcıya gösterilen mesaj
+    // ChatPanel.jsx'te status koduna göre üretilmeye devam ediyor (değişmedi),
+    // bu yalnızca konsola ek teşhis bilgisi ekliyor.
     console.error("Kimi K3 API hatası:", response.status, data?.error || data);
     throw new Error("api_error_" + response.status);
   }
+  // NVIDIA'nın OpenAI-uyumlu chat completions yanıt şekli: choices[0].message.{content,reasoning_content,tool_calls}
+=======
+    console.error("Kimi K3 API hatası:", response.status, data?.error || data);
+    throw new Error("api_error_" + response.status);
+  }
+>>>>>>> 15fde3ccff649d7d7a89a9b9b71f6e848bbc6fb2
   const message = data?.choices?.[0]?.message;
   if (!message) return null;
   return {
