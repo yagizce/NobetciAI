@@ -134,7 +134,7 @@ export default function VisionFindingsPanel({ theme, findings, photoDataUrl, onU
           </p>
           <p className="flex items-start gap-1 text-[10.5px] mt-0.5" style={{ color: theme.textFaint }}>
             <Info style={{ fontSize: "11px", marginTop: "1px" }} className="shrink-0" />
-            Bu bulgular yapay zeka ({VISION_ADAPTER_NAME}) tarafından üretildi — kesin değildir, mutlaka bir İSG uzmanının onayından geçmelidir. Gözden geçirip düzenleyebilir, istemediğini işaretinden çıkarabilirsin.
+            Bu bulgular yapay zeka ({VISION_ADAPTER_NAME}) tarafından fotoğraftan üretildi — hatalı veya eksik olabilir, uzman onayı gerekir. Gözden geçirip düzenleyebilir, istemediğini işaretinden çıkarabilirsin.
           </p>
         </div>
       </div>

@@ -11,16 +11,18 @@
 const API_ENDPOINT = "/api/cosmos-vision";
 
 /**
- * @param {{ imageBase64: string, mediaType: string, question?: string }} params
+ * @param {{ imageBase64: string, mediaType: string, question?: string, mode?: "findings" }} params
  *   `question` verilirse (AI Chat'te fotoğrafla ilgili soru) sunucu, sabit risk-analizi
  *   isteminin yerine kullanıcının sorusunu yanıtlayan sohbet istemini kullanır.
+ *   `mode: "findings"` (Risk Tespiti → Fotoğrafla Tespit Et, bkz. visionAnalysisService.js)
+ *   sunucudan yapılandırılmış bulgu JSON'u ister; dönen ham metin orada ayrıştırılır.
  * @returns {Promise<string>} AI'nın ham metin yanıtı
  */
-export async function analyzePhotoWithCosmos({ imageBase64, mediaType, question }) {
+export async function analyzePhotoWithCosmos({ imageBase64, mediaType, question, mode }) {
   const response = await fetch(API_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(question ? { imageBase64, mediaType, question } : { imageBase64, mediaType }),
+    body: JSON.stringify({ imageBase64, mediaType, ...(question ? { question } : {}), ...(mode ? { mode } : {}) }),
   });
 
   const data = await response.json().catch(() => null);

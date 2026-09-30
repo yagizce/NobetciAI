@@ -71,6 +71,26 @@ const PHOTO_QUESTION_PROMPT = `Bir İSG platformunun sohbet asistanısın. Kulla
 
 Kullanıcının sorusu: `;
 
+// Risk Tespiti → "Fotoğrafla Tespit Et" (opsiyonel `mode: "findings"`): yapılandırılmış, ÇOKLU
+// bulgu JSON'u ister. İstem yine SUNUCU TARAFINDA sabit. Kategori anahtarları
+// src/constants/riskDetection.js → RISK_DETECTION_CATEGORIES ile AYNI tutulmalı; istemci
+// (services/visionAnalysisService.js) bu listeye uymayan bulguları zaten eler.
+const MAX_FINDINGS = 4;
+const FINDINGS_PROMPT = `Bu fotoğrafı bir İSG uzmanına yardımcı olacak şekilde analiz et. YALNIZCA görüntüde gerçekten görülebilen tehlikeleri raporla; görüntüde olmayan bir şeyi varsayma veya uydurma.
+
+Yalnızca aşağıdaki kategorilerden birine uyan tehlikeleri raporla (anahtar: anlamı):
+- ppe: kişisel koruyucu donanım (baret, eldiven, gözlük, yelek vb.) eksikliği
+- forkliftProximity: forklift/iş makinesi ile yayaların yakınlığı
+- fallRisk: düşme / yüksekte çalışma riski (korkuluk, emniyet kemeri/hayat hattı eksikliği vb.)
+- confinedSpace: kapalı/dar alana giriş
+- fireSmoke: yangın, duman veya ısı kaynağı belirtisi
+- improperStacking: uygunsuz istifleme / depolama
+Bu kategorilere uymayan bir tehlike varsa raporlama.
+
+SADECE geçerli bir JSON dizisi döndür; başka hiçbir metin, açıklama veya markdown yazma. En fazla ${MAX_FINDINGS} bulgu. Her bulgu şu alanlara sahip olmalı:
+{"hazard": "kısa başlık", "description": "görüntüde ne görüldüğü", "category": "yukarıdaki anahtarlardan biri", "recommendedAction": "önerilen önlem", "affected": "etkilenen kişiler", "legislationRef": "emin olduğun kanun/yönetmelik adı; emin değilsen boş metin (asla uydurma)", "confidenceScore": 0 ile 100 arası tam sayı}
+Net bir tehlike görmüyorsan boş dizi [] döndür.`;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -103,7 +123,7 @@ export default async function handler(req, res) {
   }
 
   const payload = req.body || {};
-  const { imageBase64, mediaType, question } = payload;
+  const { imageBase64, mediaType, question, mode } = payload;
 
   if (!imageBase64 || typeof imageBase64 !== "string") {
     res.status(400).json({ error: "imageBase64 alanı zorunludur." });
@@ -123,7 +143,13 @@ export default async function handler(req, res) {
     res.status(400).json({ error: `question alanı 1-${MAX_QUESTION_LENGTH} karakterlik bir metin olmalıdır.` });
     return;
   }
-  const promptText = question ? PHOTO_QUESTION_PROMPT + question.trim() : SAFETY_ANALYSIS_PROMPT;
+  if (mode !== undefined && mode !== "findings") {
+    res.status(400).json({ error: "Geçersiz mode (yalnızca \"findings\")." });
+    return;
+  }
+  const promptText = mode === "findings"
+    ? FINDINGS_PROMPT
+    : question ? PHOTO_QUESTION_PROMPT + question.trim() : SAFETY_ANALYSIS_PROMPT;
 
   const payloadSize = Buffer.byteLength(imageBase64, "utf8");
   if (payloadSize > MAX_PAYLOAD_BYTES) {
