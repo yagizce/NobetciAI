@@ -6,13 +6,24 @@ import { QUICK_ACTIONS } from "../../constants/quickActions.js";
 import { SYSTEM_PROMPT } from "../../constants/systemPrompt.js";
 import { getChatContext } from "../../constants/chatContexts.js";
 import { sendKimiChatMessage } from "../../services/chatService.js";
+// DÜZELTME: fotoğraf risk analizi artık Anthropic/Claude (api/chat.js, ANTHROPIC_API_KEY
+// gerektirir) yerine mevcut Cosmos Vision entegrasyonuna (api/cosmos-vision.js, yalnızca
+// NVIDIA_API_KEY) bağlı — bkz. handlePhotoSelected. cosmosVisionService.js,
+// api/cosmos-vision.js ve CosmosVisionTest.jsx'e HİÇ dokunulmadı, aynen kullanılıyor.
+import { analyzePhotoWithCosmos } from "../../services/cosmosVisionService.js";
 import { nowLabel } from "../../utils/dateUtils.js";
 import { validateImageFile } from "../../utils/fileValidation.js";
+import { compressImageToDataUrl } from "../../utils/imageCompression.js";
 import { HardHat, Camera, Send, Copy, Trash2, X, AlertTriangle } from "../../components/icons/index.jsx";
 import QuickActionButton from "./QuickActionButton.jsx";
 import MarkdownLite from "../../components/MarkdownLite.jsx";
 
 const MAX_MESSAGE_LENGTH = 2000;
+
+// Fotoğraf yüklenince AI'nın görüntüyü "algıladığını" göstermesi için tek seferlik, tarafsız
+// tanım isteği. Bilinçli olarak RİSK ANALİZİ İSTEMİYOR — risk tespiti yalnızca Risk Tespiti
+// sayfasındaki fotoğraf bölümünden yapılır; AI Chat fotoğraf hakkında sohbet içindir.
+const PHOTO_DESCRIBE_QUESTION = "Bu fotoğrafta ne görüyorsun? Kısaca ve tarafsızca tanımla; risk analizi yapma.";
 
 // DÜZELTME (API bağlam bütünlüğü): API'ye "geçmiş" olarak gönderilen mesaj listesi,
 // EKRANDA gösterilen `messages` state'iyle birebir aynı DEĞİL. İki ayrı sorun vardı:
@@ -107,6 +118,11 @@ export default function ChatPanel({ contextId: initialContextId }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState(null);
+  // Aktif fotoğraf: yüklendikten sonra yazılan sorular bu fotoğrafa göre yanıtlanır (yalnızca
+  // bellekte tutulur, kaydedilmez). Kullanıcı sohbet üstündeki çubuktan kaldırabilir.
+  const [activePhoto, setActivePhoto] = useState(null);
+  // Sohbetteki bir fotoğrafa dokunulunca tam ekran açılır.
+  const [viewerImage, setViewerImage] = useState(null);
   const fileInputRef = useRef(null);
   const scrollRef = useRef(null);
   // UX FIX (AI Chat cilası): `loading` React state'i render'lar arasında güncellenir —
@@ -134,12 +150,25 @@ export default function ChatPanel({ contextId: initialContextId }) {
     setInput("");
     setLoading(true);
     try {
-      // AI Chat metin VE fotoğraf sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz.
-      // services/chatService.js → sendKimiChatMessage, api/kimi-chat.js — Kimi K3 native
-      // multimodal, fotoğraf da aynı endpoint'ten gidiyor, bkz. handlePhotoSelected).
+      // AI Chat metin sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz. services/chatService.js
+      // → sendKimiChatMessage, api/kimi-chat.js). Fotoğraf analizi (handlePhotoSelected)
+      // artık NVIDIA Cosmos3-Nano-Reasoner'a bağlı (analyzePhotoWithCosmos,
+      // api/cosmos-vision.js) — bu akışların hiçbiri Anthropic/sendChatMessage/
+      // sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
+      if (activePhoto) {
+        // Aktif fotoğraf varken soru, fotoğrafla birlikte görsel modele gider (Kimi metin
+        // modeli görüntü göremez). Fotoğrafı kaldırınca normal sohbete dönülür.
+        const photoAnswer = await analyzePhotoWithCosmos({
+          imageBase64: activePhoto.base64,
+          mediaType: activePhoto.mediaType,
+          question: text,
+        });
+        setMessages((prev) => [...prev, { role: "assistant", text: photoAnswer || "Cevap oluşturulamadı.", time: nowLabel() }]);
+        return;
+      }
       const reply = await sendKimiChatMessage({
         system: activeContext ? `${SYSTEM_PROMPT}\n\n${activeContext.promptAddendum}` : SYSTEM_PROMPT,
-        max_tokens: 800,
+        max_tokens: 1200,
         messages: toApiMessages(newMessages),
       });
       setMessages((prev) => [...prev, {
@@ -169,6 +198,9 @@ export default function ChatPanel({ contextId: initialContextId }) {
         errorText = "Sunucu tarafında geçici bir sorun oluştu. Lütfen birazdan tekrar deneyin.";
       } else if (status) {
         errorText = "İsteğiniz işlenemedi. Lütfen tekrar deneyin.";
+      } else if (activePhoto && err.message && !(err instanceof TypeError)) {
+        // Fotoğraf sorusu: cosmosVisionService okunabilir bir Türkçe hata mesajı fırlatıyor.
+        errorText = err.message;
       } else {
         errorText = "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.";
       }
@@ -191,6 +223,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
   }, []);
 
   function clearChat() {
+    setActivePhoto(null);
     setMessages([{ role: "assistant", text: activeContext ? activeContext.greeting : "Sohbet temizlendi. Nasıl yardımcı olabilirim?", time: nowLabel() }]);
     if (!contextId) {
       try { localStorage.removeItem(CHAT_HISTORY_KEY); } catch { /* no-op */ }
@@ -206,6 +239,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
     // başlatıcısı) sessizce ÜZERİNE YAZILIP kayboluyordu. Artık genel sohbete dönüşte
     // kayıtlı geçmiş varsa o geri yükleniyor; yoksa eskisi gibi karşılama mesajı gösteriliyor.
     setContextId(null);
+    setActivePhoto(null);
     navigate("/chat", { replace: true, state: {} });
     const saved = loadChatHistory();
     setMessages(saved && saved.length > 0 ? saved : [{ role: "assistant", text: "Genel sohbete döndük. Nasıl yardımcı olabilirim?", time: nowLabel() }]);
@@ -228,57 +262,41 @@ export default function ChatPanel({ contextId: initialContextId }) {
     }
 
     sendingRef.current = true;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result;
-      const base64 = dataUrl.split(",")[1];
-      setMessages((prev) => [...prev, { role: "user", text: "Bu fotoğrafta tehlike var mı?", image: dataUrl, time: nowLabel() }]);
-      setLoading(true);
-      try {
-        // DÜZELTME: Kimi K3 native multimodal (NVIDIA dokümantasyonu doğrulandı) — fotoğraf
-        // analizi artık Cosmos yerine BURADAN, Kimi'ye gidiyor. system olarak SYSTEM_PROMPT
-        // gönderiliyor (o zaten "Fotoğraf analizinde" bölümünde yapılandırılmış bir format
-        // tanımlıyor: Tehlike/Risk Seviyesi/Olası Sonuç/Önerilen Önlem/Etkilenen Kişiler).
-        const reply = await sendKimiChatMessage({
-          system: SYSTEM_PROMPT,
-          max_tokens: 800,
-          messages: [{
-            role: "user",
-            content: "Bu fotoğrafta tehlike var mı? SYSTEM_PROMPT'taki 'Fotoğraf analizinde' bölümündeki yapıyı kullan.",
-            image: { mediaType: file.type || "image/jpeg", base64 },
-          }],
-        });
-        setMessages((prev) => [...prev, {
-          role: "assistant",
-          text: reply?.text || "Analiz yapılamadı.",
-          time: nowLabel(),
-          kimiMeta: reply ? { reasoningContent: reply.reasoningContent, toolCalls: reply.toolCalls } : null,
-        }]);
-      } catch (err) {
-        console.error("AI fotoğraf analizi başarısız:", err);
-        // DÜZELTME: artık sendKimiChatMessage kullanıldığı için hata formatı metin
-        // sohbetindeki AYNI "api_error_STATUS" deseni — status koduna göre mesaj seçiliyor
-        // (yukarıdaki sendMessage'ın catch bloğuyla aynı mantık).
-        const statusMatch = /^api_error_(\d+)$/.exec(err.message || "");
-        const status = statusMatch ? Number(statusMatch[1]) : null;
-        const errorText = status === 429
-          ? "Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin."
-          : status && status >= 500
-            ? "Sunucu tarafında geçici bir sorun oluştu. Lütfen birazdan tekrar deneyin."
-            : status
-              ? "Fotoğraf işlenemedi. Lütfen tekrar deneyin."
-              : "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.";
-        setMessages((prev) => [...prev, { role: "assistant", text: errorText, time: nowLabel(), isError: true }]);
-      } finally {
-        setLoading(false);
-        sendingRef.current = false;
-      }
-    };
-    reader.onerror = () => {
+    let dataUrl;
+    try {
+      // Telefon fotoğrafları sunucu sınırını (~8MB) aşabildiği ve her soruda yeniden gönderildiği
+      // için yüklerken sıkıştırılıyor (Cosmos Vision Test sayfasındaki aynı yardımcı).
+      dataUrl = await compressImageToDataUrl(file);
+    } catch {
       sendingRef.current = false;
       showToast("Dosya okunamadı, tekrar deneyin.", "error");
-    };
-    reader.readAsDataURL(file);
+      return;
+    }
+    const base64 = dataUrl.split(",")[1];
+    const photo = { base64, mediaType: "image/jpeg" };
+    setMessages((prev) => [...prev, { role: "user", text: "📷 Fotoğraf yüklendi", image: dataUrl, time: nowLabel() }]);
+    setLoading(true);
+    try {
+      // DÜZELTME: artık otomatik "Bu fotoğrafta tehlike var mı?" risk analizi YOK. AI yalnızca
+      // fotoğrafı kısaca tanımlar; kullanıcı ardından fotoğrafla ilgili soru sorar (bkz.
+      // sendMessage → activePhoto). Risk tespiti yalnızca Risk Tespiti sayfasından yapılır.
+      const reply = await analyzePhotoWithCosmos({
+        imageBase64: photo.base64,
+        mediaType: photo.mediaType,
+        question: PHOTO_DESCRIBE_QUESTION,
+      });
+      setActivePhoto(photo);
+      setMessages((prev) => [...prev, { role: "assistant", text: reply || "Fotoğrafı tanımlayamadım.", time: nowLabel() }]);
+    } catch (err) {
+      console.error("AI fotoğraf analizi başarısız:", err);
+      const errorText = err instanceof TypeError || !err.message
+        ? "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin."
+        : err.message;
+      setMessages((prev) => [...prev, { role: "assistant", text: errorText, time: nowLabel(), isError: true }]);
+    } finally {
+      setLoading(false);
+      sendingRef.current = false;
+    }
   }
 
   // ÖNCEDEN: h-[calc(100vh-64px)] — tüm tarayıcı yüksekliğini varsayıyordu. PhoneFrame
@@ -355,7 +373,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
                       ? { background: theme.warnBg, color: theme.warnText, border: `1px solid ${theme.warnText}33`, borderBottomLeftRadius: "0.25rem" }
                       : { background: theme.bubbleAssistantBg, color: theme.bubbleAssistantText, border: `1px solid ${theme.border}`, borderBottomLeftRadius: "0.25rem" }}
                 >
-                  {m.image && <img src={m.image} alt="Fotoğraf" className="rounded-lg mb-2 max-h-40 w-full object-cover" />}
+                  {m.image && <img src={m.image} alt="Fotoğraf — büyütmek için dokunun" onClick={() => setViewerImage(m.image)} className="rounded-lg mb-2 max-h-40 w-full object-cover cursor-pointer" />}
                   {m.isError && (
                     <span className="flex items-center gap-1 text-[11px] font-semibold mb-1">
                       <AlertTriangle style={{ fontSize: "12px" }} /> Bir sorun oluştu
@@ -402,6 +420,14 @@ export default function ChatPanel({ contextId: initialContextId }) {
             {input.length}/{MAX_MESSAGE_LENGTH}
           </p>
         )}
+        {activePhoto && (
+          <div className="flex items-center justify-between gap-2 text-[10.5px] font-semibold px-2.5 py-1 rounded-full self-start" style={{ background: theme.surfaceAlt, color: theme.accent, border: `1px solid ${theme.accent}` }}>
+            <span>📷 Sorularınız yüklenen fotoğrafa göre yanıtlanır</span>
+            <button onClick={() => setActivePhoto(null)} aria-label="Fotoğrafı kaldır">
+              <X style={{ fontSize: "11px" }} />
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <button onClick={() => fileInputRef.current?.click()} disabled={loading} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40" style={{ background: theme.surfaceAlt, border: `1px solid ${theme.border}` }}>
             <Camera style={{ fontSize: "16px", color: theme.textMuted }} />
@@ -410,7 +436,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-            placeholder="Sorunuzu yazın..."
+            placeholder={activePhoto ? "Fotoğrafla ilgili soru sorun..." : "Sorunuzu yazın..."}
             maxLength={MAX_MESSAGE_LENGTH}
             className="flex-1 text-sm rounded-full px-4 py-2.5 outline-none border"
             style={{ background: theme.surfaceAlt, borderColor: theme.border, color: theme.textPrimary }}
@@ -420,6 +446,14 @@ export default function ChatPanel({ contextId: initialContextId }) {
           </button>
         </div>
       </div>
+      {viewerImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{ background: "rgba(0,0,0,0.92)" }} onClick={() => setViewerImage(null)} role="dialog" aria-label="Fotoğraf önizleme">
+          <button className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.15)" }} aria-label="Kapat" onClick={() => setViewerImage(null)}>
+            <X style={{ fontSize: "16px", color: "#fff" }} />
+          </button>
+          <img src={viewerImage} alt="Fotoğraf" className="max-w-full max-h-full object-contain" />
+        </div>
+      )}
     </div>
   );
 }

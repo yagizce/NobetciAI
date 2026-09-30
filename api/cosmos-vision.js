@@ -62,6 +62,15 @@ Birden fazla bulgu varsa hepsini ayrı ayrı listele. Her bulgu için TAM OLARAK
 
 Net bir tehlike tespit edemiyorsan bunu dürüstçe belirt, olmayan bir bulgu uydurma.`;
 
+// AI Chat'te yüklenen fotoğrafla ilgili sorular için (opsiyonel `question` alanı). İstem yine
+// SUNUCU TARAFINDA sabit; kullanıcı yalnızca kısa bir soru metni ekleyebilir (MAX_QUESTION_LENGTH).
+// Risk/tehlike analizi (Fine-Kinney vb.) bilinçli olarak İSTENMİYOR — o yalnızca Risk Tespiti
+// sayfasından yapılır.
+const MAX_QUESTION_LENGTH = 500;
+const PHOTO_QUESTION_PROMPT = `Bir İSG platformunun sohbet asistanısın. Kullanıcı bir fotoğraf yükledi ve fotoğrafla ilgili bir soru soruyor. Yalnızca fotoğrafta gerçekten görülebilen şeylere dayanarak Türkçe, kısa ve net yanıt ver. Görüntüde olmayan bir şeyi varsayma veya uydurma; emin olamıyorsan bunu açıkça belirt. Kullanıcı açıkça istemedikçe risk/tehlike analizi yapma.
+
+Kullanıcının sorusu: `;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -94,7 +103,7 @@ export default async function handler(req, res) {
   }
 
   const payload = req.body || {};
-  const { imageBase64, mediaType } = payload;
+  const { imageBase64, mediaType, question } = payload;
 
   if (!imageBase64 || typeof imageBase64 !== "string") {
     res.status(400).json({ error: "imageBase64 alanı zorunludur." });
@@ -109,6 +118,12 @@ export default async function handler(req, res) {
     res.status(400).json({ error: "Geçersiz veya desteklenmeyen mediaType (yalnızca jpeg/png/webp/gif)." });
     return;
   }
+
+  if (question !== undefined && (typeof question !== "string" || !question.trim() || question.length > MAX_QUESTION_LENGTH)) {
+    res.status(400).json({ error: `question alanı 1-${MAX_QUESTION_LENGTH} karakterlik bir metin olmalıdır.` });
+    return;
+  }
+  const promptText = question ? PHOTO_QUESTION_PROMPT + question.trim() : SAFETY_ANALYSIS_PROMPT;
 
   const payloadSize = Buffer.byteLength(imageBase64, "utf8");
   if (payloadSize > MAX_PAYLOAD_BYTES) {
@@ -135,7 +150,7 @@ export default async function handler(req, res) {
             {
               role: "user",
               content: [
-                { type: "text", text: SAFETY_ANALYSIS_PROMPT },
+                { type: "text", text: promptText },
                 { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
               ],
             },
