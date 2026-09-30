@@ -18,12 +18,24 @@ const MAX_TOKENS_CAP = 1200;
 // uç noktada bazı modeller "Not found for account" (404) dönebiliyor; bu yüzden sırayla
 // denenir, ilk 404 OLMAYAN yanıt kullanılır. (cosmos3-nano-reasoner ve cosmos-reason2-8b
 // bu hesapta 404 verdi.)
-const VISION_MODELS = [
+// HIZ/DOĞRULUK DENGESİ: Chat'teki fotoğraf sorusu HIZLI cevap ister (kullanıcı bekliyor,
+// 90B model 504 zaman aşımına yol açabiliyordu) → küçük/hızlı modeller önce. Risk Tespiti
+// bulgu JSON'u doğruluk ister ve sonucu uzman onaylar → büyük model önce.
+const CHAT_MODELS = [
+  "meta/llama-3.2-11b-vision-instruct",
+  "google/gemma-3-12b-it",
+  "meta/llama-3.2-90b-vision-instruct",
+];
+const FINDINGS_MODELS = [
   "meta/llama-3.2-90b-vision-instruct",
   "meta/llama-3.2-11b-vision-instruct",
   "google/gemma-3-12b-it",
   "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
 ];
+const CHAT_MAX_TOKENS = 700; // sohbet cevabı kısa/net — daha az token = daha hızlı yanıt
+// Vercel fonksiyon süresi (vercel.json → maxDuration 60) dolmadan modeller arası geçiş yapılabilsin.
+const TOTAL_BUDGET_MS = 50_000;
+const PER_ATTEMPT_TIMEOUT_MS = 25_000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 10; // görüntü analizi maliyetli — chat.js'ten daha sıkı
 
@@ -158,33 +170,58 @@ export default async function handler(req, res) {
   }
 
   try {
+    const models = mode === "findings" ? FINDINGS_MODELS : CHAT_MODELS;
+    const maxTokens = mode === "findings" ? MAX_TOKENS_CAP : question ? CHAT_MAX_TOKENS : MAX_TOKENS_CAP;
+    const startedAt = Date.now();
     let response = null;
     let rawText = "";
     let usedModel = null;
-    for (const model of VISION_MODELS) {
+    let lastNetworkError = null;
+    for (const model of models) {
+      const remaining = TOTAL_BUDGET_MS - (Date.now() - startedAt);
+      if (remaining < 5_000) break; // yeni bir deneme için yeterli süre kalmadı
       usedModel = model;
-      response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: MAX_TOKENS_CAP,
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: promptText },
-                { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
-              ],
-            },
-          ],
-        }),
+      try {
+        response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          signal: AbortSignal.timeout(Math.min(PER_ATTEMPT_TIMEOUT_MS, remaining)),
+          body: JSON.stringify({
+            model,
+            max_tokens: maxTokens,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: promptText },
+                  { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+                ],
+              },
+            ],
+          }),
+        });
+        rawText = await response.text();
+        lastNetworkError = null;
+      } catch (err) {
+        // zaman aşımı / ağ hatası → sıradaki modeli dene
+        lastNetworkError = err;
+        response = null;
+        continue;
+      }
+      // Model hesapta yok (404) ya da geçici sunucu hatası (5xx, örn. 504) → sıradaki modeli dene.
+      if (response.status !== 404 && response.status < 500) break;
+    }
+    if (!response) {
+      const timedOut = lastNetworkError?.name === "TimeoutError" || lastNetworkError?.name === "AbortError";
+      res.status(504).json({
+        error: timedOut
+          ? "AI yanıtı zaman aşımına uğradı. Lütfen tekrar deneyin (daha küçük bir fotoğraf da yardımcı olabilir)."
+          : "NVIDIA API'sine ulaşılamadı" + (lastNetworkError ? ": " + lastNetworkError.message : "."),
       });
-      rawText = await response.text();
-      if (response.status !== 404) break; // bu model hesapta yok → sıradakini dene
+      return;
     }
 
     // DÜZELTME (teşhis edilebilirlik): NVIDIA bazı hatalarda JSON değil düz metin döndürüyor

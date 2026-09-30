@@ -113,10 +113,10 @@ export default function ChatPanel({ contextId: initialContextId }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState(null);
-  // Eklenen fotoğraf: { dataUrl, base64, mediaType, sent }. Seçilince otomatik HİÇBİR mesaj/analiz
+  // Eklenen fotoğraf: { dataUrl, base64, mediaType }. Seçilince otomatik HİÇBİR mesaj/analiz
   // gönderilmez; fotoğraf yazı alanının üstünde önizlenir, kullanıcı mesajını yazıp gönderince
-  // fotoğrafla birlikte gider (sent=false → ilk mesajda balona eklenir). Sonraki sorular da
-  // fotoğrafa göre yanıtlanır, kullanıcı X ile kaldırana kadar. Yalnızca bellekte tutulur.
+  // fotoğraf VE soru birlikte görsel modele gider ve ek temizlenir (fotoğraf yalnızca o tek
+  // mesaja aittir). Yalnızca bellekte tutulur.
   const [activePhoto, setActivePhoto] = useState(null);
   // Sohbetteki bir fotoğrafa dokunulunca tam ekran açılır.
   const [viewerImage, setViewerImage] = useState(null);
@@ -142,7 +142,8 @@ export default function ChatPanel({ contextId: initialContextId }) {
     if (!text.trim() || loading || sendingRef.current) return;
     if (text.length > MAX_MESSAGE_LENGTH) return; // native maxLength zaten engelliyor, bu ekstra bir güvenlik
     sendingRef.current = true;
-    const attachImage = activePhoto && !activePhoto.sent ? { image: activePhoto.dataUrl } : {};
+    const photo = activePhoto;
+    const attachImage = photo ? { image: photo.dataUrl } : {};
     const newMessages = [...messages, { role: "user", text, time: nowLabel(), ...attachImage }];
     setMessages(newMessages);
     setInput("");
@@ -153,13 +154,12 @@ export default function ChatPanel({ contextId: initialContextId }) {
       // artık NVIDIA Cosmos3-Nano-Reasoner'a bağlı (analyzePhotoWithCosmos,
       // api/cosmos-vision.js) — bu akışların hiçbiri Anthropic/sendChatMessage/
       // sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
-      if (activePhoto) {
-        setActivePhoto((p) => (p ? { ...p, sent: true } : p));
-        // Aktif fotoğraf varken soru, fotoğrafla birlikte görsel modele gider (Kimi metin
-        // modeli görüntü göremez). Fotoğrafı kaldırınca normal sohbete dönülür.
+      if (photo) {
+        setActivePhoto(null); // fotoğraf bu mesajla gitti; sonraki mesajlar normal sohbet
+        // Fotoğraf + soru birlikte görsel modele gider (Kimi metin modeli görüntü göremez).
         const photoAnswer = await analyzePhotoWithCosmos({
-          imageBase64: activePhoto.base64,
-          mediaType: activePhoto.mediaType,
+          imageBase64: photo.base64,
+          mediaType: photo.mediaType,
           question: text,
         });
         setMessages((prev) => [...prev, { role: "assistant", text: photoAnswer || "Cevap oluşturulamadı.", time: nowLabel() }]);
@@ -197,7 +197,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
         errorText = "Sunucu tarafında geçici bir sorun oluştu. Lütfen birazdan tekrar deneyin.";
       } else if (status) {
         errorText = "İsteğiniz işlenemedi. Lütfen tekrar deneyin.";
-      } else if (activePhoto && err.message && !(err instanceof TypeError)) {
+      } else if (photo && err.message && !(err instanceof TypeError)) {
         // Fotoğraf sorusu: cosmosVisionService okunabilir bir Türkçe hata mesajı fırlatıyor.
         errorText = err.message;
       } else {
@@ -267,7 +267,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
       // DÜZELTME: seçilen fotoğraf artık otomatik bir mesaj/analiz TETİKLEMİYOR — yalnızca
       // önizleme olarak eklenir; kullanıcı mesajını yazıp gönderince fotoğrafla birlikte gider
       // (bkz. sendMessage). Risk tespiti yalnızca Risk Tespiti sayfasından yapılır.
-      setActivePhoto({ dataUrl, base64: dataUrl.split(",")[1], mediaType: "image/jpeg", sent: false });
+      setActivePhoto({ dataUrl, base64: dataUrl.split(",")[1], mediaType: "image/jpeg" });
     } catch (err) {
       console.error("Fotoğraf hazırlanamadı:", err);
       showToast("Dosya okunamadı, tekrar deneyin.", "error");
@@ -395,7 +395,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
             {input.length}/{MAX_MESSAGE_LENGTH}
           </p>
         )}
-        {activePhoto && !activePhoto.sent && (
+        {activePhoto && (
           <div className="flex items-center gap-2.5 px-1 pb-1">
             <img
               src={activePhoto.dataUrl}
@@ -407,14 +407,6 @@ export default function ChatPanel({ contextId: initialContextId }) {
             <p className="flex-1 text-[11px]" style={{ color: theme.textMuted }}>Fotoğraf eklendi. Aşağıya mesajınızı yazıp gönderin.</p>
             <button onClick={() => setActivePhoto(null)} aria-label="Fotoğrafı kaldır" className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: theme.surfaceAlt, border: `1px solid ${theme.border}` }}>
               <X style={{ fontSize: "12px", color: theme.textMuted }} />
-            </button>
-          </div>
-        )}
-        {activePhoto?.sent && (
-          <div className="flex items-center justify-between gap-2 text-[10.5px] font-semibold px-2.5 py-1 rounded-full self-start" style={{ background: theme.surfaceAlt, color: theme.accent, border: `1px solid ${theme.accent}` }}>
-            <span>📷 Sorularınız yüklenen fotoğrafa göre yanıtlanır</span>
-            <button onClick={() => setActivePhoto(null)} aria-label="Fotoğrafı kaldır">
-              <X style={{ fontSize: "11px" }} />
             </button>
           </div>
         )}
