@@ -11,7 +11,6 @@ import RiskDetectionCard from "./RiskDetectionCard.jsx";
 import RiskDetectionFilters from "./RiskDetectionFilters.jsx";
 import VisionFindingsPanel from "./VisionFindingsPanel.jsx";
 import PhotoCaptureButtons from "./PhotoCaptureButtons.jsx";
-import ToggleSwitch from "../../../components/ui/ToggleSwitch.jsx";
 import EmptyState from "../../../components/EmptyState.jsx";
 import Loading from "../../../components/Loading.jsx";
 import ErrorState from "../../../components/ErrorState.jsx";
@@ -28,13 +27,12 @@ const SUMMARY_ITEMS = [
  * Phase 9.1 — Risk Tespiti (triage havuzu). Fine-Kinney'den BİLİNÇLİ olarak ayrı bir
  * sekme: burada toplanan kayıtlar ham/doğrulanmamış tespitlerdir, resmi risk kaydı
  * değildir (bkz. types/index.js → RiskDetection). Sabit kamera entegrasyonu henüz yok
- * (Phase 9.2) — bunun yerine tespitler üç yoldan biriyle oluşur: manuel giriş, "Demo:
- * Otomatik Simülasyon" (sistem periyodik olarak örnek tespit üretir) veya kullanıcının
- * kendi telefonuyla çektiği/galeriden seçtiği fotoğrafın AI analizi (Phase 6 — bkz.
- * useVisionFindings.js/visionAnalysisService.js; AI_ROADMAP.md → "AI Vision" maddesinin
- * karşılığı, kamera KURULUMU değil — gerçek bir Vision AI adapter'ına (Kimi K3) bağlı,
- * bkz. visionAnalysisService.js başındaki not). Üçü de aynı veri modelini kullanır; gerçek sabit kamera geldiğinde
- * yalnızca dördüncü bir "source" (`"camera"`) eklenmesi yeterli olacaktır.
+ * (Phase 9.2) — bunun yerine tespitler iki yoldan biriyle oluşur: manuel giriş veya
+ * kullanıcının kendi telefonuyla çektiği/galeriden seçtiği fotoğrafın AI analizi
+ * (Phase 6 — bkz. useVisionFindings.js/visionAnalysisService.js, gerçek modele bağlı).
+ * Otomatik "Demo Simülasyonu" (sahte tespit üretimi) KALDIRILDI. İkisi de aynı veri
+ * modelini kullanır; gerçek sabit kamera geldiğinde yalnızca üçüncü bir "source"
+ * (`"camera"`) eklenmesi yeterli olacaktır.
  *
  * @param {{ onSendToFineKinney: (hazard: string, risk: string, extra?: object) => void, canCreateFineKinney?: boolean }} props
  */
@@ -43,7 +41,6 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
     detections, allDetections, totalCount, stats, loaded, loadError,
     addDetection, updateStatus, removeDetection,
     search, setSearch, statusFilter, setStatusFilter, categoryFilter, setCategoryFilter,
-    simulating, setSimulating,
   } = useRiskDetections(initialSearch);
   const { departments } = useCompanyOrgLists();
   const { showToast } = useToast();
@@ -152,14 +149,6 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
 
   return (
     <div>
-      <div className="rounded-xl border px-3.5 py-3 mb-4 flex items-center justify-between gap-3" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Demo: Otomatik Simülasyon</p>
-          <p className="text-[10.5px]" style={{ color: theme.textFaint }}>Gerçek kamera henüz bağlı değil — açıkken sistem periyodik olarak örnek bir tespit üretir.</p>
-        </div>
-        <ToggleSwitch checked={simulating} onChange={setSimulating} theme={theme} />
-      </div>
-
       {allDetections.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {SUMMARY_ITEMS.map((item) => (

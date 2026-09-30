@@ -1,14 +1,12 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { getRiskDetections, saveRiskDetection, deleteRiskDetection } from "../../../services/riskDetectionService.js";
-import { RISK_DETECTION_CATEGORIES, MOCK_DETECTION_LOCATIONS, computeRiskDetectionStats } from "../../../constants/riskDetection.js";
+import { computeRiskDetectionStats } from "../../../constants/riskDetection.js";
 import { logActivity } from "../../../services/auditService.js";
 import { pushSystemNotification } from "../../../services/systemNotificationService.js";
 import { useRole } from "../../../contexts/RoleContext.jsx";
 import { getRoleLabel } from "../../../constants/allRoles.js";
 import { turkishLower } from "../../../utils/text.js";
 import { createId } from "../../../utils/id.js";
-
-const SIMULATION_INTERVAL_MS = 25000; // demo modunda ~25 saniyede bir yeni örnek tespit
 
 export function useRiskDetections(initialSearch = "") {
   const { role } = useRole();
@@ -19,9 +17,6 @@ export function useRiskDetections(initialSearch = "") {
   const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-
-  const [simulating, setSimulating] = useState(false);
-  const simulationTimerRef = useRef(null);
 
   useEffect(() => {
     getRiskDetections().then((data) => {
@@ -109,35 +104,6 @@ export function useRiskDetections(initialSearch = "") {
     setDetections((prev) => prev.filter((d) => d.id !== id));
   }, []);
 
-  // RİSK TEMİZLİĞİ: `addDetection`, `[detections, role]`'e bağımlı olduğu için HER yeni
-  // tespitte (simülasyonun kendi ürettiği tespitler dahil) kimliği değişiyordu — bu da
-  // aşağıdaki interval efektinin (`[simulating, addDetection]` bağımlılığıyla) her
-  // tespitte interval'i temizleyip YENİDEN kurmasına yol açıyordu. Bir bellek sızıntısı
-  // DEĞİLDİ (cleanup her zaman doğru çalışıyordu) ama gereksiz bir kur/söküm döngüsüydü.
-  // Standart çözüm: `addDetection`'ın en güncel halini bir ref'te tutup interval'in
-  // KENDİSİ yalnızca `simulating` değiştiğinde bir kez kurulsun/sökülsün.
-  const addDetectionRef = useRef(addDetection);
-  useEffect(() => { addDetectionRef.current = addDetection; }, [addDetection]);
-
-  // Demo: Otomatik Simülasyon — gerçek kamera henüz yoktur; açıkken periyodik olarak
-  // rastgele kategori+konum ile "simulated" kaynaklı bir tespit üretir. Sekme kapatılınca
-  // veya "simulating" false olunca interval temizlenir (bellek sızıntısı yok).
-  useEffect(() => {
-    if (!simulating) {
-      if (simulationTimerRef.current) clearInterval(simulationTimerRef.current);
-      return;
-    }
-    simulationTimerRef.current = setInterval(() => {
-      const category = RISK_DETECTION_CATEGORIES[Math.floor(Math.random() * RISK_DETECTION_CATEGORIES.length)].value;
-      const location = MOCK_DETECTION_LOCATIONS[Math.floor(Math.random() * MOCK_DETECTION_LOCATIONS.length)];
-      addDetectionRef.current(category, location, "simulated");
-    }, SIMULATION_INTERVAL_MS);
-    return () => clearInterval(simulationTimerRef.current);
-  }, [simulating]);
-
-  // Sekmeden ayrılınca / bileşen unmount olunca interval'in mutlaka temizlenmesi.
-  useEffect(() => () => { if (simulationTimerRef.current) clearInterval(simulationTimerRef.current); }, []);
-
   const filteredDetections = useMemo(() => {
     const query = turkishLower(search.trim());
     return detections
@@ -165,6 +131,5 @@ export function useRiskDetections(initialSearch = "") {
     search, setSearch,
     statusFilter, setStatusFilter,
     categoryFilter, setCategoryFilter,
-    simulating, setSimulating,
   };
 }
