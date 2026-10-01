@@ -78,7 +78,7 @@ Net bir tehlike tespit edemiyorsan bunu dürüstçe belirt, olmayan bir bulgu uy
 // SUNUCU TARAFINDA sabit; kullanıcı yalnızca kısa bir soru metni ekleyebilir (MAX_QUESTION_LENGTH).
 // Risk/tehlike analizi (Fine-Kinney vb.) bilinçli olarak İSTENMİYOR — o yalnızca Risk Tespiti
 // sayfasından yapılır.
-const MAX_QUESTION_LENGTH = 500;
+const MAX_QUESTION_LENGTH = 2000; // ChatPanel.jsx MAX_MESSAGE_LENGTH ile aynı — daha kısa olursa uzun bir soru teknik 400 hatasına dönerdi
 const PHOTO_QUESTION_PROMPT = `Bir İSG platformunun sohbet asistanısın. Kullanıcı bir fotoğraf yükledi ve fotoğrafla ilgili bir soru soruyor. Yalnızca fotoğrafta gerçekten görülebilen şeylere dayanarak Türkçe, kısa ve net yanıt ver. Görüntüde olmayan bir şeyi varsayma veya uydurma; emin olamıyorsan bunu açıkça belirt. Kullanıcı açıkça istemedikçe risk/tehlike analizi yapma.
 
 Kullanıcının sorusu: `;

@@ -6,10 +6,8 @@ import { QUICK_ACTIONS } from "../../constants/quickActions.js";
 import { SYSTEM_PROMPT } from "../../constants/systemPrompt.js";
 import { getChatContext } from "../../constants/chatContexts.js";
 import { sendKimiChatMessage } from "../../services/chatService.js";
-// DÜZELTME: fotoğraf risk analizi artık Anthropic/Claude (api/chat.js, ANTHROPIC_API_KEY
-// gerektirir) yerine mevcut Cosmos Vision entegrasyonuna (api/cosmos-vision.js, yalnızca
-// NVIDIA_API_KEY) bağlı — bkz. handlePhotoSelected. cosmosVisionService.js,
-// api/cosmos-vision.js ve CosmosVisionTest.jsx'e HİÇ dokunulmadı, aynen kullanılıyor.
+// Fotoğraf + soru birlikte, mevcut Cosmos Vision proxy'sine (api/cosmos-vision.js, yalnızca
+// NVIDIA_API_KEY) tek istekle gider — bkz. sendMessage. Risk analizi bu akışta YAPILMAZ.
 import { analyzePhotoWithCosmos } from "../../services/cosmosVisionService.js";
 import { nowLabel } from "../../utils/dateUtils.js";
 import { validateImageFile } from "../../utils/fileValidation.js";
@@ -19,6 +17,16 @@ import QuickActionButton from "./QuickActionButton.jsx";
 import MarkdownLite from "../../components/MarkdownLite.jsx";
 
 const MAX_MESSAGE_LENGTH = 2000;
+
+// Fotoğraf sorusunda ham sunucu/NVIDIA metni (model adı, hesap kimliği vb.) kullanıcıya
+// GÖSTERİLMEZ; HTTP durumuna göre anlaşılır bir mesaj üretilir (teknik ayrıntı konsola yazılır).
+function photoErrorText(err) {
+  if (err?.isTimeout || err?.status === 504) return "Fotoğraf analizi çok uzun sürdü. Lütfen tekrar deneyin; daha küçük bir fotoğraf da yardımcı olabilir.";
+  if (err?.status === 429) return "Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin.";
+  if (err?.status === 413) return "Fotoğraf çok büyük. Lütfen daha küçük bir fotoğraf deneyin.";
+  if (err?.status === 400) return "Fotoğraf ya da mesajınız işlenemedi. Fotoğrafı yeniden ekleyip tekrar deneyin.";
+  return "Fotoğraf şu anda analiz edilemedi. Lütfen birazdan tekrar deneyin.";
+}
 
 // DÜZELTME (API bağlam bütünlüğü): API'ye "geçmiş" olarak gönderilen mesaj listesi,
 // EKRANDA gösterilen `messages` state'iyle birebir aynı DEĞİL. İki ayrı sorun vardı:
@@ -150,18 +158,20 @@ export default function ChatPanel({ contextId: initialContextId }) {
     setLoading(true);
     try {
       // AI Chat metin sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz. services/chatService.js
-      // → sendKimiChatMessage, api/kimi-chat.js). Fotoğraf analizi (handlePhotoSelected)
-      // artık NVIDIA Cosmos3-Nano-Reasoner'a bağlı (analyzePhotoWithCosmos,
-      // api/cosmos-vision.js) — bu akışların hiçbiri Anthropic/sendChatMessage/
-      // sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
+      // → sendKimiChatMessage, api/kimi-chat.js). Fotoğraf + soru ise TEK istekle görsel
+      // modele gider (analyzePhotoWithCosmos, api/cosmos-vision.js) — bu akışların hiçbiri
+      // Anthropic/sendChatMessage/sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
       if (photo) {
-        setActivePhoto(null); // fotoğraf bu mesajla gitti; sonraki mesajlar normal sohbet
-        // Fotoğraf + soru birlikte görsel modele gider (Kimi metin modeli görüntü göremez).
+        // Fotoğraf + soru birlikte görsel modele gider (Kimi metin modeli görüntü göremez);
+        // cevap doğrudan sorunun yanıtıdır, ikinci bir AI isteği yok.
         const photoAnswer = await analyzePhotoWithCosmos({
           imageBase64: photo.base64,
           mediaType: photo.mediaType,
           question: text,
         });
+        // Fotoğraf yalnızca BAŞARILI gönderimde temizlenir — hata olursa ek önizlemede kalır,
+        // kullanıcı yeniden seçmeden tekrar deneyebilir.
+        setActivePhoto(null);
         setMessages((prev) => [...prev, { role: "assistant", text: photoAnswer || "Cevap oluşturulamadı.", time: nowLabel() }]);
         return;
       }
@@ -197,9 +207,8 @@ export default function ChatPanel({ contextId: initialContextId }) {
         errorText = "Sunucu tarafında geçici bir sorun oluştu. Lütfen birazdan tekrar deneyin.";
       } else if (status) {
         errorText = "İsteğiniz işlenemedi. Lütfen tekrar deneyin.";
-      } else if (photo && err.message && !(err instanceof TypeError)) {
-        // Fotoğraf sorusu: cosmosVisionService okunabilir bir Türkçe hata mesajı fırlatıyor.
-        errorText = err.message;
+      } else if (photo && !(err instanceof TypeError)) {
+        errorText = photoErrorText(err);
       } else {
         errorText = "İnternet bağlantınıza ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.";
       }
