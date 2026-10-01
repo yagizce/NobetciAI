@@ -12,7 +12,7 @@ frontend koduna asla yazılmaz.
 | Özellik | Konum | Not |
 |---|---|---|
 | AI Chat | `features/chat/ChatPanel.jsx` | Hazır sorular, serbest metin sohbet |
-| Fotoğraf analizi | Chat üzerinden | Görsel gönderilip AI yorumu alınıyor |
+| Fotoğraf analizi | Chat üzerinden | Fotoğraf eklenip altına yazılan soruyla birlikte gönderilir, AI fotoğrafı ve soruyu birlikte yanıtlar (otomatik risk analizi yok) |
 | Fine-Kinney önerisi | `fineKinney/FineKinneyForm.jsx` (`useAIRiskAnalysis.js`) | Tehlike/risk metninden Kontrol Tedbirleri + KKD + Artık Risk önerisi üretir |
 | Başlangıç Fine-Kinney puanı | `fineKinney/FineKinneyForm.jsx` (`useInitialRiskScore.js` → `riskService.scoreRisk()`) | Yalnızca tehlike+risk metninden, henüz P/M/Ş seçilmemişken önlem öncesi başlangıç puan önerisi üretir |
 | Bağlama Duyarlı AI Copilot | `features/chat/ChatPanel.jsx` (`constants/chatContexts.js`) | Fine-Kinney/Risk Tespiti/Periyodik Kontrol/Mevzuat ekranlarından "AI'ya Sor" ile girildiğinde asistan o bağlama göre sistem promptu + karşılama + önerilen sorular kullanır |
@@ -28,16 +28,18 @@ tarafından düzenlenebilir alanlara yazılır — hiçbir zaman sessizce/geri d
 uygulanmaz. Gelecekteki tüm AI-önerisi özellikleri bu ilkeyi izler:
 **AI önerir, insan onaylar.**
 
-### Bilinçli Sınır: Vision AI v1 Bugün MOCK
+### Vision AI v1: Gerçek Modele Bağlı
 
-Yukarıdaki tablodaki "Fotoğraftan Çoklu Tehlike Tespiti" satırı, **gerçek bir Vision AI
-API'sine bağlı DEĞİL** — `services/visionAnalysisService.js` bilinçli olarak bir mock
-adapter kullanıyor (dosya adı/boyutuna göre deterministik, gerçekçi görünen bulgular
-üretir). Bu tablodaki diğer tüm AI özellikleri (Chat, Fine-Kinney önerisi, Doküman
-üretimi vb.) gerçek Anthropic API'sine bağlıyken, bu biri bilinçli olarak değil —
-ROADMAP.md Phase 6 kapsamı gereği. Adapter arayüzü gerçek bir sağlayıcıya
-(Anthropic/OpenAI Vision) geçilebilecek şekilde tasarlandı; geçiş adımları o dosyanın
-başında yazılı. Bu, aşağıdaki "Planlanan Genişlemeler" listesindeki bir sonraki adım.
+Yukarıdaki tablodaki "Fotoğraftan Çoklu Tehlike Tespiti" satırı artık gerçek bir görsel
+modele bağlı: `services/visionAnalysisService.js` fotoğrafı sıkıştırıp `/api/cosmos-vision`
+proxy'sine (`mode: "findings"`, NVIDIA barındırılan görsel modeller, `NVIDIA_API_KEY`
+sunucuda kalır) gönderir. Model yalnızca `RISK_DETECTION_CATEGORIES` kategorilerine uyan,
+görüntüde görülen tehlikeleri JSON olarak döndürür; yanıt `parseVisionFindings()` ile
+doğrulanır (bilinmeyen kategori elenir, güven skoru 0-100'e sıkıştırılır, mevzuat referansı
+emin değilse boş bırakılır). Önceki mock adapter ve "Demo: Otomatik Simülasyon" kaldırıldı.
+**AI önerir, insan onaylar** ilkesi aynen geçerli: bulgular kullanıcı onayı olmadan
+kaydedilmez. AI Chat'te yüklenen fotoğraf ise risk analizi YAPMAZ; kullanıcının mesajıyla
+birlikte aynı proxy'ye (`question` alanı) gider.
 
 ## Hazır Altyapı, Henüz Bağlanmamış
 

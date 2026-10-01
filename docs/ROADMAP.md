@@ -105,7 +105,7 @@ tehlike tespit aracına dönüştürmek. Bu faz aynı zamanda Phase 9'un (canlı
 küçük ölçekli, düşük riskli provasıdır — fotoğraf üzerinde doğrulanan "tespit →
 Fine-Kinney'e bağlama" deseni, Phase 9'da canlı akışa taşınacaktır.
 
-- ✅ **Vision AI v1 (mock/adapter):** Risk Tespiti'ndeki fotoğraf akışı, tek
+- ✅ **Vision AI v1 (başta mock/adapter; artık gerçek modele bağlı — bkz. AI_ROADMAP.md):** Risk Tespiti'ndeki fotoğraf akışı, tek
   kategori+not önerisinden (bkz. Phase 9 — `usePhotoDetection.js`, o akış hâlâ mevcut
   ve değişmedi) YAPILANDIRILMIŞ, ÇOKLU tehlike bulgusuna genişletildi: her bulgu
   tehlike/açıklama/kategori/önerilen önlem/etkilenenler/mevzuat referansı/AI güven

@@ -20,13 +20,17 @@ Depolama/yedekleme/satış odaklı bir kod incelemesi yapıldı, bulgular öncel
 1. ✅ Yedekleme boyut sınırı kilitlenmesi — çözüldü (`backupService.js`, `BackupSection.jsx`)
 2. ✅ Yedekleme hatırlatması pasif metinden gerçek bildirime taşındı (`useReminderScheduler.js`)
 3. ✅ Depolama kullanım göstergesi eklendi (`StorageUsageIndicator.jsx`, Storage API)
-4. 🔲 **Denetim Dosyası'na (Audit Package) fotoğraf kanıtı ekleme** — en yüksek satış
-   etkisi olarak değerlendirildi (`auditPackageExport.js` şu an yalnızca metin/tablo
-   basıyor, Phase 6'daki risk fotoğraflarını hiç kullanmıyor). **Henüz yapılmadı.**
-5. 🔲 Mock Vision AI'nin satış demolarında şeffaf sunulması (mesajlaşma/konumlandırma
-   önerisi) — henüz ele alınmadı.
-6. 🔲 Denetim Dosyası ve Fine-Kinney export'unun `window.open` tabanlı print-window
-   kullanması (mobilde popup engelleme riski) — henüz ele alınmadı.
+4. ✅ Denetim Dosyası'na (Audit Package) fotoğraf kanıtı ekleme — tamamlandı
+   (`auditPackageExport.js`, kanıt fotoğrafları popup açılmadan önce çözümleniyor).
+5. ✅ Mock Vision AI'nin satış demolarında şeffaf sunulması — artık gerekmiyor: Risk
+   Tespiti fotoğraf analizi gerçek bir görsel modele bağlı (`visionAnalysisService.js` →
+   `/api/cosmos-vision`, `mode: "findings"`), mock adapter ve "Demo: Otomatik Simülasyon"
+   kaldırıldı.
+6. ✅ `window.open` tabanlı print-window'un mobilde popup engelleme riski — `utils/printWindow.js`
+   artık popup engellenirse (`window.open` → `null`) aynı sayfada görünmez bir iframe ile
+   yazdırıyor; tüm export'lar (Denetim Dosyası, Fine-Kinney, Yönetici Özeti, Tamamlama
+   Belgesi) aynı yardımcıyı kullandığı için hepsi kapsandı. **Gerçek bir mobil cihazda
+   (iOS Safari / Android Chrome / ana ekrana eklenmiş PWA) henüz denenmedi.**
 
 **Vercel deployment:** Kullanıcı bir `npm error ENOENT package.json` hatası aldı,
 kaynağını birlikte araştırdık (Root Directory ayarı boş/doğruydu, repo kökünde

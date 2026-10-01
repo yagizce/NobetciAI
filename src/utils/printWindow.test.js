@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { escapeHtml } from "./printWindow.js";
+import { escapeHtml, buildPrintDocument } from "./printWindow.js";
 
 describe("escapeHtml", () => {
   test("HTML özel karakterlerini kaçırır (XSS koruması — belge çalışan adı/kurs başlığını gömüyor)", () => {
@@ -18,5 +18,21 @@ describe("escapeHtml", () => {
   test("null/undefined için boş string döner (çökmez)", () => {
     assert.equal(escapeHtml(null), "");
     assert.equal(escapeHtml(undefined), "");
+  });
+});
+
+describe("buildPrintDocument", () => {
+  test("başlığı kaçırır, gövdeyi ve head ekini olduğu gibi yerleştirir", () => {
+    const html = buildPrintDocument("A <b> & B", "<p>içerik</p>", "<style>p{color:red}</style>");
+    assert.ok(html.startsWith("<!DOCTYPE html>"));
+    assert.ok(html.includes("<title>A &lt;b&gt; &amp; B</title>"));
+    assert.ok(html.includes("<style>p{color:red}</style>"));
+    assert.ok(html.includes("<body><p>içerik</p></body>"));
+  });
+
+  test("head eki verilmezse de geçerli belge üretir", () => {
+    const html = buildPrintDocument("Başlık", "<p>x</p>");
+    assert.ok(html.includes("<title>Başlık</title>"));
+    assert.ok(!html.includes("undefined"));
   });
 });

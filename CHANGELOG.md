@@ -1,5 +1,29 @@
 # Changelog
 
+## [Vision AI Gerçek Modele Bağlandı, Chat Fotoğraf Akışı, Print Yedek Yolu] — Bu güncelleme
+
+**Değişen:**
+- `services/visionAnalysisService.js`: mock adapter kaldırıldı; Risk Tespiti → "Fotoğrafla
+  Tespit Et" fotoğrafı `/api/cosmos-vision` (`mode: "findings"`) üzerinden gerçek bir görsel
+  modele gönderiyor. Yeni `parseVisionFindings()` model çıktısını doğrular. Dışa açılan
+  `analyzePhotoForHazards(file)` imzası aynı kaldı (`useVisionFindings.js` değişmedi).
+- `api/cosmos-vision.js`: opsiyonel `question` (sohbet) ve `mode: "findings"` alanları;
+  istemler sunucuda sabit. Hesapta çağrılabilen modeller sırayla denenir (404/5xx/zaman
+  aşımında sıradakine geçer); sohbette hızlı modeller, bulgu analizinde büyük model önce.
+  `vercel.json`'a bu fonksiyon için `maxDuration: 60` eklendi (504 zaman aşımı).
+- `ChatPanel.jsx`: fotoğraf seçilince otomatik mesaj/analiz YOK; yazı alanının üstünde
+  önizlenir, kullanıcı mesajını yazıp gönderince fotoğraf + soru birlikte gider. Sohbetteki
+  fotoğrafa dokununca tam ekran açılır. Otomatik "bu fotoğrafta risk var mı" analizi kaldırıldı.
+- `utils/printWindow.js`: `window.open` popup'ı engellenirse aynı sayfada görünmez iframe ile
+  yazdırma yedek yolu eklendi; `buildPrintDocument()` saf fonksiyonu çıkarıldı.
+
+**Kaldırılan:**
+- Risk Tespiti'ndeki "Demo: Otomatik Simülasyon" anahtarı ve periyodik sahte tespit üretimi
+  (`useRiskDetections.js`, `RiskDetectionPanel.jsx`). Daha önce üretilmiş kayıtlar silinmez.
+- `usePhotoDetection.js` ve `src/cosmosVisionService.js` (kök kopya).
+
+**Eklenen:** `pages/CosmosVisionTest.jsx` (yalnızca test, `/cosmos-test`, İSG Uzmanı/İşveren).
+
 ## [Denetim Öncesi Hazırlık Checklist'i] — Bu güncelleme
 
 Denetim odaklı iyileştirme serisinin dördüncü ve son parçası. Önceki üç parça
