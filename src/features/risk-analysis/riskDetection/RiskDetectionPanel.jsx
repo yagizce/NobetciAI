@@ -84,7 +84,9 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
       const photo = photoDataUrl ? await saveRiskDetectionPhoto(photoDataUrl) : null;
       for (const f of approved) {
         await addDetection(f.category, location, "photo", departmentId, {
-          hazardNote: f.description,
+          // İnceleme panelinde düzenlenebilen tehlike BAŞLIĞI da kayda taşınır (daha önce sessizce
+          // atılıyordu); başlık açıklamayla aynıysa tekrarlanmaz.
+          hazardNote: f.hazard && f.hazard !== f.description ? `${f.hazard}: ${f.description}` : f.description,
           photoId: photo?.id || null,
           description: f.description,
           recommendedAction: f.recommendedAction,

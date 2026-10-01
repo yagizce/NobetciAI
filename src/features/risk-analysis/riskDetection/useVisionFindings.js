@@ -53,9 +53,16 @@ export function useVisionFindings() {
       setPhotoDataUrl(dataUrl);
 
       const results = await analyzePhotoForHazards(file);
+      if (results.length === 0) {
+        // Boş sonuç GEÇERLİ bir AI cevabıdır (net tehlike yok / kategorilere uymuyor) — daha önce
+        // hiçbir mesaj gösterilmeden sessizce boş manuel forma düşülüyordu.
+        setError("Fotoğrafta net bir tehlike tespit edilemedi.");
+        return;
+      }
       setFindings(
         results.map((f) => ({
           ...f,
+          hazard: (f.hazard || "").slice(0, MAX_FIELD_LENGTH),
           description: (f.description || "").slice(0, MAX_FIELD_LENGTH),
           recommendedAction: (f.recommendedAction || "").slice(0, MAX_FIELD_LENGTH),
           affected: (f.affected || "").slice(0, MAX_FIELD_LENGTH),
