@@ -18,33 +18,12 @@
 // endpoint (bu dosya) üzerinden NVIDIA'ya bağlandı.
 
 const MAX_TOKENS_CAP = 1200; // ChatPanel.jsx'in gönderdiği tavanla aynı
-// DÜZELTME (fotoğraf desteği): Kimi K3 native multimodal (metin+görüntü) — NVIDIA'nın
-// kendi dokümantasyonu doğruluyor (aynı image_url formatı, api/cosmos-vision.js'teki ile
-// birebir aynı şema). Chat'teki fotoğraf analizi artık Cosmos yerine BURADAN, Kimi'ye
-// gidiyor — bu yüzden tavan artık düz metinle sınırlı değil, cosmos-vision.js'teki AYNI
-// ~8MB görüntü tavanına çıkarıldı.
-const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
+const MAX_PAYLOAD_BYTES = 512 * 1024; // düz metin sohbet — görüntü/PDF içermez, küçük tavan yeterli
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_PER_WINDOW = 20; // api/chat.js ile aynı tavan
 
-// DÜZELTME (yanıt kalitesi + gecikme): Kimi K3, NVIDIA/Moonshot'un resmi dokümantasyonuna
-// göre HER ZAMAN "düşünerek" (reasoning) cevap veriyor ve `reasoning_effort` belirtilmezse
-// varsayılan "max" kullanılıyor — bu, tek bir cevap için bir dakikanın üzerinde sürebiliyor
-// (bkz. platform.kimi.ai/docs/guide/use-reasoning-effort, huggingface.co/moonshotai/Kimi-K3).
-// Bir sohbet arayüzünde bu hem kötü UX (kullanıcı dakikalarca bekler) hem de bir risktir:
-// Vercel serverless fonksiyonlarının varsayılan çalışma süresi sınırı bu süreyi aşarsa
-// istek zaman aşımına uğrar ve istemci bunu "ağa hiç ulaşılamadı" gibi görür — dünkü
-// bağlantı sorununun bir parçası muhtemelen buydu. "high", derinlik/hız dengesini "max"tan
-// daha iyi kurar (resmi dokümantasyonun kendi önerisi: "'high' is the middle ground").
-// Model server-side sabitlendi (max_tokens ile aynı mantık) — istemci bunu değiştiremez.
-// DÜZELTME (gecikme): "high" gerçek testte ~126 saniyeye kadar sürebildiği görüldü
-// (reasoning token üretimi max_tokens tarafından sınırlanmıyor). "low" ile gecikme
-// azaltılıyor, karmaşık sorularda cevap derinliği hafifçe azalabilir — gözlemlenmeli.
 const REASONING_EFFORT = "low";
 
-// BİLİNÇLİ SINIRLAMA: api/chat.js'teki AYNI not geçerli — Vercel fonksiyonları
-// durumsuzdur, bu yalnızca "sıcak" instance'lar arası ek bir sürtünme katmanıdır,
-// kesin bir rate limit değildir.
 const requestLog = new Map();
 
 function isRateLimited(ip) {
@@ -59,6 +38,17 @@ function isRateLimited(ip) {
 function getClientIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   return (forwarded ? forwarded.split(",")[0].trim() : null) || req.socket?.remoteAddress || "unknown";
+}
+
+const UPSTREAM_TIMEOUT_MS = 50_000; // Vercel maxDuration (60 sn) dolmadan kontrollü 504 dönebilmek için
+
+// Kullanıcıya/ağ yanıtına HAM NVIDIA hata metni (model adı, hesap kimliği vb.) GİTMEZ; ayrıntı
+// yalnızca sunucu günlüğüne (Vercel Logs) yazılır, istemciye HTTP durumuna uygun Türkçe mesaj döner.
+function friendlyUpstreamError(status) {
+  if (status === 429) return "Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin.";
+  if (status === 504) return "AI yanıtı zaman aşımına uğradı. Lütfen tekrar deneyin.";
+  if (status === 401 || status === 403) return "AI servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.";
+  return "AI servisi şu anda yanıt veremiyor. Lütfen birazdan tekrar deneyin.";
 }
 
 export default async function handler(req, res) {
@@ -107,38 +97,11 @@ export default async function handler(req, res) {
 
   const safeMaxTokens = Math.min(Math.max(1, Number(payload.max_tokens) || 1000), MAX_TOKENS_CAP);
 
-  // NVIDIA'nın OpenAI-uyumlu chat completions şeması: system ayrı bir mesaj olarak
-  // en başa eklenir, geri kalan mesajlar { role, content } (düz metin) olarak geçer.
-  // DÜZELTME (çok turlu tutarlılık): Kimi K3'ün resmi kullanım kılavuzu, çok turlu
-  // sohbetlerde önceki asistan cevaplarının yalnızca `content` değil, `reasoning_content`
-  // (ve varsa `tool_calls`) ile BİRLİKTE geri gönderilmesini şart koşuyor ("preserved
-  // thinking" modu) — aksi halde model önceki turlardaki akıl yürütme bağlamını kaybeder.
-  // İstemci (chatService.js → sendKimiChatMessage, ChatPanel.jsx) artık asistan
-  // mesajlarına bu alanları ekleyip geri gönderiyor; burada varsa aynen korunuyor.
-  //
-  // DÜZELTME (fotoğraf desteği): bir mesajın `image: { mediaType, base64 }` alanı varsa,
-  // `content` düz metin yerine [text, image_url] içerik bloklarından oluşan bir dizi
-  // olarak kuruluyor (api/cosmos-vision.js'teki AYNI mediaType doğrulaması ile).
-  const IMAGE_MEDIA_TYPE_RE = /^image\/(jpeg|jpg|png|webp|gif)$/;
-  let imageValidationError = null;
   const kimiMessages = [
     ...(system ? [{ role: "system", content: String(system) }] : []),
     ...messages.map((m) => {
       const role = m.role === "assistant" ? "assistant" : "user";
-      const text = String(m.content ?? "");
-      let content = text;
-      if (role === "user" && m.image && typeof m.image === "object") {
-        const { mediaType, base64 } = m.image;
-        if (typeof base64 !== "string" || !base64 || !IMAGE_MEDIA_TYPE_RE.test(mediaType || "")) {
-          imageValidationError = "Geçersiz veya desteklenmeyen görüntü (yalnızca jpeg/png/webp/gif).";
-        } else {
-          content = [
-            { type: "text", text },
-            { type: "image_url", image_url: { url: `data:${mediaType};base64,${base64}` } },
-          ];
-        }
-      }
-      const msg = { role, content };
+      const msg = { role, content: String(m.content ?? "") };
       if (role === "assistant" && typeof m.reasoning_content === "string" && m.reasoning_content) {
         msg.reasoning_content = m.reasoning_content;
       }
@@ -149,11 +112,6 @@ export default async function handler(req, res) {
     }),
   ];
 
-  if (imageValidationError) {
-    res.status(400).json({ error: imageValidationError });
-    return;
-  }
-
   try {
     const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
@@ -161,6 +119,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       body: JSON.stringify({
         model: "moonshotai/kimi-k3",
         max_tokens: safeMaxTokens,
@@ -169,9 +128,28 @@ export default async function handler(req, res) {
       }),
     });
 
-    const data = await response.json();
+    // NVIDIA bazı hatalarda JSON değil düz metin döndürüyor (örn. "404 page not found");
+    // response.json() bu durumda fırlatıp anlamsız bir 502'ye dönüşüyordu. Önce metin okunur.
+    const rawText = await response.text();
+    let data = null;
+    try { data = JSON.parse(rawText); } catch { data = null; }
+    if (data === null || typeof data !== "object") {
+      console.error(`[kimi-chat] beklenmeyen yanıt (HTTP ${response.status}):`, rawText.slice(0, 300));
+      const unexpectedStatus = response.status >= 400 ? response.status : 502;
+      res.status(unexpectedStatus).json({ error: friendlyUpstreamError(unexpectedStatus) });
+      return;
+    }
+    if (!response.ok) {
+      console.error(`[kimi-chat] NVIDIA hatası (HTTP ${response.status}):`, JSON.stringify(data).slice(0, 500));
+      res.status(response.status).json({ error: friendlyUpstreamError(response.status) });
+      return;
+    }
     res.status(response.status).json(data);
   } catch (err) {
-    res.status(502).json({ error: "NVIDIA API'sine ulaşılamadı: " + err.message });
+    const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
+    console.error("[kimi-chat] NVIDIA isteği başarısız:", err?.name, err?.message);
+    res.status(timedOut ? 504 : 502).json({
+      error: timedOut ? friendlyUpstreamError(504) : "AI servisine ulaşılamadı. Lütfen birazdan tekrar deneyin.",
+    });
   }
 }

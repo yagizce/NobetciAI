@@ -103,6 +103,15 @@ SADECE geçerli bir JSON dizisi döndür; başka hiçbir metin, açıklama veya 
 {"hazard": "kısa başlık", "description": "görüntüde ne görüldüğü", "category": "yukarıdaki anahtarlardan biri", "recommendedAction": "önerilen önlem", "affected": "etkilenen kişiler", "legislationRef": "emin olduğun kanun/yönetmelik adı; emin değilsen boş metin (asla uydurma)", "confidenceScore": 0 ile 100 arası tam sayı}
 Net bir tehlike görmüyorsan boş dizi [] döndür.`;
 
+// Kullanıcıya/ağ yanıtına HAM NVIDIA hata metni (model adı, hesap kimliği vb.) GİTMEZ; ayrıntı
+// yalnızca sunucu günlüğüne (Vercel Logs) yazılır, istemciye HTTP durumuna uygun Türkçe mesaj döner.
+function friendlyUpstreamError(status) {
+  if (status === 429) return "Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin.";
+  if (status === 504) return "AI yanıtı zaman aşımına uğradı. Lütfen tekrar deneyin.";
+  if (status === 401 || status === 403) return "AI servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.";
+  return "Fotoğraf şu anda analiz edilemedi. Lütfen birazdan tekrar deneyin.";
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -216,10 +225,11 @@ export default async function handler(req, res) {
     }
     if (!response) {
       const timedOut = lastNetworkError?.name === "TimeoutError" || lastNetworkError?.name === "AbortError";
-      res.status(504).json({
+      console.error("[cosmos-vision] NVIDIA isteği başarısız:", lastNetworkError?.name, lastNetworkError?.message);
+      res.status(timedOut ? 504 : 502).json({
         error: timedOut
           ? "AI yanıtı zaman aşımına uğradı. Lütfen tekrar deneyin (daha küçük bir fotoğraf da yardımcı olabilir)."
-          : "NVIDIA API'sine ulaşılamadı" + (lastNetworkError ? ": " + lastNetworkError.message : "."),
+          : "AI servisine ulaşılamadı. Lütfen birazdan tekrar deneyin.",
       });
       return;
     }
@@ -231,26 +241,21 @@ export default async function handler(req, res) {
     let data = null;
     try { data = JSON.parse(rawText); } catch { data = null; }
     if (data === null || typeof data !== "object") {
-      res.status(response.status >= 400 ? response.status : 502).json({
-        error: `NVIDIA API beklenmeyen yanıt döndürdü (HTTP ${response.status}, model: ${usedModel}): ${rawText.slice(0, 300)}`,
-      });
+      console.error(`[cosmos-vision] beklenmeyen yanıt (HTTP ${response.status}, model: ${usedModel}):`, rawText.slice(0, 300));
+      const unexpectedStatus = response.status >= 400 ? response.status : 502;
+      res.status(unexpectedStatus).json({ error: friendlyUpstreamError(unexpectedStatus) });
       return;
     }
-    // Hata durumunda NVIDIA {status,title,detail} veya {error:{message}} döndürüyor; istemci
-    // yalnızca `error` alanını okuduğu için detay `error` alanına taşınır.
+    // Hata durumunda NVIDIA {status,title,detail} veya {error:{message}} döndürüyor; ham metin
+    // yalnızca günlüğe yazılır, istemciye durum koduna uygun Türkçe mesaj gider.
     if (!response.ok) {
-      const detail =
-        (typeof data.error === "string" && data.error) ||
-        data.error?.message ||
-        data.detail ||
-        data.message ||
-        data.title ||
-        JSON.stringify(data).slice(0, 300);
-      res.status(response.status).json({ error: `NVIDIA API hatası (HTTP ${response.status}, model: ${usedModel}): ${detail}` });
+      console.error(`[cosmos-vision] NVIDIA hatası (HTTP ${response.status}, model: ${usedModel}):`, JSON.stringify(data).slice(0, 500));
+      res.status(response.status).json({ error: friendlyUpstreamError(response.status) });
       return;
     }
     res.status(response.status).json(data);
   } catch (err) {
-    res.status(502).json({ error: "NVIDIA API'sine ulaşılamadı: " + err.message });
+    console.error("[cosmos-vision] beklenmeyen hata:", err?.name, err?.message);
+    res.status(502).json({ error: "AI servisine ulaşılamadı. Lütfen birazdan tekrar deneyin." });
   }
 }

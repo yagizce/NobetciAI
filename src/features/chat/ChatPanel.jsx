@@ -203,6 +203,8 @@ export default function ChatPanel({ contextId: initialContextId }) {
       let errorText;
       if (status === 429) {
         errorText = "Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin.";
+      } else if (status === 504) {
+        errorText = "AI yanıtı çok uzun sürdü. Lütfen tekrar deneyin.";
       } else if (status && status >= 500) {
         errorText = "Sunucu tarafında geçici bir sorun oluştu. Lütfen birazdan tekrar deneyin.";
       } else if (status) {

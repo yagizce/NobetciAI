@@ -4,6 +4,10 @@
 
 const API_ENDPOINT = "/api/chat";
 const KIMI_API_ENDPOINT = "/api/kimi-chat";
+// Sunucu tarafı NVIDIA zaman aşımı 50 sn / Vercel maxDuration 60 sn (bkz. api/kimi-chat.js);
+// istemci bunun biraz üstünde bekler — takılan bir ağ isteği "yazıyor..." ekranında sonsuza
+// dek kalmasın. Zaman aşımı mevcut hata kodu yapısıyla (`api_error_504`) bildirilir.
+const KIMI_REQUEST_TIMEOUT_MS = 65_000;
 
 /**
  * @param {{system?: string, messages: Array<{role: string, content: any}>, max_tokens?: number}} payload
@@ -34,23 +38,28 @@ export async function sendChatMessage({ system, messages, max_tokens = 1000 }) {
  * @returns {Promise<{text: string|null, reasoningContent: string|null, toolCalls: any[]|null}|null>}
  */
 export async function sendKimiChatMessage({ system, messages, max_tokens = 1000 }) {
-  const response = await fetch(KIMI_API_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ system, messages, max_tokens }),
-  });
-  const data = await response.json().catch(() => null);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), KIMI_REQUEST_TIMEOUT_MS);
+  let response;
+  let data;
+  try {
+    response = await fetch(KIMI_API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({ system, messages, max_tokens }),
+    });
+    data = await response.json().catch(() => null);
+  } catch (err) {
+    if (err?.name === "AbortError") throw new Error("api_error_504");
+    throw err; // ağ hatası (TypeError) — ChatPanel "bağlantı" mesajı gösterir
+  } finally {
+    clearTimeout(timer);
+  }
   if (!response.ok) {
-    // DÜZELTME (teşhis edilebilirlik): önceden yalnızca HTTP durum kodu taşınıyordu,
-    // NVIDIA/sunucu tarafının döndürdüğü asıl hata metni (örn. eksik NVIDIA_API_KEY,
-    // model adı hatası) hiçbir yere yazılmıyordu — prod'da "neden başarısız oldu"
-    // sorusu yalnızca status koduyla cevaplanamıyordu. Kullanıcıya gösterilen mesaj
-    // ChatPanel.jsx'te status koduna göre üretilmeye devam ediyor (değişmedi),
-    // bu yalnızca konsola ek teşhis bilgisi ekliyor.
     console.error("Kimi K3 API hatası:", response.status, data?.error || data);
     throw new Error("api_error_" + response.status);
   }
-  // NVIDIA'nın OpenAI-uyumlu chat completions yanıt şekli: choices[0].message.{content,reasoning_content,tool_calls}
   const message = data?.choices?.[0]?.message;
   if (!message) return null;
   return {
