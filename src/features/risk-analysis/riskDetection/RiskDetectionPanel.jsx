@@ -82,8 +82,10 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
     const approved = findings.filter((f) => f.approved);
     try {
       const photo = photoDataUrl ? await saveRiskDetectionPhoto(photoDataUrl) : null;
+      const createdIds = []; // bu fotoğraftan YENİ açılan kayıtlar — birbirleriyle birleşmesin
       for (const f of approved) {
-        await addDetection(f.category, location, "photo", departmentId, {
+        const saved = await addDetection(f.category, location, "photo", departmentId, {
+          excludeMergeIds: createdIds,
           // İnceleme panelinde düzenlenebilen tehlike BAŞLIĞI da kayda taşınır (daha önce sessizce
           // atılıyordu); başlık açıklamayla aynıysa tekrarlanmaz.
           hazardNote: f.hazard && f.hazard !== f.description ? `${f.hazard}: ${f.description}` : f.description,
@@ -94,6 +96,7 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
           legislationRef: f.legislationRef,
           confidenceScore: f.confidenceScore,
         });
+        if (saved.occurrenceCount === 1) createdIds.push(saved.id);
       }
       setFormOpen(false);
       resetPhoto();

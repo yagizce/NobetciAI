@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getRiskDetections, saveRiskDetection, deleteRiskDetection } from "../../../services/riskDetectionService.js";
-import { computeRiskDetectionStats } from "../../../constants/riskDetection.js";
+import { computeRiskDetectionStats, findOpenDetection, mergeFindingIntoDetection } from "../../../constants/riskDetection.js";
 import { logActivity } from "../../../services/auditService.js";
 import { pushSystemNotification } from "../../../services/systemNotificationService.js";
 import { useRole } from "../../../contexts/RoleContext.jsx";
@@ -13,6 +13,11 @@ export function useRiskDetections(initialSearch = "") {
   const [detections, setDetections] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  // `addDetection` arka arkaya (tek fotoğrafın birden fazla bulgusu) await'lerle çağrılabilir;
+  // `detections` state'i o döngü boyunca BAYAT kalır → aynı kayıtla ikinci birleşmede sayaç
+  // +2 yerine +1 oluyordu. Ref, her yazımdan hemen sonra güncel listeyi senkron tutar.
+  const detectionsRef = useRef(detections);
+  detectionsRef.current = detections;
 
   const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -35,14 +40,16 @@ export function useRiskDetections(initialSearch = "") {
   // bu bilinçli: kapanmış bir tehlikenin yeniden görülmesi, gerçekten yeni bir olaydır.
   const addDetection = useCallback(async (category, location, source, departmentId = null, extra = {}) => {
     const nowIso = new Date().toISOString();
-    const existing = detections.find(
-      (d) => d.category === category && d.location === location && (d.status === "new" || d.status === "reviewing")
-    );
+    // `extra.excludeMergeIds` (kalıcı kayda YAZILMAZ): aynı toplu kayıtta yeni açılan kayıtlar
+    // birleşme hedefi olmasın — bkz. constants/riskDetection.js → findOpenDetection.
+    const existing = findOpenDetection(detectionsRef.current, category, location, extra.excludeMergeIds);
 
     if (existing) {
-      const updated = { ...existing, occurrenceCount: existing.occurrenceCount + 1, lastSeenAt: nowIso };
+      const updated = mergeFindingIntoDetection(existing, extra, nowIso);
       await saveRiskDetection(updated);
-      setDetections((prev) => prev.map((d) => (d.id === existing.id ? updated : d)));
+      const next = detectionsRef.current.map((d) => (d.id === existing.id ? updated : d));
+      detectionsRef.current = next;
+      setDetections(next);
       return updated;
     }
 
@@ -74,7 +81,9 @@ export function useRiskDetections(initialSearch = "") {
       confidenceScore: typeof extra.confidenceScore === "number" ? extra.confidenceScore : null,
     };
     await saveRiskDetection(fresh);
-    setDetections((prev) => [fresh, ...prev]);
+    const nextList = [fresh, ...detectionsRef.current];
+    detectionsRef.current = nextList;
+    setDetections(nextList);
     logActivity({
       actor: source === "manual" || source === "photo" ? getRoleLabel(role) : "Sistem (Demo Simülasyonu)",
       action: source === "photo" ? "Yeni risk tespiti (fotoğraf)" : "Yeni risk tespiti",
@@ -83,7 +92,7 @@ export function useRiskDetections(initialSearch = "") {
     });
     pushSystemNotification({ type: "riskDetection", title: "Yeni Risk Tespiti", message: `${location} konumunda yeni bir tespit var.` });
     return fresh;
-  }, [detections, role]);
+  }, [role]);
 
   const updateStatus = useCallback(async (id, status, extra = {}) => {
     const current = detections.find((d) => d.id === id);

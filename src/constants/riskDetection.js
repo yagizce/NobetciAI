@@ -54,3 +54,47 @@ export function computeRiskDetectionStats(detections) {
   }
   return { newCount, reviewingCount, convertedCount, dismissedCount, openCount: newCount + reviewingCount, totalCount: detections.length };
 }
+
+/**
+ * Biriktirme (accumulation) hedefi: aynı kategori+konum için AÇIK (new/reviewing) kayıt.
+ * `excludeIds`: aynı toplu kayıtta (tek fotoğrafın birden fazla bulgusu) o anda YENİ açılan
+ * kayıtlar — aynı fotoğraftaki iki farklı bulgu (örn. baret + eldiven, ikisi de "ppe")
+ * birbirinin içine birleşip birinin metnini kaybetmesin.
+ * @param {Array<object>} detections
+ * @param {string} category
+ * @param {string} location
+ * @param {Array<string|number>} [excludeIds]
+ */
+export function findOpenDetection(detections, category, location, excludeIds = []) {
+  return detections.find(
+    (d) => d.category === category && d.location === location
+      && (d.status === "new" || d.status === "reviewing")
+      && !excludeIds.includes(d.id)
+  );
+}
+
+/**
+ * Yeni bir bulgu mevcut açık kayıtla birleşirken kaydı günceller: sayaç artar ve YENİ
+ * bulgunun kanıtı/metni korunur (önceden yalnızca sayaç artıyor, yeni bulgunun fotoğrafı ve
+ * metni sessizce kayboluyordu). Gelen alan boşsa mevcut değer ezilmez (örn. manuel not
+ * girilmeden tekrar eklenen kayıt, AI açıklamasını silmez). photoId ve photoDataUrl birlikte
+ * tutulmaz (bkz. types/index.js → RiskDetection): yeni fotoğraf hangisiyse o geçerli olur.
+ * @param {object} existing
+ * @param {object} extra - addDetection'a verilen ek alanlar
+ * @param {string} nowIso
+ */
+export function mergeFindingIntoDetection(existing, extra = {}, nowIso) {
+  const merged = { ...existing, occurrenceCount: existing.occurrenceCount + 1, lastSeenAt: nowIso };
+  if (extra.photoId) {
+    merged.photoId = extra.photoId;
+    merged.photoDataUrl = null;
+  } else if (extra.photoDataUrl) {
+    merged.photoDataUrl = extra.photoDataUrl;
+    merged.photoId = null;
+  }
+  for (const key of ["hazardNote", "description", "recommendedAction", "affected", "legislationRef"]) {
+    if (extra[key]) merged[key] = extra[key];
+  }
+  if (typeof extra.confidenceScore === "number") merged.confidenceScore = extra.confidenceScore;
+  return merged;
+}
