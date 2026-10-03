@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  getAudits, createAudit, saveAudit, updateChecklistItem, completeAudit, deleteAudit,
-  getAuditFindings, openDifFromFinding, updateDifStage, addDifEvidence, removeDifEvidence, saveDifDetails,
+  getAudits, createAudit, saveAudit, completeAudit, deleteAudit,
+  getAuditFindings, openDifFromFinding, updateDifStage, addDifEvidence, removeDifEvidence, saveDifDetails, canCreateDif,
 } from "../../services/auditManagementService.js";
+import { computeAuditStatus } from "../../constants/auditWorkflow.js";
 import { logActivity } from "../../services/auditService.js";
 import { pushSystemNotification } from "../../services/systemNotificationService.js";
 import { useRole } from "../../contexts/RoleContext.jsx";
+import { useToast } from "../../contexts/ToastContext.jsx";
 import { useCompany } from "../../hooks/useCompany.js";
 import { getRoleLabel } from "../../constants/allRoles.js";
 import { scopeFindingsToAudits } from "../../utils/auditScope.js";
@@ -30,10 +32,26 @@ import { scopeFindingsToAudits } from "../../utils/auditScope.js";
 export function useAudits({ standard, standardLabel }) {
   const { role } = useRole();
   const { company } = useCompany();
+  const { showToast } = useToast();
   const [audits, setAudits] = useState([]);
   const [findings, setFindings] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  // Denetim yazımları (checklist maddesi sonucu/notu, tamamlama) ARKA ARKAYA ve hızlı gelir
+  // (not alanı her tuşta kaydeder). Her yazım, çağıranın bayat `audit` prop'unu değil ref'teki
+  // EN GÜNCEL denetimi sıralı yazar — aksi halde ardışık düzenlemeler birbirini eziyor,
+  // kontrollü input'ta karakterler düşüyordu.
+  const auditsRef = useRef(audits);
+  auditsRef.current = audits;
+  const writeQueueRef = useRef(Promise.resolve());
+  // Aynı maddeden art arda (çift dokunma) DİF açma isteği tek isteğe indirilir.
+  const openingDifRef = useRef(new Map());
+
+  const enqueueAuditWrite = useCallback((task) => {
+    const job = writeQueueRef.current.then(task);
+    writeQueueRef.current = job.catch(() => {});
+    return job;
+  }, []);
 
   const reload = useCallback(() => {
     Promise.all([getAudits(), getAuditFindings()])
@@ -71,17 +89,39 @@ export function useAudits({ standard, standardLabel }) {
   }, []);
 
   const setChecklistResult = useCallback(async (audit, itemId, patch) => {
-    const saved = await updateChecklistItem(audit, itemId, patch);
-    setAudits((prev) => prev.map((a) => (a.id === saved.id ? saved : a)));
-    return saved;
-  }, []);
+    // Optimistik: yerel state ANINDA güncellenir (kontrollü input gecikmesiz kalır), kalıcı
+    // yazım sıraya alınır ve ref'teki en güncel denetimi yazar.
+    const base = auditsRef.current.find((a) => a.id === audit.id) || audit;
+    const optimistic = { ...base, checklist: base.checklist.map((item) => (item.id === itemId ? { ...item, ...patch } : item)) };
+    auditsRef.current = auditsRef.current.map((a) => (a.id === optimistic.id ? optimistic : a));
+    setAudits(auditsRef.current);
+    try {
+      return await enqueueAuditWrite(() => saveAudit(auditsRef.current.find((a) => a.id === audit.id) || optimistic));
+    } catch (err) {
+      console.error("Denetim maddesi kaydedilemedi:", err);
+      showToast("Değişiklik kaydedilemedi. Lütfen tekrar deneyin.", "error");
+      reload(); // ekranı kayıtlı gerçek durumla yeniden eşitle
+      return null;
+    }
+  }, [enqueueAuditWrite, reload, showToast]);
 
   const finishAudit = useCallback(async (audit) => {
-    const saved = await completeAudit(audit);
-    setAudits((prev) => prev.map((a) => (a.id === saved.id ? saved : a)));
-    logActivity({ actor: getRoleLabel(role), action: "Denetim tamamlandı", details: audit.scopeDescription || `#${audit.id}`, entityType: "audit" });
-    return saved;
-  }, [role]);
+    try {
+      // Bekleyen madde yazımlarından SONRA, en güncel denetimle tamamlanır (bayat prop'u yazmaz).
+      const saved = await enqueueAuditWrite(() => completeAudit(auditsRef.current.find((a) => a.id === audit.id) || audit));
+      // BUG FIX: durum kayıtta saklanmıyor, getAudits her okumada hesaplıyordu; burada ise
+      // eski "Devam Ediyor" değeri state'te kalıp denetim sayfa yenilenene dek KİLİTLENMİYORDU.
+      const completed = { ...saved, status: computeAuditStatus(saved) };
+      auditsRef.current = auditsRef.current.map((a) => (a.id === completed.id ? completed : a));
+      setAudits(auditsRef.current);
+      logActivity({ actor: getRoleLabel(role), action: "Denetim tamamlandı", details: audit.scopeDescription || `#${audit.id}`, entityType: "audit" });
+      return completed;
+    } catch (err) {
+      console.error("Denetim tamamlanamadı:", err);
+      showToast("Denetim tamamlanamadı. Lütfen tekrar deneyin.", "error");
+      return null;
+    }
+  }, [role, enqueueAuditWrite, showToast]);
 
   const removeAudit = useCallback(async (id) => {
     const audit = audits.find((a) => a.id === id);
@@ -90,19 +130,35 @@ export function useAudits({ standard, standardLabel }) {
     logActivity({ actor: getRoleLabel(role), action: "Denetim silindi", details: audit?.scopeDescription || `#${id}`, entityType: "audit" });
   }, [audits, role]);
 
-  const openFinding = useCallback(async (audit, checklistItem, extra) => {
-    const dif = await openDifFromFinding(audit, checklistItem, extra);
-    setFindings((prev) => (prev.some((f) => f.id === dif.id) ? prev : [dif, ...prev]));
-    // BUG FIX: checklistItem.clauseCode yalnızca ISO 45001'de var — Mevzuat
-    // kriterlerinde (article/legislationName kullanılır) "undefined" olarak
-    // loglanıyordu. Artık ikisini de kapsayan ortak bir referans etiketi kullanılıyor.
-    const criterionRef = checklistItem.clauseCode || checklistItem.article || checklistItem.id;
-    logActivity({ actor: getRoleLabel(role), action: "DİF açıldı", details: `${criterionRef} — ${dif.description}`, entityType: "audit" });
-    if (dif.dueDate) {
-      pushSystemNotification({ type: "difDue", title: "Yeni DİF açıldı", message: `${dif.description} — termin: ${dif.dueDate}` });
-    }
-    return dif;
-  }, [role]);
+  const openFinding = useCallback((audit, checklistItem, extra) => {
+    const key = `${audit.id}:${checklistItem.id}`;
+    const pending = openingDifRef.current.get(key);
+    if (pending) return pending; // çift dokunma: ikinci DİF/log/bildirim oluşmaz
+    const task = (async () => {
+      try {
+        const dif = await openDifFromFinding(audit, checklistItem, extra);
+        setFindings((prev) => (prev.some((f) => f.id === dif.id) ? prev : [dif, ...prev]));
+        // BUG FIX: checklistItem.clauseCode yalnızca ISO 45001'de var — Mevzuat
+        // kriterlerinde (article/legislationName kullanılır) "undefined" olarak
+        // loglanıyordu. Artık ikisini de kapsayan ortak bir referans etiketi kullanılıyor.
+        const criterionRef = checklistItem.clauseCode || checklistItem.article || checklistItem.id;
+        logActivity({ actor: getRoleLabel(role), action: "DİF açıldı", details: `${criterionRef} — ${dif.description}`, entityType: "audit" });
+        if (dif.dueDate) {
+          pushSystemNotification({ type: "difDue", title: "Yeni DİF açıldı", message: `${dif.description} — termin: ${dif.dueDate}` });
+        }
+        return dif;
+      } catch (err) {
+        console.error("Uygunsuzluk (DİF) oluşturulamadı:", err);
+        const gate = canCreateDif(checklistItem);
+        showToast(gate.allowed ? "Uygunsuzluk (DİF) oluşturulamadı. Lütfen tekrar deneyin." : gate.reason, "error");
+        return null;
+      } finally {
+        openingDifRef.current.delete(key);
+      }
+    })();
+    openingDifRef.current.set(key, task);
+    return task;
+  }, [role, showToast]);
 
   /**
    * DİF durum geçişi — merkezi doğrulama servis katmanında yapılır (bkz.
@@ -127,23 +183,43 @@ export function useAudits({ standard, standardLabel }) {
     return saved;
   }, [role, company]);
 
+  // Bu üç çağrı arayüzde await edilmiyor (alandan çıkınca/ekle düğmesinde "ateşle-unut") —
+  // başarısız kayıt sessizce kaybolmasın diye kullanıcıya bildirilir.
   const addEvidence = useCallback(async (dif, file) => {
-    const saved = await addDifEvidence(dif, file);
-    setFindings((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
-    return saved;
-  }, []);
+    try {
+      const saved = await addDifEvidence(dif, file);
+      setFindings((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
+      return saved;
+    } catch (err) {
+      console.error("DİF kanıtı eklenemedi:", err);
+      showToast("Kanıt eklenemedi. Lütfen tekrar deneyin.", "error");
+      return null;
+    }
+  }, [showToast]);
 
   const removeEvidence = useCallback(async (dif, evidenceId) => {
-    const saved = await removeDifEvidence(dif, evidenceId);
-    setFindings((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
-    return saved;
-  }, []);
+    try {
+      const saved = await removeDifEvidence(dif, evidenceId);
+      setFindings((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
+      return saved;
+    } catch (err) {
+      console.error("DİF kanıtı silinemedi:", err);
+      showToast("Kanıt silinemedi. Lütfen tekrar deneyin.", "error");
+      return null;
+    }
+  }, [showToast]);
 
   const updateDif = useCallback(async (dif) => {
-    const saved = await saveDifDetails(dif);
-    setFindings((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
-    return saved;
-  }, []);
+    try {
+      const saved = await saveDifDetails(dif);
+      setFindings((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
+      return saved;
+    } catch (err) {
+      console.error("DİF değişiklikleri kaydedilemedi:", err);
+      showToast("Değişiklikler kaydedilemedi. Lütfen tekrar deneyin.", "error");
+      return null;
+    }
+  }, [showToast]);
 
   return {
     audits, findings, loaded, loadError, reload,

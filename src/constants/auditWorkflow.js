@@ -143,6 +143,33 @@ export function applyDifTransition(dif, newStage, { patch = {}, actorLabel, reas
   };
 }
 
+// DİF detay çekmecesinde KULLANICININ düzenlediği alanlar. Kalıcı yazımda yalnızca bunlar
+// TAZE DİF kaydının üstüne uygulanır — çekmecenin yerel `fields` kopyası bir aşama
+// geçişinden sonra bayat kalır (stage/history/closedAt eski), bütün nesneyi yazmak DİF'i
+// eski aşamaya döndürüp geçiş geçmişini silerdi.
+export const DIF_EDITABLE_FIELDS = ["responsible", "dueDate", "rootCause", "correctiveAction", "actionCompleted", "actionEvidence", "closureNote"];
+
+/**
+ * @param {object} fields
+ * @returns {object} yalnızca düzenlenebilir (ve mevcut) alanlar
+ */
+export function pickDifEditableFields(fields) {
+  const out = {};
+  for (const key of DIF_EDITABLE_FIELDS) {
+    if (fields && key in fields) out[key] = fields[key];
+  }
+  return out;
+}
+
+/**
+ * @param {import("../types/index.js").AuditFinding} freshDif - güncel kayıt (aşama, geçmiş, kanıtlar)
+ * @param {object} fields - çekmecedeki düzenlenebilir alan değerleri (bayat olabilir)
+ * @returns {import("../types/index.js").AuditFinding}
+ */
+export function mergeDifEditableFields(freshDif, fields) {
+  return { ...freshDif, ...pickDifEditableFields(fields) };
+}
+
 /**
  * @param {import("../types/index.js").AuditFinding} dif
  * @returns {boolean}

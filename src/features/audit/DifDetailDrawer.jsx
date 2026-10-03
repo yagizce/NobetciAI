@@ -6,7 +6,7 @@ import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
-import { DIF_STAGES, getDifStageIndex, isDifOverdue, canTransitionDifStage } from "../../constants/auditWorkflow.js";
+import { DIF_STAGES, getDifStageIndex, isDifOverdue, canTransitionDifStage, pickDifEditableFields, mergeDifEditableFields } from "../../constants/auditWorkflow.js";
 import { getResultMeta } from "../../constants/auditScoring.js";
 import { X, Paperclip, ImageIcon, FileText, Trash2, CheckCircle2, RotateCcw, AlertTriangle } from "../../components/icons/index.jsx";
 
@@ -63,8 +63,10 @@ export default function DifDetailDrawer({ dif, onClose, canManage, onStageChange
   const overdue = isDifOverdue(dif);
   const currentIndex = getDifStageIndex(dif.stage);
 
-  function commitFields(patch = fields) {
-    onSaveFields(patch);
+  function commitFields(next = fields) {
+    // `fields` bayat olabilir (aşama geçişinden sonra stage/history/closedAt eski kalır) —
+    // yalnızca düzenlenebilir alanlar TAZE `dif` üzerine yazılır (bkz. auditWorkflow.js).
+    onSaveFields(mergeDifEditableFields(dif, next));
   }
 
   function checkTransition(toStage, patch = {}, isReopenAction = false) {
@@ -75,7 +77,9 @@ export default function DifDetailDrawer({ dif, onClose, canManage, onStageChange
     setTransitionError(null);
     setBusy(true);
     try {
-      await onStageChange(dif, toStage, options);
+      // Geçişle birlikte tüm düzenlenebilir alanlar da yazılır: az önce odağı kaybeden bir
+      // alanın (henüz tamamlanmamış) kaydı, bayat `dif` tabanlı bu yazımla ezilmesin.
+      await onStageChange(dif, toStage, { ...options, patch: { ...pickDifEditableFields(fields), ...options.patch } });
     } catch (err) {
       setTransitionError(err.message || "Bu durum geçişine izin verilmiyor.");
     } finally {
