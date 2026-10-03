@@ -52,7 +52,11 @@ export default function DifDetailDrawer({ dif, onClose, canManage, onStageChange
     if (reopening) setReopening(false);
   }
 
-  if (!dif) return null;
+  // Çekmece sayfayla birlikte dif=null iken monte olur; ilk açılışta `fields` (yukarıdaki
+  // render-içi setFields ile) henüz bu DİF'e eşitlenmemiş olabilir. Bu geçişte aşağıdaki
+  // `fields.*` okumaları null'a çarpıp ErrorBoundary'ye düşüyordu. React, setFields sonrası
+  // hemen yeniden çizeceği için bu tur boş dönmek yeterli — kullanıcı bir şey görmez.
+  if (!dif || fields?.id !== dif.id) return null;
   // BUG FIX: önceden isoStandards.js'teki ISO'ya özgü getFindingTypeMeta/getStandardLabel
   // kullanılıyordu — Mevzuat kaynaklı bir DİF'te dif.type "uygun_degil"/"kismen_uygun"
   // olduğu ve dif.standard/clauseCode hiç set edilmediği için rozet "undefined —
