@@ -25,6 +25,13 @@ export default function NoSkipVideoPlayer({ theme, videoUrl, initialPositionSeco
   const maxWatchedTime = useRef(initialPositionSeconds);
   const lastProgressSaveAt = useRef(0);
   const resumeAppliedRef = useRef(false);
+  // Çıkışta (unmount) kayıt için: React, passive cleanup çalışmadan ÖNCE `videoRef.current`'ı
+  // null'a çekiyor — bu yüzden son süre/ilerleme ref'lerde tutulur. `lastSavedMaxRef` zaten
+  // yazılmış ilerlemeyi izler; çıkışta yalnızca YENİ ilerleme varsa tek bir yazım yapılır.
+  const durationRef = useRef(0);
+  const lastSavedMaxRef = useRef(initialPositionSeconds);
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
   const [progressPercent, setProgressPercent] = useState(0);
   const [fullyWatched, setFullyWatched] = useState(false);
   // UX FIX (Eğitim cilası): video URL'si yüklenemezse (bozuk bağlantı, ağ hatası vb.)
@@ -33,13 +40,20 @@ export default function NoSkipVideoPlayer({ theme, videoUrl, initialPositionSeco
   // Türkçe mesaj gösteriliyor.
   const [videoError, setVideoError] = useState(false);
 
+  function persistProgress(duration) {
+    if (!onProgressRef.current) return;
+    lastSavedMaxRef.current = maxWatchedTime.current;
+    onProgressRef.current(maxWatchedTime.current, duration);
+  }
+
   function saveProgress(video) {
-    if (!video || !video.duration || !onProgress) return;
-    onProgress(maxWatchedTime.current, video.duration);
+    if (!video || !video.duration) return;
+    persistProgress(video.duration);
   }
 
   function handleLoadedMetadata() {
     const video = videoRef.current;
+    if (video && video.duration) durationRef.current = video.duration;
     if (!video || resumeAppliedRef.current) return;
     resumeAppliedRef.current = true;
     if (initialPositionSeconds > 0 && initialPositionSeconds < video.duration - 1) {
@@ -51,6 +65,7 @@ export default function NoSkipVideoPlayer({ theme, videoUrl, initialPositionSeco
   function handleTimeUpdate() {
     const video = videoRef.current;
     if (!video || !video.duration) return;
+    durationRef.current = video.duration;
     if (video.currentTime > maxWatchedTime.current) {
       maxWatchedTime.current = video.currentTime;
       setProgressPercent(Math.min(100, Math.round((maxWatchedTime.current / video.duration) * 100)));
@@ -84,9 +99,15 @@ export default function NoSkipVideoPlayer({ theme, videoUrl, initialPositionSeco
     onFullyWatched();
   }
 
-  // Kullanıcı sekmeyi/pencereyi kapatmadan önce son ilerlemeyi kaydet.
+  // Oynatıcı kapanırken (X, arka plan, Escape, sınava geçiş) son ilerlemeyi kaydet.
+  // ESKİ HATA: burada `saveProgress(videoRef.current)` çağrılıyordu ama cleanup anında ref zaten
+  // null olduğu için hiçbir şey yazılmıyordu (son ≤5 sn kayboluyor, <5 sn izlemede hiç kayıt yoktu).
   useEffect(() => {
-    return () => saveProgress(videoRef.current);
+    return () => {
+      if (durationRef.current > 0 && maxWatchedTime.current > lastSavedMaxRef.current) {
+        persistProgress(durationRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

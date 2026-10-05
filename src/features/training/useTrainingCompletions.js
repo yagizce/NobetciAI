@@ -13,7 +13,7 @@ import { useToast } from "../../contexts/ToastContext.jsx";
  *   progress: import("../../types/index.js").TrainingProgress[],
  *   loaded: boolean,
  *   error: Error|null,
- *   recordCompletion: (data: { courseId: string, employeeName: string, watchedFullVideo: boolean, quizScore: number, passed: boolean }) => Promise<void>,
+ *   recordCompletion: (data: { courseId: string, employeeName: string, watchedFullVideo: boolean, quizScore: number, passed: boolean }) => Promise<boolean>,
  *   recordProgress: (data: { courseId: string, employeeName: string, positionSeconds: number, durationSeconds: number }) => Promise<void>,
  * }}
  */
@@ -52,6 +52,8 @@ export function useTrainingCompletions() {
   // TrainingCompletion kaydı (uzaktan eğitimin verildiğinin belgesi — bkz. CoursePlayer.jsx
   // dosya başı yorumu) SESSİZCE hiç oluşmamış oluyordu. Artık hata konsola yazılıyor ve
   // kullanıcıya net bir toast ile bildiriliyor.
+  // Dönüş değeri: kayıt GERÇEKTEN oluştuysa true, başarısızsa false (toast yine gösterilir).
+  // CoursePlayer.jsx sonucu bekleyip yalnızca true ise "tamamlandı/belge" durumunu gösterir.
   const recordCompletion = useCallback(async (data) => {
     try {
       const saved = await saveTrainingCompletion(data);
@@ -62,9 +64,11 @@ export function useTrainingCompletions() {
         details: `${data.courseId} — %${data.quizScore}`,
         entityType: "training",
       });
+      return true;
     } catch (err) {
       console.error("Eğitim tamamlama kaydı oluşturulamadı:", err);
       showToast("Sınav sonucu kaydedilemedi. Lütfen sınavı tekrar tamamlayın.", "error");
+      return false;
     }
   }, [showToast]);
 
