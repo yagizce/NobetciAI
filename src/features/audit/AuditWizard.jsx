@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "../../components/ui/Modal.jsx";
 import Button from "../../components/ui/Button.jsx";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
+import { useToast } from "../../contexts/ToastContext.jsx";
 import { todayISO } from "../../utils/dateUtils.js";
 import { ChevronLeft } from "../../components/icons/index.jsx";
 
@@ -23,6 +24,7 @@ const STEP_LABELS = ["Kapsam", "Özet"];
  */
 export default function AuditWizard({ open, onClose, onCreate, companyName, departments, standardLabel, generateChecklist }) {
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const [step, setStep] = useState(0);
   const [scopeDescription, setScopeDescription] = useState("");
   const [scopeDepartmentIds, setScopeDepartmentIds] = useState([]);
@@ -49,6 +51,17 @@ export default function AuditWizard({ open, onClose, onCreate, companyName, depa
         checklist: generateChecklist(),
       });
       close();
+    } catch (err) {
+      // Kayıt başarısız olursa pencere AÇIK kalır (girilen kapsam kaybolmaz) ve kullanıcıya
+      // anlaşılır bir mesaj gösterilir — önceden hata yakalanmıyor, hiçbir şey olmuyordu.
+      console.error("Denetim oluşturulamadı:", err);
+      const noCompany = /aktif firma/.test(err?.message || "");
+      showToast(
+        noCompany
+          ? "Denetim oluşturulamadı: aktif firma bulunamadı. Önce firma bilgilerinizi oluşturun."
+          : "Denetim oluşturulamadı. Lütfen tekrar deneyin.",
+        "error"
+      );
     } finally {
       setSubmitting(false);
     }
