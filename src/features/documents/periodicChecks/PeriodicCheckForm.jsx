@@ -19,9 +19,9 @@ export const EMPTY_PERIODIC_CHECK_FORM = {
 };
 
 /**
- * @param {{ theme: object, form: object, setForm: (f: object) => void, editingId: number|null, onSubmit: () => void, onCancel: () => void }} props
+ * @param {{ theme: object, form: object, setForm: (f: object) => void, editingId: number|null, onSubmit: () => void, submitting?: boolean, onCancel: () => void }} props
  */
-export default function PeriodicCheckForm({ theme, form, setForm, editingId, onSubmit, onCancel }) {
+export default function PeriodicCheckForm({ theme, form, setForm, editingId, onSubmit, submitting = false, onCancel }) {
   const { departments } = useCompanyOrgLists();
   const [existingPhotoPreview, setExistingPhotoPreview] = useState(null);
   const [photoCompressing, setPhotoCompressing] = useState(false);
@@ -129,7 +129,7 @@ export default function PeriodicCheckForm({ theme, form, setForm, editingId, onS
 
       <div className="flex gap-2">
         <Button variant="secondary" onClick={onCancel} className="flex-1">Vazgeç</Button>
-        <Button onClick={onSubmit} disabled={!form.itemName.trim() || !form.lastCheckDate} className="flex-1">
+        <Button onClick={onSubmit} disabled={!form.itemName.trim() || !form.lastCheckDate || submitting} className="flex-1">
           {editingId ? "Güncelle" : "Kaydet"}
         </Button>
       </div>

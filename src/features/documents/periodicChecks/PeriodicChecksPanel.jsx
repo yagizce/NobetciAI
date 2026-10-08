@@ -198,10 +198,21 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
   }
 
   async function handleMarkChecked(id) {
-    await markCheckedToday(id);
-    showToast("Kontrol bugün yapıldı olarak işaretlendi.", "success");
-    setDetailCheck(null);
+    // Kayıt başarısız olursa önceden hata yakalanmıyordu: kullanıcı hiçbir mesaj görmüyor,
+    // pencere açık kalıyordu. Başarı mesajı yalnızca kayıt gerçekten yazıldıysa gösterilir.
+    try {
+      await markCheckedToday(id);
+      showToast("Kontrol bugün yapıldı olarak işaretlendi.", "success");
+      setDetailCheck(null);
+    } catch (err) {
+      console.error("Kontrol işaretlenemedi:", err);
+      showToast("Kontrol kaydı güncellenemedi. Lütfen tekrar deneyin.", "error");
+    }
   }
+  // Çift tıklama koruması (bkz. hooks/useSubmitGuard.js): "Bugün Kontrol Edildi" ve "Sil"
+  // aynı işlemi iki kez çalıştırıp etkinlik günlüğüne/bildirime çift kayıt düşürüyordu.
+  const [guardedHandleMarkChecked] = useSubmitGuard(handleMarkChecked);
+  const [guardedHandleConfirmDelete] = useSubmitGuard(handleConfirmDelete);
 
   if (!loaded) return <Loading label="Periyodik kontroller yükleniyor..." />;
   // UX FIX (loading/empty state cilası): gerçek hata durumu, "henüz veri yok" ile
@@ -235,7 +246,7 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
       )}
 
       {formOpen && (
-        <PeriodicCheckForm theme={theme} form={form} setForm={setForm} editingId={editingId} onSubmit={handleSubmit} onCancel={resetForm} />
+        <PeriodicCheckForm theme={theme} form={form} setForm={setForm} editingId={editingId} onSubmit={guardedHandleSubmit} submitting={isSubmitting} onCancel={resetForm} />
       )}
 
       {totalCount > 0 && (
@@ -326,7 +337,7 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
                 onOpenDetail={setDetailCheck}
                 onEdit={openEditForm}
                 onDelete={setConfirmDeleteId}
-                onMarkChecked={handleMarkChecked}
+                onMarkChecked={guardedHandleMarkChecked}
                 selected={selectedIds.includes(c.id)}
                 onToggleSelect={toggleSelect}
               />
@@ -342,7 +353,7 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
         onClose={() => setDetailCheck(null)}
         onEdit={openEditForm}
         onDelete={setConfirmDeleteId}
-        onMarkChecked={handleMarkChecked}
+        onMarkChecked={guardedHandleMarkChecked}
       />
 
       <ConfirmDialog
@@ -351,7 +362,7 @@ export default function PeriodicChecksPanel({ initialSearch } = {}) {
         message="Bu periyodik kontrol kaydını silmek istediğine emin misin?"
         confirmLabel="Sil"
         danger
-        onConfirm={handleConfirmDelete}
+        onConfirm={guardedHandleConfirmDelete}
         onCancel={() => setConfirmDeleteId(null)}
       />
     </div>
