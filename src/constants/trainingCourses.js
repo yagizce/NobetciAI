@@ -1,16 +1,18 @@
 // Eğitim Modülü — kurs tanımları.
 //
-// Video: `videoUrl` şimdilik SABİT bir yer tutucudur (Blender Foundation'ın herkese açık,
-// telifsiz "Big Buck Bunny" örnek videosu — HTML5 video demo'larında yaygın kullanılan
-// standart bir test dosyasıdır). Gerçek İSG eğitim videoları (AI ile üretilecek olanlar
-// dahil) AYRI bir karara ve altyapıya bağlıdır — bkz. docs/AI_ROADMAP.md. Bu dosyadaki
-// video/sınav içeriği yalnızca akışı (izleme takibi → sınav → otomatik puanlama →
-// tamamlama kaydı) uçtan uca çalışır hale getirmek içindir.
+// Video: `videoUrl` şimdilik SABİT bir yer tutucudur: projenin kendi `public/videos/` klasöründeki
+// kısa (20 sn) test videosu. (Önceden Google'ın herkese açık "Big Buck Bunny" örnek dosyasına
+// bağlıydı; o bağlantı `AccessDenied` döndürmeye başlayınca hiçbir kurs oynamıyor ve sınava
+// geçilemiyordu — dış bağlantıya bağımlı kalmamak için kendi sunucumuzdan sunuluyor.) Gerçek
+// İSG eğitim videoları (AI ile üretilecek olanlar dahil) AYRI bir karara ve altyapıya bağlıdır —
+// bkz. docs/AI_ROADMAP.md; hazır olduğunda yalnızca bu adres değiştirilir. Bu dosyadaki
+// video/sınav içeriği yalnızca akışı (izleme takibi → sınav → otomatik puanlama → tamamlama
+// kaydı) uçtan uca çalışır hale getirmek içindir.
 //
 // Önceki `EDUCATION_MODULES` (yalnızca başlık listesi) buradan türetilir — bkz.
 // constants/education.js.
 
-const PLACEHOLDER_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const PLACEHOLDER_VIDEO_URL = "/videos/egitim-yer-tutucu.mp4";
 
 export const TRAINING_COURSES = [
   {
