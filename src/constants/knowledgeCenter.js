@@ -115,6 +115,23 @@ export function findRelevantDocuments(query, documents, maxResults = 3) {
 }
 
 /**
+ * Sayfadaki arama kutusunun eşleştirmesi (başlık + özet + etiket). Sorgu kelimelere bölünür ve
+ * HER kelimenin bu üç alanın birleşiminde bir yerde geçmesi yeterlidir — eskiden tüm sorgu tek
+ * bir ifade olarak tek bir alanda aranıyordu, bu yüzden "kkd rehber" ya da "eğitim sertifika"
+ * gibi çok kelimeli aramalar, kelimelerin ayrı alanlarda (başlık + etiket) geçtiği açıkça ilgili
+ * dokümanları bulamıyordu. Boş sorgu her şeyi eşleştirir.
+ * @param {object} doc
+ * @param {string} query
+ * @returns {boolean}
+ */
+export function matchesDocumentSearch(doc, query) {
+  const words = turkishLower(query || "").split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const haystack = turkishLower(`${doc.title} ${doc.summary} ${(doc.tags || []).join(" ")}`);
+  return words.every((w) => haystack.includes(w));
+}
+
+/**
  * Bir dokümanla aynı kategoriyi veya en az bir etiketi paylaşan diğer dokümanları bulur
  * (kendisi hariç). Doküman Detay ekranındaki "İlgili Dokümanlar" bölümü için.
  * @param {object} doc

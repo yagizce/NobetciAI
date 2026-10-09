@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { findRelevantDocuments, findRelatedDocuments } from "./knowledgeCenter.js";
+import { findRelevantDocuments, findRelatedDocuments, matchesDocumentSearch } from "./knowledgeCenter.js";
 
 const docs = [
   { id: 1, title: "Yüksekte Çalışma Yönetmeliği", summary: "Yüksekte çalışma güvenlik kuralları", content: "Düşme önleme ekipmanları zorunludur.", tags: ["yükseklik", "düşme"], category: "legislation" },
@@ -75,5 +75,34 @@ describe("findRelatedDocuments", () => {
     const target = docs[1]; // tags: kkd, ekipman
     const related = findRelatedDocuments(target, docs);
     assert.ok(related.some((d) => d.id === 3)); // "ekipman" etiketi ortak
+  });
+});
+
+describe("matchesDocumentSearch", () => {
+  const doc = { title: "KKD Seçim ve Kullanım Rehberi", summary: "Baret, eldiven, koruyucu gözlük gibi KKD'lerin doğru seçimi.", tags: ["kkd", "rehber"] };
+
+  test("boş sorgu her dokümanı eşleştirir", () => {
+    assert.equal(matchesDocumentSearch(doc, ""), true);
+    assert.equal(matchesDocumentSearch(doc, "   "), true);
+  });
+
+  test("tek kelime başlık, özet veya etikette eşleşir (Türkçe büyük/küçük harf duyarsız)", () => {
+    assert.equal(matchesDocumentSearch(doc, "REHBERİ"), true);
+    assert.equal(matchesDocumentSearch(doc, "eldiven"), true);
+    assert.equal(matchesDocumentSearch(doc, "kkd"), true);
+    assert.equal(matchesDocumentSearch(doc, "forklift"), false);
+  });
+
+  test("çok kelimeli sorguda kelimeler farklı alanlarda olsa da eşleşir", () => {
+    assert.equal(matchesDocumentSearch(doc, "kkd rehber"), true); // başlık + etiket
+    assert.equal(matchesDocumentSearch(doc, "baret rehberi"), true); // özet + başlık
+  });
+
+  test("kelimelerden biri hiçbir alanda yoksa eşleşmez", () => {
+    assert.equal(matchesDocumentSearch(doc, "kkd forklift"), false);
+  });
+
+  test("etiketi olmayan doküman hata vermez", () => {
+    assert.equal(matchesDocumentSearch({ title: "A", summary: "B" }, "a"), true);
   });
 });

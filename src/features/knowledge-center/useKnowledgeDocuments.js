@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import { MOCK_KNOWLEDGE_DOCUMENTS, KNOWLEDGE_CATEGORIES } from "../../constants/knowledgeCenter.js";
-import { turkishLower } from "../../utils/text.js";
+import { MOCK_KNOWLEDGE_DOCUMENTS, KNOWLEDGE_CATEGORIES, matchesDocumentSearch } from "../../constants/knowledgeCenter.js";
 
 /**
  * Sprint 6: Knowledge Center için arama + kategori + doküman türü filtrelemesini yönetir.
@@ -21,15 +20,10 @@ export function useKnowledgeDocuments(initialSearch = "") {
   }, []);
 
   const filteredDocuments = useMemo(() => {
-    const query = turkishLower(search.trim());
     return MOCK_KNOWLEDGE_DOCUMENTS.filter((doc) => {
       const matchesCategory = categoryFilter === "all" || doc.category === categoryFilter;
       const matchesType = typeFilter === "all" || doc.type === typeFilter;
-      const matchesSearch = !query
-        || turkishLower(doc.title).includes(query)
-        || turkishLower(doc.summary).includes(query)
-        || doc.tags.some((t) => turkishLower(t).includes(query));
-      return matchesCategory && matchesType && matchesSearch;
+      return matchesCategory && matchesType && matchesDocumentSearch(doc, search);
     });
   }, [search, categoryFilter, typeFilter]);
 

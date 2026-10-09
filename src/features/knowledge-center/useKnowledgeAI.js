@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { sendChatMessage } from "../../services/chatService.js";
 import { KNOWLEDGE_AI_PROMPT } from "../../constants/systemPrompt.js";
 import { findRelevantDocuments } from "../../constants/knowledgeCenter.js";
@@ -22,10 +22,14 @@ export function useKnowledgeAI(documents) {
   const [answer, setAnswer] = useState(null);
   const [sourceDocs, setSourceDocs] = useState([]);
   const [error, setError] = useState(null);
+  // Enter tuşu `loading` ile devre dışı bırakılan düğmeyi atlıyordu: art arda Enter, aynı soru için
+  // birden fazla AI isteği başlatıp eski cevabın yenisini ezmesine yol açıyordu.
+  const askingRef = useRef(false);
 
   async function ask() {
     const trimmed = question.trim();
-    if (!trimmed) return;
+    if (!trimmed || askingRef.current) return;
+    askingRef.current = true;
     setLoading(true);
     setError(null);
     setAnswer(null);
@@ -36,6 +40,7 @@ export function useKnowledgeAI(documents) {
     if (relevant.length === 0) {
       setAnswer("Bu soruyla ilgili Bilgi Kütüphanesi'nde bir doküman bulamadım. Farklı kelimelerle tekrar dener misin?");
       setLoading(false);
+      askingRef.current = false;
       return;
     }
 
@@ -48,10 +53,18 @@ export function useKnowledgeAI(documents) {
         messages: [{ role: "user", content: `Soru: "${trimmed}"\n\nİlgili dokümanlar:\n${context}` }],
       });
       setAnswer(reply || "Yanıt oluşturulamadı, tekrar deneyin.");
-    } catch {
-      setError("AI yanıtı alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.");
+    } catch (err) {
+      // Sunucu hata kodu (api_error_*) bağlantı sorunu DEĞİLDİR; "internetinizi kontrol edin"
+      // demek kullanıcıyı yanlış yönlendiriyordu. Yalnızca ağ hatasında bağlantı uyarısı verilir.
+      const serverSide = /^api_error_/.test(err?.message || "");
+      setError(
+        serverSide
+          ? "AI servisi şu anda yanıt veremiyor. Lütfen birazdan tekrar deneyin."
+          : "AI yanıtı alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin."
+      );
     } finally {
       setLoading(false);
+      askingRef.current = false;
     }
   }
 
