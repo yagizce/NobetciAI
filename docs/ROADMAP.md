@@ -105,29 +105,20 @@ tehlike tespit aracına dönüştürmek. Bu faz aynı zamanda Phase 9'un (canlı
 küçük ölçekli, düşük riskli provasıdır — fotoğraf üzerinde doğrulanan "tespit →
 Fine-Kinney'e bağlama" deseni, Phase 9'da canlı akışa taşınacaktır.
 
-- ✅ **Vision AI v1 (başta mock/adapter; artık gerçek modele bağlı — bkz. AI_ROADMAP.md):** Risk Tespiti'ndeki fotoğraf akışı, tek
-  kategori+not önerisinden (bkz. Phase 9 — `usePhotoDetection.js`, o akış hâlâ mevcut
-  ve değişmedi) YAPILANDIRILMIŞ, ÇOKLU tehlike bulgusuna genişletildi: her bulgu
-  tehlike/açıklama/kategori/önerilen önlem/etkilenenler/mevzuat referansı/AI güven
-  skoru alanlarına sahip (bkz. `services/visionAnalysisService.js` → `VisionFinding`).
-  Kullanıcı her bulguyu tek tek gözden geçirip düzenler, onaylamadığını işaretten
-  çıkarır; yalnızca onaylananlar Risk Tespiti'ne aktarılır (`VisionFindingsPanel.jsx`).
-  Bugün GERÇEK bir Vision API'sine bağlı DEĞİL — bilinçli mock adapter (bkz. o dosyanın
-  başındaki "gerçek adaptere geçiş" notu, Anthropic/OpenAI Vision için hazır arayüz).
+- ✅ **Vision AI v1:** Fotoğraf, `visionAnalysisService.js` üzerinden NVIDIA görsel
+  modellerine gönderilir. Yapılandırılmış bulgular doğrulanır; kullanıcı seçip
+  onayladıklarını Risk Tespiti'ne ekler. Eski tek kategori hook'u kaldırılmıştır.
 - ✅ Onaylanan bulgunun ilgili Fine-Kinney kaydına otomatik ön-doldurma olarak
   sunulması (öneri niteliğinde, onay zorunlu) — `recommendedAction`/`affected` alanları
   mevcut Risk Tespiti→Fine-Kinney köprüsü (Phase 9.1) üzerinden formun
   `action`/`affected` alanlarına taşınıyor.
-- 🔲 Gerçek bir Vision AI sağlayıcısına bağlanma (Anthropic/OpenAI Vision) — adapter
-  arayüzü hazır, aktif adapter hâlâ mock.
+- ✅ Gerçek görsel model entegrasyonu: `/api/cosmos-vision` üzerinden NVIDIA.
 - 🔲 Fotoğrafın Fine-Kinney kaydına ek dosya (attachment) olarak da eklenmesi — bugün
   yalnızca Risk Tespiti kaydında saklanıyor, Fine-Kinney'e dönüştürüldüğünde otomatik
   taşınmıyor (kullanıcı isterse elle ekleyebilir, bkz. AttachmentsTab.jsx).
 
-**Durum:** Kısmen tamamlandı — mock/adapter tabanlı çoklu tehlike tespiti ve
-Fine-Kinney köprüsü canlı; gerçek Vision API entegrasyonu Phase 7 (gerçek backend)
-sonrasına bırakıldı. Ek dosya veri modeli (Phase 2) bu senaryo için zaten hazır
-şekilde tasarlanmıştı.
+**Durum:** Çoklu tehlike tespiti gerçek modele bağlı; kullanıcı onayı ve Fine-Kinney
+köprüsü mevcut. Fotoğrafın Fine-Kinney ek dosyasına taşınması ve gerçek cihaz doğrulaması açık.
 
 ## Phase 7 — Enterprise
 

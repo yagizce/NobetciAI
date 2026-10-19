@@ -23,7 +23,7 @@ export default function PasswordChangeSection({ theme }) {
       showToast("Yeni şifreler eşleşmiyor.", "error");
       return;
     }
-    showToast("Şifre değiştirme henüz aktif değil (arayüz hazır, backend bağlanınca çalışacak).", "neutral");
+    showToast("Şifre değiştirme henüz aktif değil.", "neutral");
     setCurrent(""); setNext(""); setConfirm("");
   }
 
@@ -41,7 +41,7 @@ export default function PasswordChangeSection({ theme }) {
           className="text-sm rounded-lg px-3 py-2 outline-none border" style={inputStyle} />
       </div>
       <Button size="sm" onClick={handleSubmit}>Şifreyi Güncelle</Button>
-      <p className="text-[10.5px] mt-2" style={{ color: theme.textFaint }}>Bu alan şu an yalnızca arayüz — gerçek kimlik doğrulama eklenince aktif olacak.</p>
+      <p className="text-[10.5px] mt-2" style={{ color: theme.textFaint }}>Demo ekranı. Şifre değiştirme henüz aktif değil.</p>
     </div>
   );
 }

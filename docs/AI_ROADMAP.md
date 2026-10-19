@@ -2,10 +2,9 @@
 
 ## Mevcut Entegrasyon
 
-Tüm AI çağrıları tek bir yoldan geçer: `src/services/chatService.js` →
-`api/chat.js` (Vercel Serverless Function, sunucu taraflı proxy) → Anthropic API.
-API anahtarı yalnızca Vercel ortam değişkeninde (`ANTHROPIC_API_KEY`) tutulur,
-frontend koduna asla yazılmaz.
+AI çağrıları sunucu proxy'lerinden geçer: risk/belge işlemleri `/api/chat` üzerinden
+Anthropic'e, metin sohbeti `/api/kimi-chat` ve fotoğraf analizi `/api/cosmos-vision`
+üzerinden NVIDIA'ya gider. `ANTHROPIC_API_KEY` ve `NVIDIA_API_KEY` yalnızca sunucudadır.
 
 ### Bugün Çalışan AI Özellikleri
 
@@ -41,13 +40,10 @@ emin değilse boş bırakılır). Önceki mock adapter ve "Demo: Otomatik Simül
 kaydedilmez. AI Chat'te yüklenen fotoğraf ise risk analizi YAPMAZ; kullanıcının mesajıyla
 birlikte aynı proxy'ye (`question` alanı) gider.
 
-## Hazır Altyapı, Henüz Bağlanmamış
+## Fotoğraf saklama
 
-- **Fotoğraf saklama altyapısı Phase 6'da genişledi.** Fotoğraflar artık ayrı bir
-  `riskDetectionPhotos` IndexedDB store'unda (dedup + sıkıştırma ile) saklanıyor, bkz.
-  `services/riskDetectionPhotoService.js`. Bu, ileride bir gerçek AI Vision servisi
-  devreye girdiğinde **değişmeden** kullanılabilecek şekilde tasarlandı — yalnızca
-  `visionAnalysisService.js`'teki `activeAdapter` değişecek.
+Fotoğraflar `riskDetectionPhotos` IndexedDB store'unda sıkıştırılarak saklanır;
+aynı fotoğrafın tekrar kaydı önlenir. Bkz. `services/riskDetectionPhotoService.js`.
 
 ## Bilgi Kütüphanesi "AI'ya Sor" — RAG-lite
 
@@ -69,20 +65,15 @@ bu, gerçek backend'e geçişten (Phase 7) sonra, kullanıcı onayıyla değerle
 
 ## Planlanan Genişlemeler
 
-1. **Gerçek bir Vision AI sağlayıcısına bağlanma (Anthropic/OpenAI Vision).**
-   `services/visionAnalysisService.js`'teki mock adapter'ın yerini gerçek bir API
-   çağrısı alacak — adapter arayüzü buna hazır, geri kalan uygulama (onay akışı, Risk
-   Tespiti/Fine-Kinney köprüsü) DEĞİŞMEDEN kalacak. ROADMAP.md Phase 6'nın kalan kısmı.
-2. **Phase 9.2 — gerçek sabit kamera entegrasyonu.** Kullanıcının kendi fotoğraf
-   yüklemesinden farklı olarak, işyerlerine kurulacak sabit kameralardan canlı/otomatik
-   tespit. Bu, fiziksel kurulum gerektirdiği için mobil-öncelikli geliştirmenin
-   kapsamı dışında tutuluyor.
-3. **Vektör tabanlı gerçek RAG** — yukarıda açıklandığı gibi, Phase 7'ye bağlı.
+1. **Görsel analiz doğrulaması:** mevcut NVIDIA akışında gerçek cihaz, hata/zaman aşımı
+   ve temsilî saha fotoğraflarıyla kalite kontrolü.
+2. **Phase 9.2 — sabit kamera entegrasyonu:** mobil fotoğraf yüklemesinden ayrı ürün kapsamı.
+3. **Vektör tabanlı RAG:** Phase 7'deki gerçek backend'e bağlı.
 
 ## Açık Soru: Offline AI Davranışı
 
 Uygulama offline-first (IndexedDB) olmasına rağmen AI özellikleri internet bağlantısı
-gerektirir (Vercel Serverless Function → Anthropic API). Çevrimdışıyken bu özelliklerin nasıl
+gerektirir (sunucu proxy’leri → Anthropic/NVIDIA). Çevrimdışıyken bu özelliklerin nasıl
 davranacağı (istek kuyruğa alınsın mı, kullanıcıya net biçimde "AI şu an kullanılamıyor"
 mu gösterilsin) henüz karara bağlanmadı — bkz. [ROADMAP.md](./ROADMAP.md) "Açık
 Kararlar".

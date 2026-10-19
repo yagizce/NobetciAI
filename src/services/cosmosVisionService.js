@@ -1,12 +1,5 @@
-// cosmosVisionService — SADECE TEST amaçlı. NVIDIA Cosmos3-Nano-Reasoner ile İSG
-// fotoğraf analizi. chatService.js'teki AYNI desen: tarayıcı yalnızca kendi
-// backend'imizin (/api/cosmos-vision, bkz. api/cosmos-vision.js) proxy'sine konuşur,
-// NVIDIA_API_KEY'i asla görmez/göndermez.
-//
-// BİLİNÇLİ SINIRLAMA: Bu servisin ürettiği sonuç HİÇBİR YERDE kaydedilmez — ne bir
-// risk kaydına (Fine-Kinney), ne bir mevzuat eşleştirmesine, ne başka bir veri
-// deposuna. Yalnızca ekranda gösterilir (bkz. CosmosVisionTest.jsx). Bu, isteğin
-// "AI çıktısını henüz gerçek risk kaydı olarak kaydetme" kuralının doğal sonucu.
+// Sohbet fotoğrafları ve Risk Tespiti için NVIDIA görsel analiz proxy’si.
+// API anahtarı sunucuda kalır; yapılandırılmış bulguları visionAnalysisService doğrular.
 
 const API_ENDPOINT = "/api/cosmos-vision";
 // Sunucu tarafı toplam bütçe 50 sn / Vercel maxDuration 60 sn (bkz. api/cosmos-vision.js);

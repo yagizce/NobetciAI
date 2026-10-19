@@ -4,7 +4,7 @@ import { useLocalStorage } from "./useLocalStorage.js";
 // widget eklemek için buraya bir satır eklemek yeterli, görünürlük altyapısı otomatik
 // çalışır.
 export const DASHBOARD_WIDGETS = [
-  { id: "executiveSummaryStrip", label: "Hızlı Özet (Kritik Risk/Kontrol/Eğitim)" },
+  { id: "executiveSummaryStrip", label: "Hızlı Özet" },
   { id: "safetyScore", label: "Güvenlik Skoru" },
   { id: "executiveSummary", label: "Yönetici Özeti" },
   { id: "accidentStreak", label: "Kazasız Gün Sayacı" },
@@ -12,9 +12,9 @@ export const DASHBOARD_WIDGETS = [
   { id: "attentionNeeded", label: "Dikkat Gerektirenler" },
   { id: "departmentHeatMap", label: "Departman Risk Analizi" },
   { id: "legislationImpact", label: "Mevzuat Değişikliği Uyarısı" },
-  { id: "trainingComplianceList", label: "Eğitim Uyum Listesi (Kim Almadı)" },
-  { id: "kpiCards", label: "KPI Kartları" },
-  { id: "workflowPipeline", label: "Risk Workflow" },
+  { id: "trainingComplianceList", label: "Eğitim Uyum Listesi" },
+  { id: "kpiCards", label: "Özet Göstergeler" },
+  { id: "workflowPipeline", label: "Risk Süreci" },
   { id: "auditPackage", label: "Denetim Dosyası Oluşturucu" },
   { id: "riskAnalyses", label: "Risk Analizleri" },
   { id: "employees", label: "Çalışanlar" },

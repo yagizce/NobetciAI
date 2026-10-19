@@ -11,7 +11,7 @@ sorumluluk dağılımı ve modül bazlı tasarım kararları. Ürün odaklı bil
 
 ```
 src/
-  components/       Ortak UI (Button, Badge, Modal, Toast, EmptyState, icons/)
+  components/       Ortak UI (Button, Badge, Modal, EmptyState, icons/)
   contexts/         Theme, Role, IsgData, Toast, Language
   features/         Modül bazlı iş mantığı (chat, risk-analysis, dashboard,
                      company, knowledge-center, legislation, documents,
@@ -22,7 +22,7 @@ src/
   utils/            Saf yardımcı fonksiyonlar
   constants/        Statik veri, ölçekler, sabit listeler (JSX içermez)
   types/            JSDoc tip tanımları (tek dosya: index.js)
-api/                chat.js — Anthropic API proxy (Vercel Serverless Function)
+api/                Anthropic ve NVIDIA AI proxy işlevleri
 docs/               Bu dokümantasyon seti
 ```
 
@@ -114,12 +114,11 @@ gerçekten birden fazla, ilişkisiz modül arasında paylaşılan veri için kul
 
 ## UI Katmanı
 
-`src/components/ui/` içindeki ortak bileşenler (Button, Badge, Modal, ConfirmDialog,
-EmptyState, Loading, Toast) tüm modüllerde tekrar kullanılır; yeni bir arayüz
+`src/components/ui/` içindeki ortak bileşenler (Button, Badge, Modal, ConfirmDialog) modüllerde tekrar kullanılır; yeni bir arayüz
 ihtiyacı önce burada aranır (bkz.
 [DEVELOPMENT_RULES.md](./DEVELOPMENT_RULES.md) → "Code Quality").
 
-- **Stil:** Tailwind CSS (CDN) — tema renkleri `constants/theme.js`'teki token'lar
+- **Stil:** Tailwind CSS (PostCSS ile derleme sırasında) — tema renkleri `constants/theme.js`'teki token'lar
   (`theme.surface`, `theme.accent`, `theme.textMuted`, vb.) üzerinden uygulanır,
   ham hex kod bileşen içine yazılmaz.
 - **İkonlar:** `src/components/icons/index.jsx` içinde tek bir SVG ikon seti;
@@ -142,9 +141,9 @@ DashboardPage.jsx
   │          ├── useEmployerDashboardData.js   (tüm KPI/veri hesaplaması)
   │          ├── ExecutiveSummaryCard.jsx
   │          ├── SafetyScoreCard.jsx
-  │          ├── TrendsPanel.jsx
+  │          ├── DepartmentHeatMap.jsx
   │          ├── PerformancePanel.jsx
-  │          └── CorrectiveActionsPanel.jsx
+  │          └── AttentionNeededPanel.jsx
   └── EmployeeDashboard.jsx    (Çalışan görünümü)
 ```
 
@@ -195,25 +194,17 @@ Veri kaynağı `constants/knowledgeCenter.js`'teki statik mock listesidir (bkz.
 
 ## AI Modülü
 
-Frontend, hiçbir zaman AI sağlayıcı API anahtarını görmez. Tüm çağrılar tek bir
-yoldan akar:
+API anahtarları sunucuda tutulur. Aktif yollar:
 
-```
-UI bileşeni → chatService.js → api/chat.js (Vercel Serverless Function proxy) → Anthropic API
-```
+- Risk/belge ve bilgi kütüphanesi: `chatService.js` → `/api/chat` → Anthropic.
+- Metin sohbeti: `chatService.js` → `/api/kimi-chat` → NVIDIA.
+- Fotoğraf sohbeti ve tehlike tespiti: `cosmosVisionService.js` → `/api/cosmos-vision` → NVIDIA görsel modelleri.
 
-`ANTHROPIC_API_KEY` yalnızca Vercel ortam değişkeninde tutulur. Bugün bu yol
-üzerinden üç özellik çalışır: serbest sohbet/fotoğraf yorumlama, Fine-Kinney
-önlem/KKD önerisi ve Bilgi Kütüphanesi "AI'ya Sor" (bkz. Phase 5 — RAG'in ilk,
-anahtar kelime tabanlı sürümü: `useKnowledgeAI.js`, soruyu önce yerel
-`findRelevantDocuments` ile ilgili dokümanlara daraltır, sonra bunları AI'ye
-bağlam olarak verir ve kaynak dokümanı her zaman cevapla birlikte gösterir).
-İkinci özellikte (Fine-Kinney) önemli bir mimari güvenlik önlemi vardır:
-AI'nin önerdiği artık risk değerleri kod seviyesinde asıl risk değerini aşamaz
-(`Math.min` ile sınırlı) ve her zaman kullanıcının düzenleyip onaylayacağı bir
-alana yazılır. Bu ilke ("AI önerir, insan onaylar"), planlanan tüm AI
-genişlemelerinde (tam RAG, Vision AI) korunacaktır — ayrıntı için
-[AI_ROADMAP.md](./AI_ROADMAP.md).
+`ANTHROPIC_API_KEY` ve `NVIDIA_API_KEY` sunucu ortam değişkenleridir.
+Fotoğraf bulguları `visionAnalysisService.js` içinde doğrulanır. AI önerileri kullanıcı
+onayıyla uygulanır; artık risk değerleri asıl değerleri aşmayacak şekilde sınırlanır.
+Bilgi kütüphanesi bağlamı anahtar kelime eşleştirmesiyle hazırlanır; tam vektör RAG değildir.
+Ayrıntı: [AI yol haritası](AI_ROADMAP.md).
 
 ## Gelecekteki Supabase Entegrasyonu
 

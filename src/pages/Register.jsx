@@ -4,7 +4,7 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import { HardHat } from "../components/icons/index.jsx";
 
-// FIX (Sprint 8 polish): Login.jsx ile AYNI düzeltme — bkz. o dosyadaki not.
+// Demo formu; gerçek kimlik doğrulama henüz bağlı değil.
 export default function Register() {
   useDocumentTitle("Kayıt Ol");
   const { theme } = useTheme();
@@ -74,7 +74,7 @@ export default function Register() {
           Zaten hesabın var mı? <Link to="/login" style={{ color: theme.accent }}>Giriş yap</Link>
         </p>
         <p className="text-[10.5px] text-center mt-3" style={{ color: theme.textFaint }}>
-          Not: bu ekran şu an bir arayüz taslağıdır; gerçek kimlik doğrulama backend'i henüz bağlı değil.
+          Demo ekranı. Gerçek hesap oluşturma henüz aktif değil.
         </p>
       </div>
     </div>
