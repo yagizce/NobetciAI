@@ -4,11 +4,7 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import { HardHat, Mail } from "../components/icons/index.jsx";
 
-// Login.jsx/Register.jsx ile AYNI desen: gerçek kimlik doğrulama backend'i henüz
-// bağlı değil (bkz. o dosyalardaki aynı uyarı metni). Bu ekran, ileride
-// `supabase.auth.resetPasswordForEmail(email)` ile değişecek TEK noktayı (aşağıdaki
-// handleSubmit içindeki yorum) şimdiden işaretler — UI akışı ve durum yönetimi
-// (gönderildi/gönderilmedi) gerçek çağrı bağlanınca DEĞİŞMEDEN kalabilir.
+// Demo formu; e-posta gönderimi henüz bağlı değil.
 export default function ForgotPassword() {
   useDocumentTitle("Şifremi Unuttum");
   const { theme } = useTheme();
@@ -42,16 +38,16 @@ export default function ForgotPassword() {
               <Mail style={{ fontSize: "20px", color: theme.accent }} />
             </div>
             <p className="text-sm mb-1" style={{ color: theme.textPrimary }}>
-              <strong>{email}</strong> adresine bir sıfırlama bağlantısı gönderildi.
+              Şifre sıfırlama henüz aktif değil.
             </p>
             <p className="text-[11px]" style={{ color: theme.textFaint }}>
-              (Arayüz taslağı — gerçek kimlik doğrulama backend'i henüz bağlı değil, bu adıma gerçek bir e-posta gönderilmedi.)
+              <strong>{email}</strong> adresine e-posta gönderilmedi.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
             <p className="text-xs mb-3" style={{ color: theme.textFaint }}>
-              Hesabına kayıtlı e-posta adresini gir, sana bir şifre sıfırlama bağlantısı gönderelim.
+              Şifre sıfırlama için e-posta adresinizi girin.
             </p>
             <input
               type="email"
@@ -78,7 +74,7 @@ export default function ForgotPassword() {
           <Link to="/login" style={{ color: theme.accent }}>Girişe geri dön</Link>
         </p>
         <p className="text-[10.5px] text-center mt-3" style={{ color: theme.textFaint }}>
-          Not: bu ekran şu an bir arayüz taslağıdır; gerçek kimlik doğrulama backend'i henüz bağlı değil.
+          Demo ekranı. E-posta gönderimi henüz aktif değil.
         </p>
       </div>
     </div>

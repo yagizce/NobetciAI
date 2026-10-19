@@ -100,7 +100,7 @@ export default function Profile() {
 
       <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
         <p className="text-xs" style={{ color: theme.textMuted }}>
-          Bu demo sürümde kullanıcı bilgisi rol bazlı sahte (mock) bir servisten geliyor — üstteki rol anahtarını değiştirdiğinde farklı bir kullanıcı olarak görünürsün. Gerçek kimlik doğrulama eklenince yalnızca <code>src/services/authService.js</code> değişecek.
+          Demo profil. Kullanıcı bilgileri seçili role ait örnek verilerdir.
         </p>
       </div>
     </div>

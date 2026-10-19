@@ -1,26 +1,5 @@
-// Nöbetçi Service Worker — v2 (GÜVENLİ, NETWORK-FIRST tasarım).
-//
-// ⚠️ GEÇMİŞ OLAY: v1, cache-first stratejisi kullanıyordu; bu, eski index.html'in
-// (o anki Vite build'inin hash'li JS dosya adlarına referans veren) sonsuza dek
-// önbellekte kalmasına yol açtı. Bir sonraki deploy'da eski hash'li JS dosyaları
-// sunucudan silinince, önbellekteki eski HTML onları isteyip 404 alıyordu → birkaç
-// saat sonra beyaz ekran (Chrome'da; Gizli Sekme/Safari farklı SW davranışı
-// nedeniyle etkilenmemişti). Bkz. CHANGELOG.md → "ACİL: Service Worker Beyaz Ekran
-// Düzeltmesi". v1 daha sonra kendi kendini kaldıran bir "kill-switch"e çevrildi.
-//
-// v2 TASARIM İLKESİ (bu olayın bir daha YAŞANMAMASI için): index.html, JS ve CSS
-// dosyaları İÇİN ASLA cache-first KULLANILMAZ.
-// - Navigasyon (HTML) + JS/CSS + diğer her şey → NETWORK-FIRST: önce ağdan denenir,
-//   yalnızca ağ TAMAMEN başarısız olursa (gerçek offline durumu) önbellekten/offline
-//   sayfasından döner. Bu, "eski HTML'in silinmiş JS dosyalarına referans vermesi"
-//   senaryosunu YAPISAL OLARAK imkansız kılar — HTML her zaman ağdan (mevcutsa) gelir.
-// - Resim/font/ikon gibi pratikte hiç değişmeyen statik varlıklar → cache-first
-//   (güvenli, gerçek offline kullanımda hız/veri tasarrufu sağlar).
-//
-// CACHE_VERSION elle artırılarak (örn. "v3") eski çalışma zamanı önbellekleri
-// activate aşamasında otomatik temizlenir — build script'i olmadığı için versiyon
-// numarası manuel yönetiliyor, bu yüzden büyük bir SW değişikliği yapıldığında bu
-// sabiti artırmayı unutmayın.
+// HTML/JS/CSS için network-first; resim ve fontlar için cache-first.
+// Önbellek davranışı değişirse CACHE_VERSION artırılır; eski uygulama cache’leri temizlenir.
 
 const CACHE_VERSION = "v3";
 const RUNTIME_CACHE = `nobetci-isg-runtime-${CACHE_VERSION}`;

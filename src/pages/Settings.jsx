@@ -84,7 +84,7 @@ export default function Settings() {
           <div className="flex items-center justify-between gap-3 py-2 mb-2" style={{ borderBottom: `1px solid ${theme.border}` }}>
             <div>
               <p className="text-sm" style={{ color: theme.textPrimary }}>Tarayıcı Bildirimleri</p>
-              <p className="text-[11px]" style={{ color: theme.textFaint }}>Uygulama arka plandayken de gerçek bildirim alın.</p>
+              <p className="text-[11px]" style={{ color: theme.textFaint }}>Tarayıcı bildirimlerine izin verin.</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {permissionBadge(permission)}
@@ -112,7 +112,7 @@ export default function Settings() {
             ))}
           </div>
           <p className="text-[11px] mt-3" style={{ color: theme.textFaint }}>
-            Bu anahtarlar, hangi olaylarda tarayıcı bildirimi gönderileceğini belirler (yukarıdaki izin verildiyse).
+            Bildirim izni verdikten sonra almak istediğiniz hatırlatmaları seçin.
           </p>
         </div>
 
@@ -147,7 +147,7 @@ export default function Settings() {
             ))}
           </div>
           <p className="text-[11px] mt-2" style={{ color: theme.textFaint }}>
-            Farklı kullanıcı rollerinin arayüzü nasıl gördüğünü göstermek için bir demo seçicidir; gerçek kimlik doğrulama değildir.
+            Rollerin örnek görünümlerini deneyin. Bu seçim kimlik doğrulaması yapmaz.
           </p>
         </div>
 

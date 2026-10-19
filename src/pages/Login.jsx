@@ -4,11 +4,7 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import { HardHat } from "../components/icons/index.jsx";
 
-// FIX (Sprint 8 polish): ForgotPassword.jsx ile AYNI desene getirildi — önceden bu
-// ekranın input'ları controlled değildi (value/onChange yoktu) ve "Giriş Yap" düz bir
-// <Link to="/dashboard">'dı; kullanıcı hiçbir şey yazmadan da "giriş yapabiliyordu",
-// alanlar boşken de buton hep aktifti. Backend hâlâ bağlı değil (aynı uyarı notu
-// korunuyor) — yalnızca ön yüz durumu/validasyonu gerçek hale getirildi.
+// Demo formu; gerçek kimlik doğrulama henüz bağlı değil.
 export default function Login() {
   useDocumentTitle("Giriş Yap");
   const { theme } = useTheme();
@@ -71,7 +67,7 @@ export default function Login() {
           Hesabın yok mu? <Link to="/register" style={{ color: theme.accent }}>Kayıt ol</Link>
         </p>
         <p className="text-[10.5px] text-center mt-3" style={{ color: theme.textFaint }}>
-          Not: bu ekran şu an bir arayüz taslağıdır; gerçek kimlik doğrulama backend'i henüz bağlı değil.
+          Demo ekranı. Gerçek hesap girişi henüz aktif değil.
         </p>
       </div>
     </div>

@@ -160,7 +160,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
       // AI Chat metin sohbeti NVIDIA moonshotai/kimi-k3'e bağlı (bkz. services/chatService.js
       // → sendKimiChatMessage, api/kimi-chat.js). Fotoğraf + soru ise TEK istekle görsel
       // modele gider (analyzePhotoWithCosmos, api/cosmos-vision.js) — bu akışların hiçbiri
-      // Anthropic/sendChatMessage/sendPhotoAnalysis kullanmıyor, ANTHROPIC_API_KEY gerektirmiyor.
+      // Fotoğraf ve soru NVIDIA proxy’sine birlikte gönderilir.
       if (photo) {
         // Fotoğraf + soru birlikte görsel modele gider (Kimi metin modeli görüntü göremez);
         // cevap doğrudan sorunun yanıtıdır, ikinci bir AI isteği yok.

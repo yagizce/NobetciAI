@@ -4,21 +4,7 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useGlobalSearch } from "../hooks/useGlobalSearch.js";
 import { Search, X, ChevronLeft } from "../components/icons/index.jsx";
 
-/**
- * Header.jsx'teki önceden tamamen işlevsiz ("Ara..." placeholder'lı, hiçbir state/handler
- * içermeyen) arama kutusunun yerini alır. Modül bazlı arama kutularının (Fine-Kinney,
- * Dokümanlar vb.) YERİNİ TUTMAZ — üzerine "hangi modülde olduğunu bilmiyorum" senaryosu
- * için bir kısayol ekler. Sonuca tıklayınca ilgili modüle, o modülün kendi arama kutusu
- * ÖN DOLDURULMUŞ şekilde gidilir (bkz. constants/globalSearch.js → `target`).
- *
- * MOBİL NOTU: `sm` altında satır içi bir metin kutusuna header'da yer yoktu (menü +
- * logo + tema + bildirim + profil ile zaten dar) — önceden bu yüzden bileşen mobilde
- * TAMAMEN gizleniyordu (`hidden sm:block`), yani mobilde arama hiç YOKTU. Artık mobilde
- * küçük bir arama İKONU gösteriliyor; dokunulduğunda header'ın üzerine header ile AYNI
- * renk/güvenli-alan davranışına sahip tam genişlikte bir "arama modu" katmanı açılıyor.
- * Masaüstündeki satır içi kutu ve arama/sonuç mantığı (useGlobalSearch, handleSelect)
- * HİÇ değişmedi.
- */
+/** Modüller arası arama; mobilde açılan arama alanı, masaüstünde satır içi kutu. */
 export default function GlobalSearchBar() {
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -88,7 +74,7 @@ export default function GlobalSearchBar() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)} // sonuç butonlarındaki onMouseDown'ın önce ateşlenmesi için kısa gecikme
-          placeholder="Tüm modüllerde ara... (Fine-Kinney, Dokümanlar, Bilgi Kütüphanesi...)"
+          placeholder="Tüm modüllerde ara..."
           className="w-full text-sm rounded-full pl-9 pr-4 py-2 outline-none border"
           style={{ background: theme.surfaceAlt, borderColor: theme.border, color: theme.textPrimary }}
         />

@@ -37,7 +37,7 @@ migrateLegacyCompanyData().catch((error) => {
   console.error("Legacy firma verisi migration'ı tamamlanamadı:", error);
 }).finally(renderApp);
 
-// PWA / Service Worker — v2, network-first tasarım. HTML/JS/CSS cache-first değildir.
+// PWA: HTML/JS/CSS için network-first service worker.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/service-worker.js").catch(() => {

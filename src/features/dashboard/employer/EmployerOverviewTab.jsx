@@ -22,18 +22,7 @@ import OngoingTrainingsCard from "./OngoingTrainingsCard.jsx";
 import { getActivityLink } from "../../../constants/activityLink.js";
 
 /**
- * İşveren Dashboard'ının Genel Bakış sekmesi.
- *
- * SADELEŞTİRME NOTU: bu sekme önceden aynı soruyu ("hangi bölüm/kayıt riskli,
- * neye bakmalıyım") birbirinden habersiz, zaman zaman çelişen sayılar veren çok
- * sayıda widget'la cevaplıyordu. Her biri TEK bir widget'a indirgendi ve o widget
- * genişletildi (bkz. ilgili bileşenlerin dosya başı yorumları):
- *   - Departman/kritik risk kırılımı (4 widget) → yalnızca `DepartmentHeatMap`
- *   - Dikkat gerektiren faaliyet/kontrol listeleri (3 widget) → yalnızca `AttentionNeededPanel`
- *   - Ayrı bir "Patron Modu" SEKMESİ → `ExecutiveSummaryStrip` olarak buraya taşındı
- *   - Sahte/temsili "Trend Analizi" widget'ı (Performans sekmesindeki GERÇEK
- *     verilerle çelişiyordu) → tamamen kaldırıldı
- *
+ * İşveren özeti: riskler, kontroller, eğitimler ve dışa aktarım.
  * @param {{ theme: object, data: ReturnType<typeof import("./useEmployerDashboardData.js").useEmployerDashboardData> }} props
  */
 export default function EmployerOverviewTab({ theme, data }) {
@@ -45,10 +34,6 @@ export default function EmployerOverviewTab({ theme, data }) {
   const { isVisible, toggleWidget } = useWidgetVisibility();
   const [editMode, setEditMode] = useState(false);
 
-  // NOT: "Risk Kapanma Süresi" ve "Ortalama Risk Puanı" kartları kaldırıldı —
-  // İşveren için soyut/teknik sayılardı (istek üzerine). Altyapıdaki hesaplama
-  // (useEmployerDashboardData.js → avgClosureDays/avgRiskScore) bilerek
-  // DOKUNULMADAN bırakıldı, yalnızca burada gösterimi kaldırıldı.
   const CARDS = [
     { label: "Toplam Çalışan", value: metrics.totalEmployees, bg: theme.surfaceAlt, color: theme.textPrimary },
     { label: "Son AI Analizleri", value: metrics.recentAiAnalyses, bg: theme.surfaceAlt, color: theme.textPrimary },
@@ -61,7 +46,7 @@ export default function EmployerOverviewTab({ theme, data }) {
         <button onClick={() => setEditMode((v) => !v)} className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full shrink-0"
           style={{ background: theme.surfaceAlt, color: theme.textMuted, border: `1px solid ${theme.border}` }}>
           {editMode ? <X style={{ fontSize: "11px" }} /> : <Settings style={{ fontSize: "11px" }} />}
-          {editMode ? "Bitti" : "Widget'ları Düzenle"}
+          {editMode ? "Bitti" : "Kartları Düzenle"}
         </button>
       </div>
 
@@ -85,14 +70,14 @@ export default function EmployerOverviewTab({ theme, data }) {
 
         {isVisible("attentionNeeded") && (
           <DashboardWidget theme={theme} title="Dikkat Gerektirenler" icon={ClipboardList}
-            description="Yaklaşan/geciken düzeltici faaliyetler ve periyodik kontroller, en acil olandan başlayarak tek listede.">
+            description="Acil faaliyetler ve yaklaşan kontroller.">
             <AttentionNeededPanel theme={theme} fineKinneyEntries={fineKinneyEntries} periodicChecks={periodicChecks} />
           </DashboardWidget>
         )}
 
         {isVisible("departmentHeatMap") && (
           <DashboardWidget theme={theme} title="Departman Risk Analizi" icon={ShieldAlert}
-            description="Kritik (yüksek/çok yüksek) açık risk sayısına göre sıralı — artış uyarısı dahil tek widget.">
+            description="Açık kritik riskler ve artış görülen departmanlar.">
             <DepartmentHeatMap fineKinneyEntries={fineKinneyEntries} departments={departments}
               periodicChecks={periodicChecks} notifications={notifications} employees={employees}
               trainingProgressRecords={trainingProgressRecords} trainingCompletionRecords={trainingCompletionRecords} />
@@ -101,14 +86,14 @@ export default function EmployerOverviewTab({ theme, data }) {
 
         {isVisible("legislationImpact") && (
           <DashboardWidget theme={theme} title="Mevzuat Değişikliği Uyarısı" icon={Scale}
-            description="Son 90 günde güncellenen mevzuatla anahtar kelimede örtüşen açık risk kayıtları.">
+            description="Son 90 gündeki mevzuat güncellemeleriyle eşleşen açık riskler.">
             <LegislationImpactCard theme={theme} fineKinneyEntries={fineKinneyEntries} />
           </DashboardWidget>
         )}
 
         {isVisible("trainingComplianceList") && (
           <DashboardWidget theme={theme} title="Eğitim Uyum Listesi" icon={Users}
-            description="Hangi çalışan hangi eğitimi henüz tamamlamadı — denetimde ibraz edilebilir liste.">
+            description="Çalışanların tamamlamadığı eğitimler.">
             <TrainingComplianceListCard theme={theme} employees={employees} trainingProgressRecords={trainingProgressRecords} trainingCompletionRecords={trainingCompletionRecords} />
           </DashboardWidget>
         )}
@@ -125,7 +110,7 @@ export default function EmployerOverviewTab({ theme, data }) {
         )}
 
         {isVisible("workflowPipeline") && (
-          <DashboardWidget theme={theme} title="Risk Workflow">
+          <DashboardWidget theme={theme} title="Risk Süreci">
             <WorkflowPipelinePanel theme={theme} fineKinneyEntries={fineKinneyEntries} />
           </DashboardWidget>
         )}
@@ -135,10 +120,10 @@ export default function EmployerOverviewTab({ theme, data }) {
             <Link to="/audit" className="rounded-lg border px-3.5 py-3 flex items-center justify-between gap-2 mb-3" style={{ borderColor: theme.accent, background: theme.surfaceAlt }}>
               <div>
                 <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Denetim Modülü</p>
-                <p className="text-[11px]" style={{ color: theme.textFaint }}>ISO 45001 ve İSG Mevzuat denetimi planla, madde bazlı checklist yürüt →</p>
+                <p className="text-[11px]" style={{ color: theme.textFaint }}>ISO 45001 ve İSG mevzuat denetimi planlayın →</p>
               </div>
             </Link>
-            <p className="text-[11px] mb-2" style={{ color: theme.textFaint }}>Aşağıdaki hızlı dışa aktarım, tek bir tarih aralığındaki ham kayıtları PDF/HTML olarak birleştirir — planlı bir ISO denetimi için yukarıdaki modülü kullanın.</p>
+            <p className="text-[11px] mb-2" style={{ color: theme.textFaint }}>Seçtiğiniz tarih aralığındaki kayıtları tek dosyada dışa aktarın.</p>
             <AuditPackageButton theme={theme} fineKinneyEntries={fineKinneyEntries} periodicChecks={periodicChecks}
               trainingStats={trainingStats} companyName={company?.name} documents={documents} />
           </DashboardWidget>

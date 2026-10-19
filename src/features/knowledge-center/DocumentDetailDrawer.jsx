@@ -2,18 +2,8 @@ import { useEffect } from "react";
 import { getDocumentTypeLabel, getCategoryMeta, findRelatedDocuments } from "../../constants/knowledgeCenter.js";
 import { X, FileText, Star } from "../../components/icons/index.jsx";
 import Badge from "../../components/ui/Badge.jsx";
-import Button from "../../components/ui/Button.jsx";
 
-/**
- * Sprint 6 #7: Doküman detay ekranı. Mock veri üzerinde çalışır — "İndir"/"Görüntüle"
- * eylemleri henüz gerçek bir dosyaya bağlı değildir (backend/depolama yok), bu yüzden
- * devre dışı ve "Yakında" etiketiyle gösterilir; ileride gerçek dosya deposu eklendiğinde
- * yalnızca bu buton davranışının değişmesi yeterli olacaktır.
- *
- * Sprint 7.3: favori toggle + İlgili Dokümanlar bölümü eklendi.
- *
- * @param {{ doc: object|null, theme: object, onClose: () => void, allDocuments: object[], onOpenDocument: (doc: object) => void, isFavorite: boolean, onToggleFavorite: (id: number) => void }} props
- */
+/** Bilgi kütüphanesi özeti, favoriler ve ilgili dokümanlar. */
 export default function DocumentDetailDrawer({ doc, theme, onClose, allDocuments, onOpenDocument, isFavorite, onToggleFavorite }) {
   // A11Y FIX (bkz. Modal.jsx'teki aynı not): Escape ile kapatma eklendi. Hook, erken
   // `return null`'dan ÖNCE çağrılmalı (Rules of Hooks) — bu yüzden şart hook'un İÇİNE
@@ -103,10 +93,7 @@ export default function DocumentDetailDrawer({ doc, theme, onClose, allDocuments
           </div>
         )}
 
-        <div className="flex gap-2">
-          <Button variant="secondary" disabled className="flex-1 opacity-60 cursor-not-allowed">Görüntüle (Yakında)</Button>
-          <Button disabled className="flex-1 opacity-60 cursor-not-allowed">İndir (Yakında)</Button>
-        </div>
+        <p className="text-[11px]" style={{ color: theme.textFaint }}>Bu kayıt yalnızca özet içerir; indirilebilir dosyası yoktur.</p>
       </div>
     </div>
   );

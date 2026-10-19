@@ -1,6 +1,4 @@
-// chatService — the only service that actually calls the backend right now.
-// Talks exclusively to our own Vercel Serverless Function proxy; the Anthropic API key
-// never touches the browser (see /api/chat.js).
+// Metin ve belge analizini sunucu proxy’lerine iletir; API anahtarları sunucuda kalır.
 
 const API_ENDPOINT = "/api/chat";
 const KIMI_API_ENDPOINT = "/api/kimi-chat";
@@ -32,8 +30,7 @@ export async function sendChatMessage({ system, messages, max_tokens = 1000 }) {
  * Kimi K3'ün "preserved thinking" gereksinimi nedeniyle artık asistan cevabının
  * `reasoning_content` ve `tool_calls` alanlarını da (varsa) döndürüyor — çağıran taraf
  * (ChatPanel.jsx) bunları mesaj state'inde saklayıp bir sonraki istekte geri gönderebilsin.
- * Fine-Kinney/mevzuat/doküman/fotoğraf analizleri bu fonksiyonu KULLANMAZ — onlar hâlâ
- * sendChatMessage/sendPhotoAnalysis/sendDocumentAnalysis üzerinden Claude'a gider.
+ * Fine-Kinney ve belge analizleri Anthropic proxy’sini, fotoğraflar cosmosVisionService’i kullanır.
  * @param {{system?: string, messages: Array<{role: string, content: any, reasoning_content?: string, tool_calls?: any[]}>, max_tokens?: number}} payload
  * @returns {Promise<{text: string|null, reasoningContent: string|null, toolCalls: any[]|null}|null>}
  */
@@ -67,25 +64,6 @@ export async function sendKimiChatMessage({ system, messages, max_tokens = 1000 
     reasoningContent: message.reasoning_content ?? null,
     toolCalls: Array.isArray(message.tool_calls) ? message.tool_calls : null,
   };
-}
-
-/**
- * Sends a single image + instruction for hazard analysis (vision request).
- * @param {{system?: string, imageBase64: string, mediaType: string, instruction: string, max_tokens?: number}} payload
- * @returns {Promise<string|null>}
- */
-export async function sendPhotoAnalysis({ system, imageBase64, mediaType, instruction, max_tokens = 1200 }) {
-  return sendChatMessage({
-    system,
-    max_tokens,
-    messages: [{
-      role: "user",
-      content: [
-        { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
-        { type: "text", text: instruction },
-      ],
-    }],
-  });
 }
 
 /**

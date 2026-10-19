@@ -1,16 +1,6 @@
-// Vercel Serverless Function: NVIDIA Cosmos3-Nano-Reasoner'a proxy — SADECE TEST
-// amaçlı İSG fotoğraf analizi (bkz. src/pages/CosmosVisionTest.jsx). API key sunucu
-// tarafında kalır, tarayıcıya ASLA gönderilmez. Vercel dashboard → Project → Settings
-// → Environment Variables → NVIDIA_API_KEY olarak tanımlanmalı, ardından yeniden
-// deploy edilmelidir. Yerelde test için: `vercel dev` + proje kökünde `.env` dosyasına
-// `NVIDIA_API_KEY=...` satırı (bkz. .gitignore — `.env` zaten commit'lenmiyor).
-//
-// Bu dosya, api/chat.js'teki (Anthropic proxy) İSPATLANMIŞ güvenlik desenini AYNEN
-// tekrar eder (origin kontrolü + IP başına rate limit + payload boyutu tavanı) —
-// yeni/farklı bir backend mimarisi KURULMADI, mevcut api/ klasörüne bir fonksiyon
-// daha eklendi. Genel amaçlı bir proxy DEĞİLDİR (chat.js gibi keyfi `system`/`messages`
-// kabul etmez): yalnızca bir fotoğraf alır, İSG analiz istemini SUNUCU TARAFINDA
-// SABİT tutar — istemci promptu değiştiremez, bu da kapsamı kasıtlı olarak dar tutar.
+// Sohbet fotoğrafları ve Risk Tespiti için NVIDIA görsel analiz proxy’si.
+// NVIDIA_API_KEY yalnızca sunucu ortamında tanımlanır. İstemler sunucuda tutulur;
+// origin, istek boyutu ve instance içi hız sınırı kontrolleri uygulanır.
 
 const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024; // ~8MB — tipik bir telefon fotoğrafı için yeterli
 const MAX_TOKENS_CAP = 1200;

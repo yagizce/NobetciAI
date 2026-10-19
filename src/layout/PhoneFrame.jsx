@@ -10,25 +10,7 @@ function useLiveClock() {
   return time;
 }
 
-/**
- * HATA DÜZELTMESİ (gerçek telefonda "kurcalarken" — ör. yatay çevirince — ortaya çıkan
- * sorun): önceki sürüm çerçeveyi salt Tailwind'in `sm:` (genişlik ≥640px) sınıfıyla
- * gösteriyordu. Bu YANLIŞ sinyal — birçok gerçek telefon bu eşiği kolayca geçer:
- * iPhone 14 Pro Max yatay modda ~930px, orta boy Android telefonlar yatayda ~850px'e
- * çıkar. Sonuç: telefonu yan çevirince (ya da bazı büyük telefonlarda dik konumda bile)
- * uygulama kendini "masaüstü" sanıp GERÇEK telefonun İÇİNE bir de sahte bezel/durum
- * çubuğu/home-indicator çizmeye çalışıyordu — iç içe iki telefon, ortalanamayan/bozuk
- * bir görünüm.
- *
- * DOĞRU SİNYAL genişlik DEĞİL, girdi türüdür: gerçek bir masaüstü fare/trackpad ile
- * kullanılır (`hover: hover` + `pointer: fine`), gerçek bir telefon HER ZAMAN dokunmatik
- * birincildir (`hover: none` + `pointer: coarse`) — yönü veya genişliği ne olursa olsun.
- * Bu, saf CSS `sm:` ile ayırt edilemeyeceği için JS ile matchMedia kullanılıyor; sonuç
- * hem PhoneFrame'in kendi çerçevesine hem de aynı ölçütü paylaşması gereken diğer
- * dosyalara (Layout.jsx, Login.jsx vb. — bkz. index.css'teki `.app-framed .frame-fill`)
- * `<html>` üzerine eklenen/kaldırılan `app-framed` sınıfıyla iletiliyor; tek doğruluk
- * kaynağı burada, hiçbir yerde ayrı bir `sm:` genişlik varsayımı kalmadı.
- */
+/** Masaüstü çerçevesini fare ve ekran genişliğiyle belirler; CSS ile app-framed üzerinden paylaşır. */
 function useIsFramedDesktop() {
   const [isFramed, setIsFramed] = useState(false);
   useEffect(() => {
@@ -45,23 +27,9 @@ function useIsFramedDesktop() {
 }
 
 /**
- * GERÇEK TELEFON ÇERÇEVESİ — sadece gerçek masaüstünde (fare + ≥640px, bkz. yukarı)
- * devreye girer: siyah bezel, yuvarlak köşeler, saat/sinyal/pil ikonlu sahte durum
- * çubuğu, dynamic island, home indicator. Gerçek bir telefonda (dokunmatik, yön/genişlik
- * fark etmez) `isFramed` hep false'tur, children hiçbir sarmalayıcı olmadan render
- * edilir — işletim sisteminin kendi durum çubuğu zaten var, sahte bir tane eklemek
- * yanlış olurdu.
- *
- * KAYDIRMA MİMARİSİ (bkz. Layout.jsx'teki ayrıntılı not): Header/BottomTabBar sabit,
- * aradaki <main> kendi içinde kayıyor — bu bileşenin iç kaydırma kutusu (aşağıda)
- * SADECE Header/Sidebar OLMAYAN sayfalarda (Login, Register, Şifremi Unuttum, 404)
- * fiilen devrededir; Layout kullanan sayfalarda Layout `frame-fill` ile bu kutuyu tam
- * doldurur, gerçek kaydırma <main>'in kendi içinde olur.
- *
- * `[transform:translateZ(0)]`: transform'lu bir eleman, içindeki TÜM `position: fixed`
- * elemanlar için yeni bir "containing block" oluşturur (spesifikasyon gereği) — Sidebar
- * çekmecesi, Modal, Toast gibi `fixed inset-0` kullanan HER bileşen otomatik olarak
- * gerçek pencereye değil bu telefon ekranına göre konumlanır.
+ * Masaüstünde telefon önizlemesi; dokunmatik cihazlarda doğrudan uygulama.
+ * İç kaydırma auth sayfaları içindir; ana uygulamada Layout kaydırmayı yönetir.
+ * translateZ(0), fixed katmanları telefon çerçevesi içinde konumlandırır.
  */
 export default function PhoneFrame({ children }) {
   const { theme } = useTheme();
