@@ -13,7 +13,8 @@
 // backend concern). If true "notify even when the site is fully closed" is needed later,
 // this file is the natural place to add Push API subscription logic.
 
-import { NOTIFICATION_PREFS_STORAGE_KEY, DEFAULT_NOTIFICATION_PREFS } from "../constants/notificationPrefs.js";
+import { NOTIFICATION_PREFS_STORAGE_KEY, DEFAULT_NOTIFICATION_PREFS, normalizeNotificationPrefs } from "../constants/notificationPrefs.js";
+import { isNotificationEnabled } from "../constants/releaseProfile.js";
 
 export function isNotificationSupported() {
   return typeof window !== "undefined" && "Notification" in window;
@@ -48,7 +49,8 @@ export async function requestNotificationPermission() {
 export function getNotificationPrefs() {
   try {
     const stored = localStorage.getItem(NOTIFICATION_PREFS_STORAGE_KEY);
-    return stored ? { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(stored) } : DEFAULT_NOTIFICATION_PREFS;
+    const prefs = stored ? JSON.parse(stored) : {};
+    return normalizeNotificationPrefs(prefs);
   } catch {
     return DEFAULT_NOTIFICATION_PREFS;
   }
@@ -62,6 +64,7 @@ export function getNotificationPrefs() {
  * @param {string} body
  */
 export async function showLocalNotification(prefKey, title, body) {
+  if (!isNotificationEnabled(prefKey)) return;
   if (!isNotificationSupported() || Notification.permission !== "granted") return;
   const prefs = getNotificationPrefs();
   if (prefKey && !prefs[prefKey]) return;

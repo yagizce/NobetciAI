@@ -1,5 +1,19 @@
 # Değişiklikler
 
+## 2026-10-20 — Web ve mobil uyumlu düzen
+
+- Masaüstünü 390 px telefon maketine sıkıştıran PhoneFrame kaldırıldı. Web uygulaması ekranı doldurur; 1024 px ve üstünde kalıcı yan menü gösterilir.
+- Dar ekranlarda çekmece ve alt gezinme korunur. Üst menünün dokunma alanları büyütüldü; bildirim paneli küçük ekranın içine sığar.
+- Mobil form yazıları 16 px; güvenli alanlar, dinamik ekran yüksekliği ve içerik kaydırması korunur. Fareyle yatay listelerin kaydırma çubukları kullanılabilir. PWA önbellek sürümü v6.
+- 601 test ve üretim derlemesi başarılı. 320/390/768/1024 px test pencereleri ve 1280 px masaüstü tarayıcı görünümü kontrol edildi; fiziksel cihaz testi değildir.
+
+## 2026-10-20 — Uzman odaklı ilk sürüm
+
+- İşveren/çalışan rolleri, uzaktan eğitim, çalışan yönetimi ve bildirim/onay akışı merkezi yayın profiliyle kapatıldı; kod ve eski veriler korunur.
+- Kapalı modüller doğrudan sekme bağlantısından açılamaz ve servis üzerinden veri yazamaz. Eğitim/ekip hatırlatmaları ile demo veri sıfırlaması kapalıdır.
+- Uzmanın firma/şube/departman kurulumu açık; kritik risk uyarıları ayrı tercihle korunur. Tam yedek tüm modülleri içerir.
+- Kök AGENTS.md ve RELEASE_SCOPE rehberi gelecekteki yeniden açılışı belgeler. PWA önbellek sürümü v5 oldu.
+
 ## 2026-10-20 — Yedek ve çevrimdışı güvenilirliği
 
 - Veri bölümü içermeyen yedek reddedilir; eski kısmi yedeklerde silinecek bölümler geri yükleme öncesinde belirtilir. Dosya okuma hatası gösterilir.

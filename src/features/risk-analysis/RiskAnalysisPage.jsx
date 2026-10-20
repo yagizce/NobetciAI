@@ -23,6 +23,7 @@ import FineKinneyModule from "./FineKinneyModule.jsx";
 import AuditLogPanel from "./AuditLogPanel.jsx";
 import RiskDetectionPanel from "./riskDetection/RiskDetectionPanel.jsx";
 import AskAiButton from "../../components/AskAiButton.jsx";
+import { getReleaseTabs, resolveReleaseTab, isFeatureEnabled } from "../../constants/releaseProfile.js";
 
 const TYPE_LABELS = { ramakKala: "Ramak Kala", tehlike: "Tehlike", kaza: "İş Kazası" };
 
@@ -127,7 +128,7 @@ function NotificationCenterTab({ theme, role }) {
 }
 
 const ALL_TABS = [
-  { key: "notifications", label: "Bildirim Merkezi", icon: Bell, roles: ["employee", "expert", "employer"] },
+  { key: "notifications", label: "Bildirim Merkezi", icon: Bell, roles: ["employee", "expert", "employer"], feature: "employeeReports" },
   { key: "riskDetection", label: "Risk Tespiti", icon: Camera, roles: ["expert", "employer"] },
   { key: "fineKinney", label: "Fine-Kinney Değerlendirmesi", icon: BarChart3, roles: ["expert", "employer"] },
   { key: "auditLog", label: "Aktivite Geçmişi", icon: ClipboardList, roles: ["expert", "employer"] },
@@ -142,12 +143,13 @@ export default function RiskAnalysisPage() {
   // erişemiyor; İşveren normalde salt-görüntüler, İSG Uzmanı ile aynı kişiyse (Ayarlar →
   // Firma Yönetimi) tam yetkiye sahip olur.
   const canManageFineKinney = useMemo(() => canManageRiskAssessments(role, company), [role, company]);
-  const visibleTabs = useMemo(() => ALL_TABS.filter((t) => t.roles.includes(role)), [role]);
+  const visibleTabs = useMemo(() => getReleaseTabs(ALL_TABS, role), [role]);
   // Genel arama (bkz. GlobalSearchBar.jsx) buraya `state: { targetTab, prefillSearch }`
   // ile yönlendirebilir — dolu ise ilgili sekme + arama metni ile açılır. Doğrudan
   // menüden girişte (state yok) davranış tamamen eskisi gibi.
   const location = useLocation();
-  const [tab, setTab] = useState(location.state?.targetTab || visibleTabs[0]?.key || "notifications");
+  const [selectedTab, setTab] = useState(location.state?.targetTab);
+  const tab = resolveReleaseTab(visibleTabs, selectedTab);
 
   // Phase 9.1 — Risk Tespiti'nden Fine-Kinney'e "köprü": bir tespit için "AI ile Taslak
   // Oluştur" veya "Sahaya İn" tıklanınca burada bir taslak objesi tutulur ve sekme
@@ -163,17 +165,16 @@ export default function RiskAnalysisPage() {
     setTab("fineKinney");
   }
 
-  // Rol değişip mevcut sekme artık görünmüyorsa (örn. Uzman'dan Çalışan'a geçildiğinde),
-  // otomatik olarak görünür ilk sekmeye dön.
+  // Yeni bağlantı isteğini izle; kapalı sekmeler render öncesinde çözülür.
   useEffect(() => {
-    if (!visibleTabs.some((t) => t.key === tab)) setTab(visibleTabs[0]?.key || "notifications");
-  }, [visibleTabs, tab]);
+    setTab(location.state?.targetTab);
+  }, [location.state?.targetTab]);
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-3xl mx-auto">
       <p className="font-[Oswald] text-xl uppercase tracking-wide mb-1" style={{ color: theme.textPrimary }}>Risk Analizi</p>
       <p className="text-xs mb-4" style={{ color: theme.textFaint }}>
-        {role === "employee" ? "Ramak kala, tehlike ve iş kazası bildirimlerini buradan yapabilirsin" : "Bildirim Merkezi, Risk Tespiti, Fine-Kinney değerlendirmesi ve aktivite geçmişi bir arada"}
+        {role === "employee" ? "Ramak kala, tehlike ve iş kazası bildirimlerini buradan yapabilirsin" : `${isFeatureEnabled("employeeReports") ? "Bildirim Merkezi, " : ""}Risk Tespiti, Fine-Kinney değerlendirmesi ve aktivite geçmişi bir arada`}
       </p>
 
       <div className="flex items-center justify-between gap-2 mb-4">

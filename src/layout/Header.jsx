@@ -31,7 +31,7 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
 
   return (
     <header
-      className="shrink-0 z-30 flex items-center gap-3 px-4 pb-3"
+      className="shrink-0 z-30 flex items-center gap-1 sm:gap-3 px-3 sm:px-6 pb-3"
       style={{
         background: theme.header,
         borderBottom: `1px solid ${theme.border}`,
@@ -42,15 +42,11 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
         paddingTop: "max(0.75rem, env(safe-area-inset-top))",
       }}
     >
-      {/* PHONE FRAME (bkz. App.jsx): menü butonu ve logo artık her zaman gösteriliyor —
-          önceden `md:hidden` ile gerçek masaüstü genişliğinde gizlenip yerini kalıcı
-          Sidebar'a bırakıyordu; artık Sidebar HER ZAMAN çekmece (bkz. Sidebar.jsx), bu
-          yüzden menü butonu da her zaman gerekli. */}
-      <button onClick={onMenuClick} aria-label="Menü" className="p-2.5 -m-2.5 rounded-lg">
+      <button onClick={onMenuClick} aria-label="Menü" className="lg:hidden w-11 h-11 flex items-center justify-center shrink-0 rounded-lg">
         <Menu style={{ fontSize: "20px", color: theme.textPrimary }} />
       </button>
 
-      <Link to="/dashboard" className="flex items-center gap-2">
+      <Link to="/dashboard" aria-label="Nöbetçi ana sayfa" className="lg:hidden flex items-center gap-2 shrink-0">
         <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: theme.accent }}>
           <HardHat style={{ fontSize: "14px", color: theme.onAccent }} sw={2.5} />
         </div>
@@ -58,14 +54,10 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
 
       {/* Search — bkz. GlobalSearchBar.jsx (önceden burada işlevsiz bir placeholder vardı) */}
       <GlobalSearchBar />
-      <div className="flex-1 sm:hidden" />
-
-      {/* Rol değiştirici (demo) — kalıcı masaüstü genişliği varsayımıyla `hidden lg:flex`
-          olarak buradaydı; PHONE FRAME sonrası bu varsayım artık geçerli değil ve zaten
-          Ayarlar sayfasında (Settings.jsx) aynı rol değiştirici mevcut, kaldırıldı. */}
+      <div className="flex-1" />
 
       {/* Theme toggle */}
-      <button onClick={toggleMode} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: theme.surfaceAlt }} aria-label="Tema değiştir">
+      <button onClick={toggleMode} className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: theme.surfaceAlt }} aria-label="Tema değiştir">
         {mode === "light" ? <Moon style={{ fontSize: "16px", color: theme.textMuted }} /> : <Sun style={{ fontSize: "16px", color: theme.accent }} />}
       </button>
 
@@ -74,12 +66,12 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
 
       {/* Profile menu */}
       <div className="relative" ref={profileMenuRef}>
-        <button onClick={() => setProfileOpen((v) => !v)} aria-label="Profil menüsü" aria-haspopup="true" aria-expanded={profileOpen} className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full" style={{ background: theme.surfaceAlt }}>
+        <button onClick={() => setProfileOpen((v) => !v)} aria-label="Profil menüsü" aria-haspopup="true" aria-expanded={profileOpen} className="flex items-center justify-center min-w-11 min-h-11 gap-1.5 sm:pl-1 sm:pr-2 py-1 rounded-full" style={{ background: theme.surfaceAlt }}>
           <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: theme.accent, color: theme.onAccent }}>
             <UserRound style={{ fontSize: "14px" }} />
           </div>
           <span className="hidden sm:inline text-xs font-medium" style={{ color: theme.textPrimary }}>{currentRole?.label}</span>
-          <ChevronDown style={{ fontSize: "12px", color: theme.textFaint }} />
+          <ChevronDown className="hidden sm:block" style={{ fontSize: "12px", color: theme.textFaint }} />
         </button>
         {profileOpen && (
           <div

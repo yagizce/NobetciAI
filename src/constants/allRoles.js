@@ -13,17 +13,16 @@
 // ürün değil. Bu roller ileride gerçekten gerekirse (bkz. docs/ROADMAP.md Phase 7)
 // buraya geri eklenebilir; DATABASE_PLAN.md'deki companyId yapısı zaten buna hazır.
 
+import { isRoleEnabled } from "./releaseProfile.js";
+
 export const ALL_ROLES = [
   { id: "employer", emoji: "👨‍💼", label: "İşveren" },
   { id: "expert", emoji: "🦺", label: "İSG Uzmanı" },
   { id: "employee", emoji: "👷", label: "Çalışan" },
 ];
 
-// Bugün ALL_ROLES ile birebir aynı (üçü de switchable). Ayrı bir liste olarak
-// kalıyor ki `RoleContext.jsx` ve diğer modüller import yolunu değiştirmesin —
-// ileride yeniden ayrım gerekirse (örn. bir rol eklenip switchable olmaması
-// gerekirse) tek satır değişiklikle geri dönülebilir.
-export const SWITCHABLE_ROLES = ALL_ROLES;
+// Görünür roller yayın profilinden gelir; tüm roller geçmiş kayıtlar için korunur.
+export const SWITCHABLE_ROLES = ALL_ROLES.filter((role) => isRoleEnabled(role.id));
 
 export function getRoleLabel(roleId) {
   return ALL_ROLES.find((r) => r.id === roleId)?.label || roleId;

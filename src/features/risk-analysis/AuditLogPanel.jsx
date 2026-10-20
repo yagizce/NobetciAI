@@ -5,6 +5,7 @@ import EmptyState from "../../components/EmptyState.jsx";
 import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { ClipboardList } from "../../components/icons/index.jsx";
+import { isActivityEnabled, isFeatureEnabled } from "../../constants/releaseProfile.js";
 
 const ENTITY_LABELS = {
   notification: "Bildirim",
@@ -31,7 +32,7 @@ export default function AuditLogPanel() {
   useEffect(() => {
     getAuditLog()
       .then((data) => {
-        setLog(data);
+        setLog(data.filter((entry) => isActivityEnabled(entry.entityType)));
         setLoaded(true);
       })
       .catch((err) => {
@@ -54,12 +55,12 @@ export default function AuditLogPanel() {
   return (
     <div>
       <p className="text-xs mb-3" style={{ color: theme.textFaint }}>
-        Sistemdeki bildirim, risk değerlendirmesi, doküman ve kontrol kayıtlarındaki işlemlerin izlenebilir dökümü.
+        Risk değerlendirmesi, doküman ve kontrol işlemlerinin geçmişi.
       </p>
 
       {log.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3">
-          {ENTITY_FILTERS.map((f) => (
+          {ENTITY_FILTERS.filter((f) => f.key !== "notification" || isFeatureEnabled("employeeReports")).map((f) => (
             <button
               key={f.key}
               onClick={() => setEntityFilter(f.key)}
@@ -77,7 +78,7 @@ export default function AuditLogPanel() {
       )}
 
       {filteredLog.length === 0 ? (
-        <EmptyState icon={ClipboardList} title="Henüz aktivite kaydı yok" description="Bildirim, risk değerlendirmesi veya doküman işlemleri burada listelenecek." />
+        <EmptyState icon={ClipboardList} title="Henüz aktivite kaydı yok" description="Risk değerlendirmesi veya doküman işlemleri burada listelenecek." />
       ) : (
         <div className="flex flex-col gap-2">
           {filteredLog.map((entry) => (

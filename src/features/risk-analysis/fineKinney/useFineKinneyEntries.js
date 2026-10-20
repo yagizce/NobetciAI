@@ -135,7 +135,7 @@ export function useFineKinneyEntries(initialSearch = "") {
       entityType: "fineKinney",
     });
     if (level.key === "veryHigh") {
-      showLocalNotification("newNotification", "Çok Yüksek Risk Tespit Edildi", `"${entry.hazard}" — puan ${entry.score}. Acil önlem gerekebilir.`);
+      showLocalNotification("criticalRisk", "Çok Yüksek Risk Tespit Edildi", `"${entry.hazard}" — puan ${entry.score}. Acil önlem gerekebilir.`);
     }
 
     // Yalnızca yeni kayıtlarda bildirim üret (düzenlemede tekrar tekrar bildirim gitmesin).

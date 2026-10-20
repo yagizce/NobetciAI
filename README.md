@@ -1,8 +1,8 @@
 # Nöbetçi — İSG Yönetim Platformu
 
-Risk değerlendirmesi, denetim, periyodik kontrol, eğitim ve AI danışmanlığını birleştiren Türkçe, mobil öncelikli uygulama.
+İSG uzmanı için risk değerlendirmesi, denetim, periyodik kontrol, belge ve AI danışmanlığını birleştiren Türkçe, mobil öncelikli uygulama.
 
-**Mevcut durum:** React tabanlı web/PWA. Veriler cihazın IndexedDB alanında tutulur; hesaplar ve rol seçimi demodur. Android/iOS mağaza paketleri henüz yoktur. [Yayın hazırlığı](docs/MOBILE_RELEASE_READINESS.md).
+**Mevcut durum:** React tabanlı web/PWA; yalnızca uzman görünümü açık. İşveren, çalışan ve eğitim modülleri ileride açılmak üzere korunur. Veriler cihazın IndexedDB alanında tutulur; gerçek hesap sistemi ve Android/iOS mağaza paketleri henüz yoktur. [Kapsam ve yeniden açma rehberi](docs/RELEASE_SCOPE.md) · [Yayın hazırlığı](docs/MOBILE_RELEASE_READINESS.md).
 
 ## Yerel geliştirme
 
@@ -51,9 +51,9 @@ AI çıktıları kullanıcı onayıyla uygulanır. Fotoğraf bulguları ayrıca 
 
 - Kayıtlar bu tarayıcı/cihazda saklanır; cihazlar arasında otomatik senkronizasyon yoktur.
 - Ayarlardan tam yedek alınabilir ve geri yüklenebilir.
-- Demo veri yükleme mevcut cihaz verilerini siler; arayüzde onay gerektirir.
+- Demo veri sıfırlama uzman sürümünde kapalıdır; saklı modüllerin verileri tam yedeğe dahildir.
 - Giriş, kayıt ve şifre işlemleri gerçek hesap sistemine bağlı değildir.
-- Bilgi kütüphanesinde örnek içerik, eğitimlerde yer tutucu video bulunur.
+- Bilgi kütüphanesinde örnek içerik bulunur. Kapalı eğitim modülündeki yer tutucu video yeniden açılıştan önce tamamlanmalıdır.
 - Mevcut ISO prototip yardımcıları ve testleri gelecek çalışma için korunur; aktif denetim ekranları `pages/Audit.jsx` üzerinden yapılandırılır.
 
 ## Web dağıtımı

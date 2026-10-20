@@ -223,7 +223,7 @@ export default function RiskDetectionPanel({ theme, onSendToFineKinney, initialS
       )}
 
       {totalCount === 0 ? (
-        <EmptyState icon={ShieldAlert} title="Henüz risk tespiti yok" description="Sahada gördüğünüz bir tehlikeyi manuel ekleyebilir, ya da demo simülasyonunu açarak sistemin nasıl çalışacağını görebilirsiniz." />
+        <EmptyState icon={ShieldAlert} title="Henüz risk tespiti yok" description="Sahada gördüğünüz bir tehlikeyi manuel ekleyebilir veya fotoğrafla analiz edebilirsiniz." />
       ) : detections.length === 0 ? (
         <EmptyState icon={ShieldAlert} title="Eşleşen sonuç yok" description="Arama veya filtre kriterlerini değiştirmeyi deneyin." />
       ) : (

@@ -103,8 +103,8 @@ araçları yeterli görülür:
 | Context | Sorumluluk |
 |---|---|
 | `ThemeContext` | Açık/koyu tema |
-| `RoleContext` | Aktif demo rolü (`expert`/`employer`/`employee`) |
-| `IsgDataContext` | Sık erişilen paylaşılan veri (ekipman, bildirimler) |
+| `RoleContext` | Yayın kapsamına göre çözülen rol; uzman sürümünde yalnızca `expert` |
+| `IsgDataContext` | Çalışan bildirimi verisi; uzman sürümünde yüklenmez |
 | `ToastContext` | Genel bildirim/toast mesajları |
 | `LanguageContext` | Dil tercihi |
 
@@ -129,10 +129,16 @@ ihtiyacı önce burada aranır (bkz.
   yükleniyor — her sayfa yalnızca ziyaret edildiğinde indiriliyor.
 
 `Layout`, dinamik ekran yüksekliğini doldurur; başlık ve alt menü kaydırılan
-`main` alanının dışında kalır. Masaüstü önizlemede yüksekliği `PhoneFrame` belirler.
+`main` alanının dışında kalır. Telefon maketi kullanılmaz: 1024 px ve üzerinde
+240 px kalıcı yan menü, daha dar ekranlarda çekmece ve alt gezinme görünür.
+İçerik ekranı doldurur; formlar okunabilir azami genişliklerini korur.
 Rota değişince içerik başa döner ve çekmece kapanır.
 
 ## Dashboard Mimarisi
+
+Etkin `expert` yayın profili yalnızca Uzman Paneli'ni açar. Diğer dashboard'lar
+gelecekte kullanılmak üzere korunur ve gerektiğinde ayrı parça olarak yüklenir.
+Kapsam kontrolü, servis korumaları ve yeniden açma adımları [RELEASE_SCOPE.md](RELEASE_SCOPE.md) içindedir.
 
 `DashboardPage.jsx`, URL'yi değiştirmeden (`/dashboard` her rol için aynı),
 `RoleContext`'teki aktif role göre üç farklı dashboard'dan birini render eder:

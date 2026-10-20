@@ -1,4 +1,5 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useCallback } from "react";
+import { resolveReleaseRole } from "../constants/releaseProfile.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { SWITCHABLE_ROLES } from "../constants/allRoles.js";
 
@@ -11,7 +12,12 @@ const STORAGE_KEY = "nobetci-role";
 export const ROLES = SWITCHABLE_ROLES;
 
 export function RoleProvider({ children }) {
-  const [role, setRole] = useLocalStorage(STORAGE_KEY, "employee");
+  const [storedRole, setStoredRole] = useLocalStorage(STORAGE_KEY, "expert");
+  // Eski tercihi silmeden, ilk render'dan itibaren yalnızca açık rolü sun.
+  const role = resolveReleaseRole(storedRole);
+  const setRole = useCallback((next) => {
+    setStoredRole((previous) => resolveReleaseRole(typeof next === "function" ? next(resolveReleaseRole(previous)) : next));
+  }, [setStoredRole]);
   return <RoleContext.Provider value={{ role, setRole }}>{children}</RoleContext.Provider>;
 }
 

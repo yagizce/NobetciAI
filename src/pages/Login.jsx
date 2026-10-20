@@ -22,7 +22,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen frame-fill flex items-center justify-center px-4" style={{ background: theme.pageBg }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: theme.pageBg }}>
       <div className="w-full max-w-sm rounded-2xl border p-6" style={{ borderColor: theme.border, background: theme.surface }}>
         <div className="flex flex-col items-center mb-5">
           <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2" style={{ background: theme.accent }}>

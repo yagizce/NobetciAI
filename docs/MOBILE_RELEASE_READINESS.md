@@ -4,22 +4,41 @@
 
 ## Mevcut durum
 
+Etkin kapsam yalnızca İSG uzmanıdır. İşveren/çalışan ve uzaktan eğitim bilerek kapalıdır;
+bu özelliklerin kod ve verileri korunur. [Yeniden açma rehberi](RELEASE_SCOPE.md).
+
 Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapılandırması veya başka bir yerel mobil proje yoktur. Temizlik, mağazaya yüklenebilir Android/iOS paketi üretmez.
 
 ## Yayından önce tamamlanacak işler
 
 | İş | Depodaki kanıt / mevcut sınır |
 |---|---|
-| Gerçek hesap ve yetki sistemi | Login/Register yalnızca dashboard'a yönlendiriyor. `authService.js` mock; `isAuthenticated()` gerçek oturum doğrulamıyor. Demo rol seçimi kaldırılmalı veya gerçek yetkilerden ayrılmalı. |
+| Gerçek hesap ve yetki sistemi | Login/Register yalnızca dashboard'a yönlendiriyor. `authService.js` mock; `isAuthenticated()` gerçek oturum doğrulamıyor. Demo rol seçimi uzman kapsamında kapalı; bu kontrol gerçek yetkilendirme değildir. |
 | Sunucu veri katmanı ve firma izolasyonu | `dataProvider.js` IndexedDB kullanıyor. Supabase/RLS dosyaları taslak; aktif sunucu izolasyonu ve cihazlar arası senkronizasyon yok. |
 | AI uç noktalarında hesap doğrulaması ve kullanım sınırları | `api/` işlevlerinde oturum doğrulaması yok. IP hız sınırı process belleğinde; origin kontrolü kullanıcı kimliği değildir. |
 | Mobil paketleme ve API bağlantısı | Paketleme yaklaşımı, uygulama kimlikleri, imzalama ve sürümleme belirlenmeli. Göreli `/api/*` yolları ve origin kontrolleri seçilen mobil çalışma ortamında doğrulanmalı. |
-| İçerik ve demo temizliği | Örnek kullanıcılar, bilgi kütüphanesi, eğitim yer tutucu videosu, demo veri sıfırlama ve işlevsiz hesap ekranları yayın kapsamına göre tamamlanmalı. |
+| İçerik ve demo temizliği | Örnek kullanıcılar, bilgi kütüphanesi ve işlevsiz hesap ekranları yayın kapsamına göre tamamlanmalı. Eğitim ve demo veri sıfırlama uzman kapsamında kapalı; yeniden açılmadan önce içerikleri değerlendirilmelidir. |
 | Veri/gizlilik akışları | Fotoğraf ve belge verisinin AI servislerine gönderimi, saklama/silme akışları ve kullanıcı bilgilendirmesi ürünün gerçek davranışıyla eşleştirilmeli. |
 | Fiziksel cihaz doğrulaması | Kamera/galeri, QR okuma, dosya seçme, klavye, yön değişimi, güvenli alanlar, bildirim, çevrimdışı açılış, yedek geri yükleme, PDF/yazdırma ve güncelleme senaryoları Android/iOS cihazlarında denenmeli. |
 | Paket bağımlılıklarının ayrı incelemesi | Temizlikte sürüm yükseltmesi yapılmadı. Yayın öncesi bağımlılık güvenliği ve yükseltme uyumluluğu ayrıca değerlendirilmelidir. |
 
-## Son doğrulama — yedek ve çevrimdışı güvenilirliği
+## Son doğrulama — web ve mobil düzen
+
+- Zorunlu telefon çerçevesi kaldırıldı. 1024 px ve üstünde kalıcı yan menü; altında çekmece ve alt gezinme var.
+- 320/390/768/1024 px iframe test pencerelerinde sayfa genişliği ekranla eşit; yatay sayfa taşması yok. 1280 px masaüstü görünümü ayrıca kontrol edildi.
+- 320 px ayarlarda içerik 950 px kaydırılırken başlık ve alt menü sabit kaldı; risk sayfasına geçişte kaydırma sıfırlandı ve çekmece kapandı. Mobil bildirim paneli ekran içinde, giriş yazısı 16 px.
+- 390/768/1024 px sohbet görünümünde mesaj alanı kullanılabilir yüksekliğe sığıyor. Tarayıcı konsolunda hata görülmedi.
+- **601/601 test**, **254** uygulama JS/JSX dosyasında temiz sözdizimi/import kontrolü ve aynı Vite ayarlarıyla üretim derlemesi. Mevcut ExcelJS büyük parça uyarısı sürüyor.
+- Gerçek dokunmatik cihaz, sanal klavye ve çentikli ekran testi yapılmadı; iframe kontrolleri fiziksel Android/iOS doğrulamasının yerine geçmez.
+
+## Önceki doğrulama — uzman sürümü
+
+- **601/601 test** geçti; **255** uygulama JS/JSX dosyasında sözdizimi ve kullanılmayan import kontrolü temiz. Aynı Vite ayarları doğrudan yüklenerek üretim derlemesi tamamlandı; mevcut ExcelJS büyük parça uyarısı sürüyor.
+- Eski rol tercihi, kapalı eğitim/bildirim bağlantısı, uzman firma kurulumu ve manuel saha tespiti üretim önizlemesinde doğrulandı.
+- Tarayıcıda altı saklı modül kaydı geçişten sonra korundu. Tam yedeğin saklı veriyi içerdiği ve kapalı servis yazmalarının depolamaya ulaşmadığı otomatik test edildi.
+- Fiziksel cihaz, canlı AI ve gerçek hesap doğrulaması yapılmadı.
+
+## Önceki doğrulama — yedek ve çevrimdışı güvenilirliği
 
 - **594/594 test** geçti. Boş/bilinmeyen veri bölümleri içeren yedek reddi, kısmi yedek uyarısı ve 404/500 yanıtlarının önbelleğe alınmaması test edildi.
 - Üretim derlemesi aynı Vite ayarları doğrudan yüklenerek başarılı oldu. Fiziksel cihazda yedek geri yükleme ve çevrimdışı açılış hâlâ denenmeli.

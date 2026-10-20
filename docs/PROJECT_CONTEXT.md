@@ -2,16 +2,17 @@
 
 Son inceleme: **20 Ekim 2026**.
 
-Nöbetçi; İSG uzmanı, işveren ve çalışan için risk, denetim, eğitim, periyodik kontrol ve belge süreçlerini bir araya getirir. Hedef Android ve iOS yayınıdır; mevcut uygulama web/PWA aşamasındadır.
+Nöbetçi'nin ilk sürümü yalnızca İSG uzmanına yöneliktir. İşveren, çalışan, uzaktan eğitim ve çalışan bildirimi modülleri silinmeden kapatılmıştır. Hedef Android ve iOS yayınıdır; mevcut uygulama web/PWA aşamasındadır. Kapsamın tek kaynağı `src/constants/releaseProfile.js`; [yeniden açma rehberi](RELEASE_SCOPE.md) yeni geliştirmelerde okunmalıdır.
 
 ## Mevcut yapı
 
 - React 18 + Vite 5 + React Router 6; Tailwind CSS derleme sırasında üretilir.
 - Yerel veri: IndexedDB; servisler `dataProvider.js` üzerinden erişir. Firma kapsamı ve eski kayıt geçişi vardır.
-- Roller ve kullanıcılar demodur. Login/Register gerçek kimlik doğrulama yapmaz; yerel rol filtresi sunucu yetkilendirmesi değildir.
+- Kullanıcı profili demodur; etkin görünüm uzmandır. Login/Register gerçek kimlik doğrulama yapmaz; yayın kapsamı sunucu yetkilendirmesi değildir.
 - AI: Anthropic risk/belge işlemleri; NVIDIA metin sohbeti ve fotoğraf analizi. Anahtarlar sunucu proxy'lerinde tutulur.
-- Aktif modüller: firma yönetimi, dashboard, Fine-Kinney, Risk Tespiti, denetim, periyodik kontrol, eğitim, belge, mevzuat ve bilgi kütüphanesi.
+- Aktif modüller: firma/şube/departman, uzman dashboard, Fine-Kinney, Risk Tespiti, denetim, periyodik kontrol, belge, mevzuat ve bilgi kütüphanesi.
 - Fotoğrafla tehlike tespiti gerçek servis çağrısı kullanır. Bulgular onaylanmadan kaydolmaz.
+- Sabit kamera projesi ve gerçek hesap sistemi ertelendi. Telefonda tek fotoğraf analizi ayrı bir mevcut özelliktir.
 - Android/iOS proje ve imzalama yapılandırmaları henüz yoktur.
 - Supabase taslakları `docs/backend-migration/` altındadır; aktif uygulamaya bağlı değildir.
 - Testle korunan `isoStandards.js` eski çoklu standart prototipidir; aktif ekran girişinden kullanılmaz. Silme kararı ayrı kapsamda değerlendirilmelidir.

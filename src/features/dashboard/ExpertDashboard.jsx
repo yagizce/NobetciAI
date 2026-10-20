@@ -9,6 +9,7 @@ import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
 import { useToast } from "../../contexts/ToastContext.jsx";
 import { MessageSquare, ShieldAlert } from "../../components/icons/index.jsx";
+import { isFeatureEnabled } from "../../constants/releaseProfile.js";
 
 /**
  * @param {{ theme: object }} props
@@ -69,7 +70,13 @@ export default function ExpertDashboard({ theme }) {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[["/risk-analysis", "Risk değerlendirmesi"], ["/audit", "Denetim"], ["/documents", "Belgeler ve kontroller"]].map(([to, label]) => (
+          <Link key={to} to={to} className="rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.border, color: theme.accent }}>{label}</Link>
+        ))}
+      </div>
+
+      <div className={`grid gap-4 ${isFeatureEnabled("employeeReports") ? "md:grid-cols-2" : ""}`}>
         <section>
           <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Aktif Şirketler</p>
           <div className="grid gap-2">
@@ -78,7 +85,10 @@ export default function ExpertDashboard({ theme }) {
             ) : companiesError ? (
               <ErrorState title="Firmalar yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />
             ) : companies.length === 0 ? (
-              <EmptyState icon={ShieldAlert} title="Henüz firma oluşturulmadı" />
+              <div>
+                <EmptyState icon={ShieldAlert} title="Henüz firma oluşturulmadı" />
+                <Link to="/settings" className="text-sm font-semibold" style={{ color: theme.accent }}>Firma bilgilerini ekle →</Link>
+              </div>
             ) : companies.map((company) => {
               const isActive = String(company.id) === String(activeCompanyId);
               return (
@@ -96,7 +106,7 @@ export default function ExpertDashboard({ theme }) {
           </div>
         </section>
 
-        <section>
+        {isFeatureEnabled("employeeReports") && <section>
           <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Bekleyen Analizler</p>
           {/* UX FIX (loading/empty state cilası): bildirimler context'te ayrı yükleniyor —
               önceden `loaded` hiç kontrol edilmiyordu, ilk render'da (veri henüz gelmeden)
@@ -118,10 +128,10 @@ export default function ExpertDashboard({ theme }) {
               ))}
             </div>
           )}
-        </section>
+        </section>}
       </div>
 
-      <section className="mt-4">
+      {isFeatureEnabled("employeeReports") && <section className="mt-4">
         <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Son Analizler</p>
         {!notificationsLoaded ? (
           <Loading label="Analizler yükleniyor..." />
@@ -137,7 +147,7 @@ export default function ExpertDashboard({ theme }) {
             ))}
           </div>
         )}
-      </section>
+      </section>}
     </div>
   );
 }
