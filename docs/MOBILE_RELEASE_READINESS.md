@@ -19,7 +19,15 @@ Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapı
 | Fiziksel cihaz doğrulaması | Kamera/galeri, QR okuma, dosya seçme, klavye, yön değişimi, güvenli alanlar, bildirim, çevrimdışı açılış, yedek geri yükleme, PDF/yazdırma ve güncelleme senaryoları Android/iOS cihazlarında denenmeli. |
 | Paket bağımlılıklarının ayrı incelemesi | Temizlikte sürüm yükseltmesi yapılmadı. Yayın öncesi bağımlılık güvenliği ve yükseltme uyumluluğu ayrıca değerlendirilmelidir. |
 
-## Bu turda doğrulananlar
+## Son doğrulama — mobil kullanım ve kod güvenilirliği
+
+- 11 yeni ağ testiyle **590/590 test** geçti. **254** uygulama JS/JSX dosyasında sözdizimi/import kontrolü temiz.
+- Aynı Vite ayarlarıyla üretim derlemesi başarılı; aşağıdaki Windows yapılandırma yükleme yöntemi kullanıldı.
+- 390 × 600 tarayıcı alanında mobil kabuk, sabit menüler ve içerik kaydırması kontrol edildi. Masaüstü telefon önizlemesi ve rota değişiminde kaydırmanın sıfırlanması da doğrulandı.
+- Çalışan rolünde gizlenen firma bölümü, eşzamanlı bildirimlerin birleşmesi ve bildirim callback'inin sabit kalması tarayıcıda kontrol edildi.
+- Bu kontroller fiziksel Android/iOS, sanal klavye veya canlı AI servis testi değildir.
+
+## Önceki temizlik turunda doğrulananlar
 
 - Temizlik öncesi ve sonrası **579 test geçti**, başarısız test yok.
 - **253** uygulama JS/JSX dosyası sözdizimi kontrolünden geçti; kullanılmayan import bulunmadı.

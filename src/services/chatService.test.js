@@ -1,12 +1,39 @@
 import { test, describe, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { sendKimiChatMessage } from "./chatService.js";
+import { sendChatMessage, sendDocumentAnalysis, sendKimiChatMessage } from "./chatService.js";
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
 
 const jsonResponse = (status, body) => ({ ok: status < 400, status, json: async () => body });
 const payload = { messages: [{ role: "user", content: "Merhaba" }] };
+
+describe("Anthropic metin ve belge analizi", () => {
+  test("ilk metin bloğunu döndürür", async () => {
+    globalThis.fetch = async () => jsonResponse(200, { content: [{ type: "text", text: "Öneri" }] });
+    assert.equal(await sendChatMessage(payload), "Öneri");
+  });
+
+  test("metin analizi de zaman aşımını bildirir", async () => {
+    globalThis.fetch = async () => { throw new DOMException("Aborted", "AbortError"); };
+    await assert.rejects(sendChatMessage(payload), { message: "api_error_504", isTimeout: true });
+  });
+
+  test("PDF ve yönerge mevcut API sözleşmesiyle aynı istekte gönderilir", async () => {
+    globalThis.fetch = async (url, init) => {
+      assert.equal(url, "/api/chat");
+      const body = JSON.parse(init.body);
+      assert.equal(body.max_tokens, 1500);
+      assert.equal(body.system, "İSG");
+      assert.deepEqual(body.messages, [{ role: "user", content: [
+        { type: "document", source: { type: "base64", media_type: "application/pdf", data: "AAAA" } },
+        { type: "text", text: "Özetle" },
+      ] }]);
+      return jsonResponse(200, { content: [{ type: "text", text: "Özet" }] });
+    };
+    assert.equal(await sendDocumentAnalysis({ system: "İSG", pdfBase64: "AAAA", instruction: "Özetle" }), "Özet");
+  });
+});
 
 describe("sendKimiChatMessage — hata ve zaman aşımı", () => {
   test("başarılı yanıtı text/reasoning/toolCalls olarak döndürür", async () => {

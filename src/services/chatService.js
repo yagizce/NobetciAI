@@ -1,62 +1,22 @@
-// Metin ve belge analizini sunucu proxy’lerine iletir; API anahtarları sunucuda kalır.
-
-const API_ENDPOINT = "/api/chat";
-const KIMI_API_ENDPOINT = "/api/kimi-chat";
-// Sunucu tarafı NVIDIA zaman aşımı 50 sn / Vercel maxDuration 60 sn (bkz. api/kimi-chat.js);
-// istemci bunun biraz üstünde bekler — takılan bir ağ isteği "yazıyor..." ekranında sonsuza
-// dek kalmasın. Zaman aşımı mevcut hata kodu yapısıyla (`api_error_504`) bildirilir.
-const KIMI_REQUEST_TIMEOUT_MS = 65_000;
+import { postJson } from "./apiClient.js";
 
 /**
  * @param {{system?: string, messages: Array<{role: string, content: any}>, max_tokens?: number}} payload
  * @returns {Promise<string|null>} assistant's text reply, or null if the response had no text block
  */
 export async function sendChatMessage({ system, messages, max_tokens = 1000 }) {
-  const response = await fetch(API_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ system, messages, max_tokens }),
-  });
-  if (!response.ok) throw new Error("api_error_" + response.status);
-  const data = await response.json();
+  const data = await postJson("/api/chat", { system, messages, max_tokens });
   const textBlock = data?.content?.find((c) => c.type === "text");
   return textBlock ? textBlock.text : null;
 }
 
 /**
- * AI Chat sekmesi (ChatPanel.jsx) için — NVIDIA moonshotai/kimi-k3'e /api/kimi-chat
- * proxy'si üzerinden düz metin İSG sohbeti gönderir.
- * DÜZELTME (çok turlu tutarlılık): önceden yalnızca `content` metnini döndürüyordu.
- * Kimi K3'ün "preserved thinking" gereksinimi nedeniyle artık asistan cevabının
- * `reasoning_content` ve `tool_calls` alanlarını da (varsa) döndürüyor — çağıran taraf
- * (ChatPanel.jsx) bunları mesaj state'inde saklayıp bir sonraki istekte geri gönderebilsin.
- * Fine-Kinney ve belge analizleri Anthropic proxy’sini, fotoğraflar cosmosVisionService’i kullanır.
+ * NVIDIA sohbeti. reasoning_content ve tool_calls, sonraki turda modele geri gönderilir.
  * @param {{system?: string, messages: Array<{role: string, content: any, reasoning_content?: string, tool_calls?: any[]}>, max_tokens?: number}} payload
  * @returns {Promise<{text: string|null, reasoningContent: string|null, toolCalls: any[]|null}|null>}
  */
 export async function sendKimiChatMessage({ system, messages, max_tokens = 1000 }) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), KIMI_REQUEST_TIMEOUT_MS);
-  let response;
-  let data;
-  try {
-    response = await fetch(KIMI_API_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({ system, messages, max_tokens }),
-    });
-    data = await response.json().catch(() => null);
-  } catch (err) {
-    if (err?.name === "AbortError") throw new Error("api_error_504");
-    throw err; // ağ hatası (TypeError) — ChatPanel "bağlantı" mesajı gösterir
-  } finally {
-    clearTimeout(timer);
-  }
-  if (!response.ok) {
-    console.error("Kimi K3 API hatası:", response.status, data?.error || data);
-    throw new Error("api_error_" + response.status);
-  }
+  const data = await postJson("/api/kimi-chat", { system, messages, max_tokens });
   const message = data?.choices?.[0]?.message;
   if (!message) return null;
   return {

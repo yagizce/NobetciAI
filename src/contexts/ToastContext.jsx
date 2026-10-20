@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "./ThemeContext.jsx";
 
 const ToastContext = createContext(null);
@@ -6,23 +6,33 @@ let idCounter = 0;
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+  const activeToasts = useRef(new Map());
+
+  useEffect(() => {
+    const active = activeToasts.current;
+    return () => {
+      active.forEach(({ timer }) => clearTimeout(timer));
+      active.clear();
+    };
+  }, []);
 
   const showToast = useCallback((message, tone = "neutral", duration = 3000) => {
-    // UX FIX (hata yönetimi cilası): aynı mesaj zaten ekranda gösteriliyorsa (örn. bir
-    // ağ hatası art arda birkaç kez tetiklenirse) ikinci bir toast eklemek yerine
-    // mevcut olanı korunuyor — kullanıcı aynı uyarının üst üste yığıldığını görmesin diye.
-    // Farklı mesajlar / mesaj-ton kombinasyonları normal şekilde ayrı toast olarak eklenir.
-    const isDuplicate = toasts.some((t) => t.message === message && t.tone === tone);
+    // Ref aynı render içindeki ardışık çağrıları da birleştirir.
+    const isDuplicate = [...activeToasts.current.values()]
+      .some((t) => t.message === message && t.tone === tone);
     if (isDuplicate) return;
     const id = ++idCounter;
     setToasts((prev) => [...prev, { id, message, tone }]);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      activeToasts.current.delete(id);
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, duration);
-  }, [toasts]);
+    activeToasts.current.set(id, { message, tone, timer });
+  }, []);
+  const contextValue = useMemo(() => ({ showToast }), [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <ToastViewport toasts={toasts} />
     </ToastContext.Provider>

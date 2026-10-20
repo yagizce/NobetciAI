@@ -31,7 +31,7 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center gap-3 px-4 pb-3"
+      className="shrink-0 z-30 flex items-center gap-3 px-4 pb-3"
       style={{
         background: theme.header,
         borderBottom: `1px solid ${theme.border}`,
