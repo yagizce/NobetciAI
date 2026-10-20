@@ -1,6 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { validateBackup, estimateBackupSizeBytes } from "./backupService.js";
+import { validateBackup, estimateBackupSizeBytes, getMissingBackupStoreCount } from "./backupService.js";
+import { STORES } from "./db.js";
 
 describe("validateBackup", () => {
   test("geçerli bir yedek nesnesi için valid: true döner", () => {
@@ -31,15 +32,23 @@ describe("validateBackup", () => {
     assert.ok(result.error.includes("employees"));
   });
 
-  test("data içinde hiç store olmaması (boş yedek) geçerli sayılır", () => {
-    assert.deepEqual(validateBackup({ formatVersion: 1, data: {} }), { valid: true });
+  test("uygulama verisi içermeyen yedek reddedilir", () => {
+    assert.match(validateBackup({ formatVersion: 1, data: {} }).error, /uygulama verisi/i);
+    assert.equal(validateBackup({ formatVersion: 1, data: { bilinmeyenStore: [] } }).valid, false);
   });
 
   test("bilinmeyen (STORES listesinde olmayan) fazladan bir alan görmezden gelinir", () => {
     // İleride eski bir yedek dosyasında artık var olmayan bir store adı kalmış olabilir —
     // bu durumun restore'u BOZMAMASI gerekir, yalnızca o alan kullanılmaz.
-    const result = validateBackup({ formatVersion: 1, data: { bilinmeyenStore: [1, 2, 3] } });
+    const result = validateBackup({ formatVersion: 1, data: { employees: [], bilinmeyenStore: [1, 2, 3] } });
     assert.equal(result.valid, true);
+  });
+
+  test("eski kısmi yedek kabul edilir ve eksik veri bölümleri sayılır", () => {
+    const backup = { formatVersion: 1, data: { employees: [{ id: 1 }] } };
+    assert.equal(validateBackup(backup).valid, true);
+    assert.equal(getMissingBackupStoreCount(backup), STORES.length - 1);
+    assert.equal(getMissingBackupStoreCount({ data: Object.fromEntries(STORES.map((store) => [store, []])) }), 0);
   });
 
   // HARDENING (Stabilite Sprinti): IndexedDB store'ları `keyPath: "id"` ile tanımlı —

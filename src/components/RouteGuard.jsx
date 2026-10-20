@@ -21,11 +21,11 @@ export default function RouteGuard({ children, allowedRoles, permission, fallbac
   const { role } = useRole();
 
   if (!isAuthenticated(null)) {
-    return fallback ?? <EmptyState icon={ShieldAlert} title="Giriş yapmanız gerekiyor" />;
+    return fallback !== undefined ? fallback : <EmptyState icon={ShieldAlert} title="Giriş yapmanız gerekiyor" />;
   }
 
   if (allowedRoles && !hasRole(role, allowedRoles)) {
-    return fallback ?? (
+    return fallback !== undefined ? fallback : (
       <EmptyState
         icon={ShieldAlert}
         title="Bu bölüme erişim yetkiniz yok"
@@ -35,7 +35,7 @@ export default function RouteGuard({ children, allowedRoles, permission, fallbac
   }
 
   if (permission && !hasPermission(role, permission)) {
-    return fallback ?? <EmptyState icon={ShieldAlert} title="Bu işlem için yetkiniz yok" />;
+    return fallback !== undefined ? fallback : <EmptyState icon={ShieldAlert} title="Bu işlem için yetkiniz yok" />;
   }
 
   return children;

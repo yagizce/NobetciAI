@@ -1,5 +1,20 @@
 # Değişiklikler
 
+## 2026-10-20 — Yedek ve çevrimdışı güvenilirliği
+
+- Veri bölümü içermeyen yedek reddedilir; eski kısmi yedeklerde silinecek bölümler geri yükleme öncesinde belirtilir. Dosya okuma hatası gösterilir.
+- Çevrimdışı önbellek 404/500 yanıtlarını saklamaz. Önbellek sürümü yenilendi ve ilgili senaryolar test edildi.
+- Yedekleme modülündeki geçmiş hata anlatan uzun yorumlar kısaltıldı. Toplam 594 test başarılı.
+
+## 2026-10-20 — Mobil kullanım ve kod güvenilirliği
+
+- Mobil kabuk ekran yüksekliğiyle sınırlandı; içerik kayarken üst ve alt menü sabit kalır. Rota değişince içerik başa döner, menü kapanır. Denetim sayfasında “Diğer” sekmesi aktif görünür.
+- AI servislerinin JSON istekleri ortak `apiClient.js` katmanında toplandı. Metin/belge analizine de 65 saniyelik zaman aşımı eklendi; gövde okunurken kopan bağlantılar artık yutulmaz.
+- `RouteGuard`, açıkça verilen `fallback={null}` değerini korur; gizlenmesi istenen bölüm için yetki uyarısı üretmez.
+- Aynı anda gelen aynı bildirimler birleşir. Bildirim callback'i sabit tutulur, provider kapanırken zamanlayıcılar temizlenir.
+- Mobil stil ve gezinme dosyalarındaki tarihsel açıklama tekrarları kısaltıldı. Dokunmatik yatay ekranlar da 16 px form alanı kuralına dahil edildi.
+- Ağ hata senaryoları için 11 test eklendi; toplam 590 test başarılı.
+
 ## 2026-10-20 — Yayın öncesi temizlik
 
 - Uygulama girişinden erişilmeyen eski dashboard, denetim, sohbet ve fotoğraf analiz parçaları kaldırıldı.

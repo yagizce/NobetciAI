@@ -1,12 +1,4 @@
-// backupService — TÜM uygulama verisinin (Fine-Kinney, çalışanlar, dokümanlar, eğitim
-// kayıtları, her şey) tek bir JSON dosyasına yedeklenmesi/geri yüklenmesi.
-//
-// NEDEN ÖNEMLİ: Bu uygulama tek bir cihazda (telefonda), yalnızca IndexedDB'de veri
-// tutuyor — backend/senkronizasyon yok. Telefon kaybolur, arızalanır veya tarayıcı verisi
-// temizlenirse şu ana kadar HİÇBİR veri kurtarma yolu yoktu. Bu servis o riski kapatır.
-//
-// STORES listesi db.js'ten import edilir (tekrar tanımlanmaz) — yeni bir store eklendiğinde
-// (DB_VERSION artışı) bu dosyanın ayrıca güncellenmesi GEREKMEZ, otomatik kapsar.
+// Yerel IndexedDB verisinin tam yedeği. Store listesi db.js ile ortak tutulur.
 
 import { dataProvider } from "./dataProvider.js";
 import { STORES, replaceAllData } from "./db.js";
@@ -14,16 +6,8 @@ import { STORES, replaceAllData } from "./db.js";
 const BACKUP_FORMAT_VERSION = 1;
 
 /**
- * @param {{ includePhotos?: boolean }} [options] - includePhotos: false ise
- *   `riskDetectionPhotos` store'u ATLANIR (boş dizi olarak yazılır, dataProvider'a hiç
- *   sorulmaz). BUG FIX/HARDENING: Phase 6'dan beri fotoğraflar da tam yedeğe otomatik
- *   dahil oluyordu (STORES'tan geliyor) — biriken Vision AI fotoğrafları yedeği,
- *   BackupSection.jsx'teki geri yükleme dosya boyutu sınırının ÜZERİNE çıkarabiliyordu.
- *   Yani kullanıcı kendi ürettiği yedeği ileride bu cihaza GERİ YÜKLEYEMEYEBİLİYORDU —
- *   tam da bu özelliğin var olma sebebi olan senaryoda (telefon kaybolur, yedek gerekir)
- *   sessizce kilitleniyordu. Bu seçenek, BackupSection.jsx'in "fotoğrafsız yedek indir"
- *   düşme yolunu (fallback) mümkün kılar — tüm uyum-kritik veri (Fine-Kinney, çalışan,
- *   eğitim, periyodik kontrol) her koşulda yedeklenebilir kalır.
+ * @param {{ includePhotos?: boolean }} [options] - false ise fotoğraf store'u boş yazılır;
+ *   büyük yedeklerde diğer kayıtların geri yüklenebilir kalmasını sağlar.
  * @returns {Promise<{ formatVersion: number, exportedAt: string, data: Record<string, object[]> }>}
  */
 export async function buildFullBackup({ includePhotos = true } = {}) {
@@ -35,10 +19,7 @@ export async function buildFullBackup({ includePhotos = true } = {}) {
 }
 
 /**
- * Bir yedek nesnesinin YAKLAŞIK indirilmiş dosya boyutunu (byte) hesaplar — saf/test
- * edilebilir. `Blob` tarayıcıda da Node'da da mevcut olduğu için ek bir bağımlılık
- * gerekmez. BackupSection.jsx bunu, indirmeden ÖNCE "bu yedek bu cihazda geri
- * yüklenebilir mi" kontrolü için kullanır (bkz. o dosyadaki MAX_BACKUP_SIZE_BYTES).
+ * İndirilecek yedeğin yaklaşık boyutu; geri yükleme sınırından önce kontrol edilir.
  * @param {object} backup
  * @returns {number}
  */
@@ -64,6 +45,9 @@ export function validateBackup(backup) {
   if (!backup.data || typeof backup.data !== "object" || Array.isArray(backup.data)) {
     return { valid: false, error: "Yedek dosyasında geçerli veri bulunamadı." };
   }
+  if (getMissingBackupStoreCount(backup) === STORES.length) {
+    return { valid: false, error: "Yedek dosyasında uygulama verisi bulunamadı." };
+  }
   for (const store of STORES) {
     if (backup.data[store] === undefined) continue;
     if (!Array.isArray(backup.data[store])) {
@@ -86,18 +70,14 @@ export function validateBackup(backup) {
   return { valid: true };
 }
 
+/** Eski yedeklerde bulunmayan veri bölümleri geri yükleme sırasında boşaltılır. */
+export function getMissingBackupStoreCount(backup) {
+  return STORES.filter((store) => !Object.prototype.hasOwnProperty.call(backup.data, store)).length;
+}
+
 /**
- * TÜM MEVCUT VERİYİ yedekteki veriyle DEĞİŞTİRİR (restore = replace, mevcut veriyle
- * BİRLEŞTİRMEZ). Çağırmadan önce kullanıcıya bunun geri alınamaz olduğu AÇIKÇA
- * belirtilip onay aldırılmalıdır (bkz. BackupSection.jsx). `validateBackup` ile önce
- * doğrulanmamış bir nesneyle çağrılmamalıdır — bu fonksiyon kendi başına doğrulama YAPMAZ.
- *
- * RİSK TEMİZLİĞİ (bkz. CHANGELOG.md → Bilinen Risk, artık ÇÖZÜLDÜ): önceden bu fonksiyon
- * her store için AYRI bir transaction açıyordu — bir store başarıyla değiştirilip bir
- * SONRAKİ store'da hata olursa, veritabanı yarı-eski/yarı-yeni halde kalabiliyordu. Artık
- * `db.js` → `replaceAllData` ile TÜM store'lar TEK bir IndexedDB transaction'ında
- * değiştiriliyor — IndexedDB'nin native "ya hep ya hiç" garantisi sayesinde, herhangi bir
- * hata olursa TÜM değişiklikler otomatik geri alınır (uygulama kodunda taklit edilmiyor).
+ * Tüm veriyi yedekteki kayıtlarla atomik olarak değiştirir; birleştirme yapmaz.
+ * Çağıran taraf kullanıcı onayı almalıdır. Geçersiz yedek işlemden önce reddedilir.
  * @param {{ data: Record<string, object[]> }} backup
  */
 export async function restoreFullBackup(backup) {

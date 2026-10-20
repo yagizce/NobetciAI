@@ -128,6 +128,10 @@ ihtiyacı önce burada aranır (bkz.
 - **Code-splitting:** tüm sayfalar `React.lazy` + `Suspense` (`App.jsx`) ile
   yükleniyor — her sayfa yalnızca ziyaret edildiğinde indiriliyor.
 
+`Layout`, dinamik ekran yüksekliğini doldurur; başlık ve alt menü kaydırılan
+`main` alanının dışında kalır. Masaüstü önizlemede yüksekliği `PhoneFrame` belirler.
+Rota değişince içerik başa döner ve çekmece kapanır.
+
 ## Dashboard Mimarisi
 
 `DashboardPage.jsx`, URL'yi değiştirmeden (`/dashboard` her rol için aynı),
@@ -201,6 +205,11 @@ API anahtarları sunucuda tutulur. Aktif yollar:
 - Fotoğraf sohbeti ve tehlike tespiti: `cosmosVisionService.js` → `/api/cosmos-vision` → NVIDIA görsel modelleri.
 
 `ANTHROPIC_API_KEY` ve `NVIDIA_API_KEY` sunucu ortam değişkenleridir.
+İstemci servisleri, JSON POST ve 65 saniyelik zaman aşımı için `apiClient.js` kullanır.
+Süreye yanıt gövdesini okuma da dahildir. HTTP hataları `api_error_<status>` ve
+`status`, istemci zaman aşımı ayrıca `isTimeout` taşır. Geçersiz JSON 502 olarak
+bildirilir; bağlantı hataları özgün hata olarak korunur. Model yanıtlarını çözümlemek
+ve iş kurallarını uygulamak ilgili domain servisinin sorumluluğundadır.
 Fotoğraf bulguları `visionAnalysisService.js` içinde doğrulanır. AI önerileri kullanıcı
 onayıyla uygulanır; artık risk değerleri asıl değerleri aşmayacak şekilde sınırlanır.
 Bilgi kütüphanesi bağlamı anahtar kelime eşleştirmesiyle hazırlanır; tam vektör RAG değildir.

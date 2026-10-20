@@ -1,11 +1,4 @@
-// Sohbet fotoğrafları ve Risk Tespiti için NVIDIA görsel analiz proxy’si.
-// API anahtarı sunucuda kalır; yapılandırılmış bulguları visionAnalysisService doğrular.
-
-const API_ENDPOINT = "/api/cosmos-vision";
-// Sunucu tarafı toplam bütçe 50 sn / Vercel maxDuration 60 sn (bkz. api/cosmos-vision.js);
-// istemci bunun biraz üstünde bekler — takılı kalan bir istek kullanıcıyı sonsuza dek
-// "yükleniyor" ekranında bırakmasın.
-const REQUEST_TIMEOUT_MS = 65_000;
+import { postJson } from "./apiClient.js";
 
 /**
  * @param {{ imageBase64: string, mediaType: string, question?: string, mode?: "findings" }} params
@@ -15,38 +8,15 @@ const REQUEST_TIMEOUT_MS = 65_000;
  *   sunucudan yapılandırılmış bulgu JSON'u ister; dönen ham metin orada ayrıştırılır.
  * @returns {Promise<string>} AI'nın ham metin yanıtı
  * @throws {Error} `status` (HTTP durum kodu) veya `isTimeout` alanı taşıyabilir — çağıran
- *   taraf (ChatPanel) bunlara göre kullanıcıya anlaşılır mesaj üretir; `message` ham
- *   sunucu metni olabilir ve kullanıcıya OLDUĞU GİBİ gösterilmemelidir.
+ *   taraf (ChatPanel) bunlara göre kullanıcıya anlaşılır mesaj üretir.
  */
 export async function analyzePhotoWithCosmos({ imageBase64, mediaType, question, mode }) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  let response;
-  let data;
-  try {
-    response = await fetch(API_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({ imageBase64, mediaType, ...(question ? { question } : {}), ...(mode ? { mode } : {}) }),
-    });
-    data = await response.json().catch(() => null);
-  } catch (err) {
-    if (err?.name === "AbortError") {
-      const timeoutError = new Error("Fotoğraf analizi zaman aşımına uğradı.");
-      timeoutError.isTimeout = true;
-      throw timeoutError;
-    }
-    throw err; // ağ hatası (TypeError) — çağıran taraf "bağlantı" mesajı gösterir
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!response.ok) {
-    const error = new Error(data?.error || `Sunucu hatası (${response.status})`);
-    error.status = response.status;
-    throw error;
-  }
+  const data = await postJson("/api/cosmos-vision", {
+    imageBase64,
+    mediaType,
+    ...(question ? { question } : {}),
+    ...(mode ? { mode } : {}),
+  });
 
   // NVIDIA'nın OpenAI-uyumlu chat completions yanıt şekli: choices[0].message.content
   const rawText = data?.choices?.[0]?.message?.content;
