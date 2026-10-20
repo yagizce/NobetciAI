@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useToast } from "../../contexts/ToastContext.jsx";
 import { useLocalStorage } from "../../hooks/useLocalStorage.js";
-import { buildFullBackup, validateBackup, restoreFullBackup, downloadBackupFile, estimateBackupSizeBytes } from "../../services/backupService.js";
+import { buildFullBackup, validateBackup, restoreFullBackup, downloadBackupFile, estimateBackupSizeBytes, getMissingBackupStoreCount } from "../../services/backupService.js";
 import { LAST_BACKUP_STORAGE_KEY, isBackupStale, daysSinceLastBackup } from "../../constants/backup.js";
 import Button from "../../components/ui/Button.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
@@ -10,10 +10,7 @@ import Modal from "../../components/ui/Modal.jsx";
 import { Download, Upload, AlertTriangle } from "../../components/icons/index.jsx";
 
 /**
- * Tam Yedek Al / Geri Yükle — bu uygulama tek bir cihazda (telefonda) çalışıyor, backend
- * senkronizasyonu yok; telefon kaybolur/arızalanırsa bu özellik olmadan HİÇBİR veri
- * kurtarma yolu yoktu. `backupService.js`'in üzerine kurulu, tüm mantık orada — bu bileşen
- * yalnızca dosya seçimi/onay akışını yönetir.
+ * Yerel verinin yedek indirme, dosya seçme ve geri yükleme onay akışı.
  */
 const MAX_BACKUP_SIZE_BYTES = 25 * 1024 * 1024; // 25MB — hem geri yükleme (yüklenen dosya) hem de indirme (bkz. handleDownload) tarafında AYNI sınır uygulanır.
 
@@ -21,19 +18,7 @@ function formatMB(bytes) {
   return (bytes / 1024 / 1024).toFixed(1);
 }
 
-// HARDENING (acil öncelik takibi): önceden "en son ne zaman yedek alındı" bilgisi
-// HİÇBİR YERDE tutulmuyordu — bir kullanıcı aylarca yedek almadan devam edebilir ve
-// bunu asla fark etmezdi (tam da bu özelliğin var olma amacı olan senaryo: telefon
-// kaybolur, yedek yoktur). localStorage BİLEREK seçildi (IndexedDB DEĞİL) — bu salt
-// "bu cihazda en son ne zaman tıklandı" bilgisi, taşınabilir/yedeklenmesi gereken
-// domain verisi değil; üstelik IndexedDB'de tutulsaydı ESKİ bir yedek geri
-// yüklendiğinde bu tarih de YANLIŞ ŞEKİLDE eski bir değere dönerdi.
-//
-// Anahtar adı ve eşik gün sayısı artık constants/backup.js'te TEK yerde tanımlı —
-// useReminderScheduler.js de aynı sabitleri kullanarak bu bilgiyi gerçek bir arka
-// plan bildirimine çeviriyor (bkz. o dosyadaki "backupStale" bloğu). Önceden bu uyarı
-// yalnızca kullanıcı Ayarlar sayfasını ZİYARET EDERSE görünüyordu — hiç ziyaret
-// etmeyen bir kullanıcıya asla ulaşmıyordu.
+// Son indirme tarihi yalnızca bu cihaza aittir; eski yedekle geri alınmamalıdır.
 function useLastBackupInfo() {
   const [lastBackupAt, setLastBackupAt] = useLocalStorage(LAST_BACKUP_STORAGE_KEY, null);
   const daysSince = daysSinceLastBackup(lastBackupAt);
@@ -49,13 +34,7 @@ export default function BackupSection() {
   const [busy, setBusy] = useState(false);
   const { lastBackupAt, setLastBackupAt, daysSince, isStale } = useLastBackupInfo();
 
-  // BUG FIX/HARDENING: önceden buildFullBackup() sonucu boyutu HİÇ kontrol edilmeden
-  // doğrudan indiriliyordu. Phase 6'dan beri fotoğraflar da tam yedeğe dahil olduğu için
-  // (bkz. backupService.js → buildFullBackup notu), biriken fotoğraflarla bir kullanıcı
-  // kendi ürettiği yedeği MAX_BACKUP_SIZE_BYTES sınırını aştığı için ileride bu cihaza
-  // GERİ YÜKLEYEMİYORDU — tam da bu özelliğin var olma sebebi olan senaryoda sessizce
-  // kilitleniyordu. Artık indirmeden ÖNCE boyut kontrol edilir; sınırı aşarsa kullanıcıya
-  // açıkça seçenek sunulur (fotoğrafsız indir / yine de tam indir / vazgeç).
+  // Büyük yedekte fotoğrafsız indirme seçeneği sunulur; diğer kayıtlar korunur.
   async function handleDownload() {
     setBusy(true);
     try {
@@ -126,6 +105,7 @@ export default function BackupSection() {
       }
       setPendingRestore(parsed);
     };
+    reader.onerror = () => showToast("Yedek dosyası okunamadı. Lütfen dosyayı yeniden seçin.", "error");
     reader.readAsText(file, "UTF-8");
   }
 
@@ -146,6 +126,14 @@ export default function BackupSection() {
       setBusy(false);
     }
   }
+
+  const missingStoreCount = pendingRestore ? getMissingBackupStoreCount(pendingRestore) : 0;
+  const restoreWarning = missingStoreCount > 0
+    ? ` Yedek, uygulamanın ${missingStoreCount} veri bölümünü içermiyor; o bölümlerdeki mevcut kayıtlar silinecek.`
+    : "";
+  const backupDate = pendingRestore?.exportedAt
+    ? ` Yedek tarihi: ${new Date(pendingRestore.exportedAt).toLocaleString("tr-TR")}`
+    : "";
 
   return (
     <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
@@ -181,7 +169,7 @@ export default function BackupSection() {
       <ConfirmDialog
         open={Boolean(pendingRestore)}
         title="Yedekten geri yükle"
-        message={`Bu işlem, bu cihazdaki TÜM mevcut veriyi (Fine-Kinney, çalışanlar, dokümanlar, her şey) yedek dosyasındaki veriyle DEĞİŞTİRECEK. Bu geri alınamaz. Devam etmek istediğinize emin misiniz?${pendingRestore ? `\n\nYedek tarihi: ${new Date(pendingRestore.exportedAt).toLocaleString("tr-TR")}` : ""}`}
+        message={`Bu işlem, bu cihazdaki TÜM mevcut veriyi (Fine-Kinney, çalışanlar, dokümanlar, her şey) yedek dosyasındaki veriyle DEĞİŞTİRECEK. Bu geri alınamaz. Devam etmek istediğinize emin misiniz?${restoreWarning}${backupDate}`}
         confirmLabel="Evet, Geri Yükle"
         danger
         onConfirm={handleConfirmRestore}

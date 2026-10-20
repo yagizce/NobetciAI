@@ -1,5 +1,37 @@
 # Son geliştirme raporu
 
+**20 Ekim 2026 — Genel yapı ikinci inceleme**
+
+## Yapılan Geliştirmeler
+
+- Boş veya yalnızca bilinmeyen alanlar içeren yedeklerin tüm yerel kayıtları silmesine yol açabilecek geri yükleme yolu kapatıldı.
+- Eski kısmi yedeklerde eksik veri bölümü sayısı geri yükleme onayında gösterilir. Dosya okuma hatası da görünür.
+- Service worker başarısız HTTP yanıtlarını önbelleğe almaz. Önbellek sürümü yenilendi; yedekleme kodundaki uzun geçmiş açıklamaları kısaltıldı.
+
+## Etkilenen Modüller
+
+`backupService`, ayarlar/yedekleme ekranı, service worker ve testleri. Veri modeli ile bağımlılıklar değişmedi.
+
+## Doğrulama
+
+594 test geçti; yedek doğrulaması ve çevrimdışı önbellek senaryoları dahil. Vite ayarları doğrudan yüklenerek üretim derlemesi tamamlandı. Fiziksel telefon testi yapılmadı.
+
+## Bilinen Riskler
+
+- Kısmi yedekte bulunmayan veri bölümleri geri yüklenirken boşalır; onay ekranı bunu bildirir.
+- İş verisi yalnızca cihazdaki IndexedDB'de. Otomatik uzak yedek ve cihazlar arası eşitleme yok; telefon kaybında indirilmiş yedek gerekir.
+- Yerel depolamadaki beklenmeyen tema/rol değerleri tüm bağlamlarda doğrulanmıyor. Gerçek hesap, sunucu izolasyonu, AI uç nokta yetkilendirmesi ve Android/iOS paketleri henüz yok.
+
+## Sonraki Öneriler
+
+Önce fiziksel cihazlarda yedek geri yükleme ve çevrimdışı güncelleme akışı denenmeli. Ardından yerel ayar doğrulaması ve mobil paketleme ele alınmalı. Gerçek oturum ve sunucu veri modeli, ürün kararı gereği sonraki aşamaya bırakıldı.
+
+## Documentation Check
+
+`CHANGELOG.md` davranış, `MOBILE_RELEASE_READINESS.md` doğrulama için güncellendi. Mimari, veri modeli, README ve geliştirme kuralları değişmediği için diğer belgeler korundu.
+
+---
+
 **20 Ekim 2026 — Mobil kullanım ve kod güvenilirliği**
 
 ## Yapılan Geliştirmeler

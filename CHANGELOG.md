@@ -1,5 +1,11 @@
 # Değişiklikler
 
+## 2026-10-20 — Yedek ve çevrimdışı güvenilirliği
+
+- Veri bölümü içermeyen yedek reddedilir; eski kısmi yedeklerde silinecek bölümler geri yükleme öncesinde belirtilir. Dosya okuma hatası gösterilir.
+- Çevrimdışı önbellek 404/500 yanıtlarını saklamaz. Önbellek sürümü yenilendi ve ilgili senaryolar test edildi.
+- Yedekleme modülündeki geçmiş hata anlatan uzun yorumlar kısaltıldı. Toplam 594 test başarılı.
+
 ## 2026-10-20 — Mobil kullanım ve kod güvenilirliği
 
 - Mobil kabuk ekran yüksekliğiyle sınırlandı; içerik kayarken üst ve alt menü sabit kalır. Rota değişince içerik başa döner, menü kapanır. Denetim sayfasında “Diğer” sekmesi aktif görünür.

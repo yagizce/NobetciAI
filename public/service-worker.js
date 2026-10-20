@@ -1,7 +1,7 @@
 // HTML/JS/CSS için network-first; resim ve fontlar için cache-first.
 // Önbellek davranışı değişirse CACHE_VERSION artırılır; eski uygulama cache’leri temizlenir.
 
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const RUNTIME_CACHE = `nobetci-isg-runtime-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/manifest.json"];
@@ -33,6 +33,12 @@ function isStaticAsset(pathname) {
   return /\.(png|jpg|jpeg|svg|webp|ico|woff2?|ttf)$/i.test(pathname);
 }
 
+function cacheSuccessfulResponse(event, request, response) {
+  if (!response.ok) return;
+  const copy = response.clone();
+  event.waitUntil(caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy)).catch(() => {}));
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return; // POST vb. (örn. Vercel Functions AI proxy) hiç dokunulmaz
@@ -46,8 +52,7 @@ self.addEventListener("fetch", (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((res) => {
-          const clone = res.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+          cacheSuccessfulResponse(event, request, res);
           return res;
         });
       })
@@ -60,8 +65,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((res) => {
-        const clone = res.clone();
-        caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+        cacheSuccessfulResponse(event, request, res);
         return res;
       })
       .catch(async () => {
