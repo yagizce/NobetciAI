@@ -25,9 +25,9 @@ export default function Layout() {
   useReminderScheduler();
   const isMoreActive = MORE_ROUTES.some((r) => location.pathname.startsWith(r));
 
-  // Sabit kabuk içinde yalnızca main kayar; masaüstünde PhoneFrame yüksekliği kullanılır.
+  // Ekranı dolduran kabukta yalnızca içerik kayar; gezinme görünür kalır.
   return (
-    <div className="flex h-screen frame-fill" style={{ background: theme.pageBg }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: theme.pageBg, paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}>
       <AppSwitcherPrivacyGuard />
       <Sidebar mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 min-h-0">

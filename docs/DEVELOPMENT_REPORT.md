@@ -1,34 +1,31 @@
 # Son geliştirme raporu
 
-**20 Ekim 2026 — Uzman odaklı ilk sürüm**
+**20 Ekim 2026 — Web ve mobil uyumlu düzen**
 
 ## Yapılan Geliştirmeler
 
-- İşveren/çalışan görünümü, uzaktan eğitim, çalışan yönetimi ve çalışan bildirim/onay akışı merkezi yayın profiliyle kapatıldı.
-- Sekme, eski rol tercihi, servis yazması, arka plan hatırlatması, bildirim tercihi ve sohbet yönlendirmesi aynı kapsamla sınırlandı.
-- Uzman firma/şube/departman kurabilir; risk, denetim, belge ve kontrol akışları açık. Kritik risk uyarısı genel çalışan bildiriminden ayrıldı.
-- Tüm eski kod ve veriler korunuyor. Tam yedek kapalı modül verilerini de içeriyor; demo veri sıfırlaması kapalı.
-- Başka model/geliştirici için kök AGENTS.md ve RELEASE_SCOPE.md yeniden açma rehberi eklendi.
+- Masaüstünde uygulamayı 390 px telefon maketine sıkıştıran PhoneFrame kaldırıldı. 1024 px ve üstünde kalıcı yan menü, altında çekmece ve alt gezinme kullanılır.
+- Üst menü dokunma alanları büyütüldü; bildirim paneli küçük ekranın içine alındı. Mobil form yazıları 16 px, yan güvenli alanlar ve dinamik ekran yüksekliği korunur.
+- Telefon maketine özgü CSS ve eski açıklamalar temizlendi; PWA önbelleği v6 oldu. Uzman yayın kapsamı, veri ve servis davranışları değişmedi.
 
 ## Etkilenen Modüller
 
-Rol bağlamı, dashboard, ayarlar/firma, doküman/risk sekmeleri, eğitim/çalışan/bildirim servisleri, hatırlatıcı ve sohbet kısayolu. Veri şeması ve bağımlılıklar değişmedi.
+Uygulama kabuğu, yan/üst/alt menü, arama, bildirim paneli ve ortak CSS. Hesap/hata ekranlarından artık kullanılmayan frame-fill sınıfı kaldırıldı; sohbet ve rapor yorumları mevcut düzene uyarlandı.
 
 ## Doğrulama
 
-- Yayın profili ve kapalı servis davranışları için 7 yeni testle **601/601 test** geçti; **255** uygulama JS/JSX dosyasında sözdizimi ve kullanılmayan import kontrolü temiz.
-- Tarayıcıda eski employee/employer tercihi uzman olarak açıldı; eğitim ve bildirim derin bağlantıları açık sekmelere düştü.
-- Uzman olarak firma ve manuel saha tespiti oluşturuldu. Altı kapalı modül kaydı geçişten sonra korunuyordu; saklı eğitim bildirimi gösterilmedi.
-- Üretim derlemesi aynı Vite ayarları doğrudan yüklenerek tamamlandı. Windows geliştirme sunucusunun bağımlılık tarayıcısı üst klasör erişiminde hata verdiği için tarayıcı kontrolleri üretim önizlemesinde yapıldı.
+- 601/601 test, 254 uygulama JS/JSX dosyasında temiz sözdizimi/import kontrolü ve başarılı üretim derlemesi.
+- 320/390/768/1024 px iframe test pencerelerinde sayfa genişliği ekranla eşit. 1280 px masaüstünde tam web görünümü kontrol edildi.
+- Mobilde içerik kayarken başlık/alt menü sabit; rota değişince kaydırma sıfırlanır ve çekmece kapanır. Bildirim paneli ekrana sığar; sohbet mesaj alanı görünür. Tarayıcı konsolunda hata yok.
 
 ## Bilinen Riskler
 
-Kapsam kontrolü gerçek hesap/sunucu yetkilendirmesi değildir. Veriler cihazdadır; eski çevrimdışı sürüm bir güncelleme almadan değişmez. Fiziksel Android/iOS ve canlı AI testi yapılmadı. Eğitim/işveren/çalışan kodları korunmuştur; yeniden açma öncesinde kendi akışları tekrar test edilmelidir.
+Fiziksel Android/iOS, sanal klavye ve çentik testi yapılmadı. ExcelJS için mevcut büyük parça uyarısı sürüyor. Bu değişiklik native paketleme veya gerçek hesap yetkilendirmesi eklemez.
 
 ## Sonraki Öneriler
 
-Uzman pilotunda saha tespiti → değerlendirme → faaliyet → rapor akışını cihazda doğrulayın. Gerçek hesap ve kamera projesi sonraki ürün aşamasındadır. Modül açma adımları [RELEASE_SCOPE.md](RELEASE_SCOPE.md) içindedir.
+Mobil pilotta klavye açıkken sohbet/formlar, yatay yön ve güvenli alanlar fiziksel cihazlarda doğrulanmalı.
 
 ## Documentation Check
 
-README, PROJECT_CONTEXT, ARCHITECTURE, CHANGELOG, yayın hazırlığı ve dokümantasyon dizini etkin kapsamla eşleştirildi. Veri modeli değişmedi; DATABASE_PLAN ve tarihsel sprint belgeleri korundu.
+ARCHITECTURE, CHANGELOG ve MOBILE_RELEASE_READINESS yeni düzene uyarlandı. Yayın kapsamı ve veri modeli değişmediği için RELEASE_SCOPE ve DATABASE_PLAN korunur; README ürün tanımıyla uyumludur.

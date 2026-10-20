@@ -1,5 +1,12 @@
 # Değişiklikler
 
+## 2026-10-20 — Web ve mobil uyumlu düzen
+
+- Masaüstünü 390 px telefon maketine sıkıştıran PhoneFrame kaldırıldı. Web uygulaması ekranı doldurur; 1024 px ve üstünde kalıcı yan menü gösterilir.
+- Dar ekranlarda çekmece ve alt gezinme korunur. Üst menünün dokunma alanları büyütüldü; bildirim paneli küçük ekranın içine sığar.
+- Mobil form yazıları 16 px; güvenli alanlar, dinamik ekran yüksekliği ve içerik kaydırması korunur. Fareyle yatay listelerin kaydırma çubukları kullanılabilir. PWA önbellek sürümü v6.
+- 601 test ve üretim derlemesi başarılı. 320/390/768/1024 px test pencereleri ve 1280 px masaüstü tarayıcı görünümü kontrol edildi; fiziksel cihaz testi değildir.
+
 ## 2026-10-20 — Uzman odaklı ilk sürüm
 
 - İşveren/çalışan rolleri, uzaktan eğitim, çalışan yönetimi ve bildirim/onay akışı merkezi yayın profiliyle kapatıldı; kod ve eski veriler korunur.

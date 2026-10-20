@@ -19,17 +19,7 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Ayarlar", icon: Settings, emoji: "⚙️" },
 ];
 
-/**
- * PHONE FRAME (bkz. App.jsx): uygulama artık masaüstünde de her zaman telefon
- * genişliğinde bir çerçeve içinde render oluyor. Bu yüzden kalıcı/geniş bir masaüstü
- * kenar çubuğu ARTIK HİÇBİR ZAMAN anlamlı değil — önceden `hidden md:block` ile
- * gerçek tarayıcı genişliği ≥768px olduğunda görünen ayrı bir "masaüstü" varyantı
- * vardı, ama o kırılma noktası ÇERÇEVENİN görsel genişliğine değil GERÇEK pencere
- * genişliğine bakıyordu — geniş bir masaüstü penceresinde bu, 430px'lik çerçevenin
- * içine 240px'lik bir kenar çubuğu sıkıştırıp görünümü bozardı. Artık TEK bir
- * varyant var: her zaman kayan çekmece (mobil deseni), pencere genişliğinden
- * bağımsız olarak tutarlı çalışır.
- */
+/** Masaüstünde kalıcı yan menü, dar ekranlarda açılır çekmece. */
 export default function Sidebar({ mobileOpen, onClose }) {
   const { theme } = useTheme();
   const { role } = useRole();
@@ -59,19 +49,19 @@ export default function Sidebar({ mobileOpen, onClose }) {
           </div>
           <span className="font-[Oswald] text-[15px] uppercase tracking-wide" style={{ color: theme.textPrimary }}>Nöbetçi</span>
         </div>
-        <button onClick={onClose} className="p-1.5 -m-1.5 rounded-lg" aria-label="Kapat">
+        <button onClick={onClose} className="lg:hidden w-11 h-11 flex items-center justify-center rounded-lg" aria-label="Kapat">
           <X style={{ fontSize: "18px", color: theme.textMuted }} />
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3 px-2">
+      <nav aria-label="Ana gezinme" className="flex-1 overflow-y-auto py-3 px-2">
         {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             onClick={onClose}
             className={({ isActive }) =>
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors"
+              "flex items-center gap-3 min-h-11 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors"
             }
             style={({ isActive }) => ({
               background: isActive ? theme.accent : "transparent",
@@ -90,12 +80,13 @@ export default function Sidebar({ mobileOpen, onClose }) {
     </div>
   );
 
-  if (!mobileOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-40">
+    <>
+      <aside className="hidden lg:block w-60 shrink-0 min-h-0">{content}</aside>
+      {mobileOpen && <div className="fixed inset-0 z-40 lg:hidden">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div role="dialog" aria-modal="true" aria-label="Gezinme menüsü" className="absolute left-0 top-0 h-full w-64">{content}</div>
-    </div>
+      </div>}
+    </>
   );
 }

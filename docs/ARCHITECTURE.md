@@ -129,7 +129,9 @@ ihtiyacı önce burada aranır (bkz.
   yükleniyor — her sayfa yalnızca ziyaret edildiğinde indiriliyor.
 
 `Layout`, dinamik ekran yüksekliğini doldurur; başlık ve alt menü kaydırılan
-`main` alanının dışında kalır. Masaüstü önizlemede yüksekliği `PhoneFrame` belirler.
+`main` alanının dışında kalır. Telefon maketi kullanılmaz: 1024 px ve üzerinde
+240 px kalıcı yan menü, daha dar ekranlarda çekmece ve alt gezinme görünür.
+İçerik ekranı doldurur; formlar okunabilir azami genişliklerini korur.
 Rota değişince içerik başa döner ve çekmece kapanır.
 
 ## Dashboard Mimarisi

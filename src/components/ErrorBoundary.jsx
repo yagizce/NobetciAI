@@ -56,7 +56,7 @@ export default class ErrorBoundary extends Component {
       }
 
       return (
-        <div className="min-h-screen frame-fill flex flex-col items-center justify-center px-6 text-center" style={{ background: theme.pageBg }}>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ background: theme.pageBg }}>
           <p className="font-[Oswald] text-2xl uppercase tracking-wide mb-2" style={{ color: theme.textPrimary }}>Bir şeyler ters gitti</p>
           <p className="text-sm mb-4 max-w-sm" style={{ color: theme.textMuted }}>
             Uygulama beklenmeyen bir hatayla karşılaştı. Sayfayı yenilemeyi deneyin; sorun devam ederse geliştiriciye bildirin.

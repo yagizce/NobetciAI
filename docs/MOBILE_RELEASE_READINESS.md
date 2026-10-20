@@ -22,7 +22,16 @@ Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapı
 | Fiziksel cihaz doğrulaması | Kamera/galeri, QR okuma, dosya seçme, klavye, yön değişimi, güvenli alanlar, bildirim, çevrimdışı açılış, yedek geri yükleme, PDF/yazdırma ve güncelleme senaryoları Android/iOS cihazlarında denenmeli. |
 | Paket bağımlılıklarının ayrı incelemesi | Temizlikte sürüm yükseltmesi yapılmadı. Yayın öncesi bağımlılık güvenliği ve yükseltme uyumluluğu ayrıca değerlendirilmelidir. |
 
-## Son doğrulama — uzman sürümü
+## Son doğrulama — web ve mobil düzen
+
+- Zorunlu telefon çerçevesi kaldırıldı. 1024 px ve üstünde kalıcı yan menü; altında çekmece ve alt gezinme var.
+- 320/390/768/1024 px iframe test pencerelerinde sayfa genişliği ekranla eşit; yatay sayfa taşması yok. 1280 px masaüstü görünümü ayrıca kontrol edildi.
+- 320 px ayarlarda içerik 950 px kaydırılırken başlık ve alt menü sabit kaldı; risk sayfasına geçişte kaydırma sıfırlandı ve çekmece kapandı. Mobil bildirim paneli ekran içinde, giriş yazısı 16 px.
+- 390/768/1024 px sohbet görünümünde mesaj alanı kullanılabilir yüksekliğe sığıyor. Tarayıcı konsolunda hata görülmedi.
+- **601/601 test**, **254** uygulama JS/JSX dosyasında temiz sözdizimi/import kontrolü ve aynı Vite ayarlarıyla üretim derlemesi. Mevcut ExcelJS büyük parça uyarısı sürüyor.
+- Gerçek dokunmatik cihaz, sanal klavye ve çentikli ekran testi yapılmadı; iframe kontrolleri fiziksel Android/iOS doğrulamasının yerine geçmez.
+
+## Önceki doğrulama — uzman sürümü
 
 - **601/601 test** geçti; **255** uygulama JS/JSX dosyasında sözdizimi ve kullanılmayan import kontrolü temiz. Aynı Vite ayarları doğrudan yüklenerek üretim derlemesi tamamlandı; mevcut ExcelJS büyük parça uyarısı sürüyor.
 - Eski rol tercihi, kapalı eğitim/bildirim bağlantısı, uzman firma kurulumu ve manuel saha tespiti üretim önizlemesinde doğrulandı.

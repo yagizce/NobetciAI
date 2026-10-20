@@ -65,7 +65,7 @@ export default function GlobalSearchBar() {
   return (
     <>
       {/* Masaüstü/tablet — satır içi, HİÇ değişmedi */}
-      <div className="flex-1 max-w-md relative hidden sm:block">
+      <div className="flex-1 min-w-0 max-w-md relative hidden sm:block">
         <Search style={{ fontSize: "15px", color: theme.textFaint, position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
         <input
           ref={inputRef}
@@ -90,7 +90,7 @@ export default function GlobalSearchBar() {
       </div>
 
       {/* Mobil — ikon; dokununca tam genişlik arama moduna geçer */}
-      <button onClick={() => setMobileOpen(true)} aria-label="Ara" className="sm:hidden w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: theme.surfaceAlt }}>
+      <button onClick={() => setMobileOpen(true)} aria-label="Ara" className="sm:hidden w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: theme.surfaceAlt }}>
         <Search style={{ fontSize: "16px", color: theme.textMuted }} />
       </button>
 

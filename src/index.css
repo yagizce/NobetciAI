@@ -26,24 +26,26 @@ html, body {
   display: none;
 }
 
-/* Masaüstü önizlemede yatay kaydırma çubuğu fareyle kullanılabilir. */
-html.app-framed .overflow-x-auto {
-  scrollbar-width: thin;
-  -ms-overflow-style: auto;
-}
-html.app-framed .overflow-x-auto::-webkit-scrollbar {
-  display: block;
-  height: 6px;
-}
-html.app-framed .overflow-x-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-html.app-framed .overflow-x-auto::-webkit-scrollbar-thumb {
-  background: rgba(120, 113, 108, 0.45);
-  border-radius: 999px;
-}
-html.app-framed .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 113, 108, 0.7);
+/* Fareyle yatay listelerde kaydırma çubuğu kullanılabilir. */
+@media (hover: hover) and (pointer: fine) {
+  .overflow-x-auto {
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+  }
+  .overflow-x-auto::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: rgba(120, 113, 108, 0.45);
+    border-radius: 999px;
+  }
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: rgba(120, 113, 108, 0.7);
+  }
 }
 
 .overflow-y-auto {
@@ -58,7 +60,7 @@ html.app-framed .overflow-x-auto::-webkit-scrollbar-thumb:hover {
 
 /* Dokunmatik yatay ekranlarda da iOS alan odaklama yakınlaştırmasını önler. */
 @media (max-width: 640px), (pointer: coarse) {
-  input, select, textarea {
+  #root input, #root select, #root textarea {
     font-size: 16px;
   }
 }
@@ -66,12 +68,6 @@ html.app-framed .overflow-x-auto::-webkit-scrollbar-thumb:hover {
 input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid #F2B705;
   outline-offset: 1px;
-}
-
-/* Fare + geniş ekran: kabuğun yüksekliği PhoneFrame içinden gelir. */
-html.app-framed .frame-fill {
-  min-height: 0;
-  height: 100%;
 }
 
 @keyframes fadeIn {
@@ -84,7 +80,7 @@ html.app-framed .frame-fill {
   50% { opacity: 0.6; }
 }
 
-/* Rapor body portalında durur; telefon çerçevesinin transform sınırından etkilenmez. */
+/* Rapor body portalında durur; uygulama kabuğundan bağımsız yazdırılır. */
 @media print {
   body * { visibility: hidden; }
   .audit-report-print, .audit-report-print * { visibility: visible; }

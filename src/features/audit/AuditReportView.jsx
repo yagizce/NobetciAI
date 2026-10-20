@@ -74,15 +74,8 @@ function EmptyNote({ children }) {
  * `audit`/`findings` değişiminde `buildAuditReportData` (bkz. utils/auditReport.js)
  * TEKRAR çağrılır — rapor her zaman denetimin O ANKİ gerçek durumunu yansıtır.
  *
- * PORTAL NOTU: içerik bilerek `document.body`'e portallanır (PhoneFrame.jsx'in
- * masaüstü önizlemesinde uyguladığı `transform:translateZ(0)` sarmalayıcısının
- * DIŞINA çıkmak için — bkz. PhoneFrame.jsx dosya başı notu: transform'lu bir
- * ata, `position: fixed/absolute` elemanlar için kendi küçük (390px) kutusunu
- * "containing block" yapar. Diğer çekmeceler (AuditDetailDrawer vb.) bilerek
- * telefon çerçevesinin İÇİNDE kalır — ama bir rapor, yazdırıldığında gerçek A4
- * sayfasını kaplamalı, sahte telefon ekranına sıkışmamalı). Ekranda görünüm
- * PhoneFrame dışında tam-viewport bir katman olur; print'te de bu sayede
- * `@media print` izolasyonu (bkz. index.css) doğru çalışır.
+ * Rapor body portalında açılır; uygulamanın kaydırma alanından ve yazdırma
+ * sırasında gizlenen kabuktan bağımsızdır.
  *
  * @param {{ audit: object|null, onClose: () => void, findings?: object[], allAudits?: object[],
  *   company?: object|null, standardLabel: string, checklistResults: object[], getResultMeta: Function,

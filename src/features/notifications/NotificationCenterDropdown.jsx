@@ -63,7 +63,7 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+        className="relative w-11 h-11 rounded-full flex items-center justify-center shrink-0"
         style={{ background: theme.surfaceAlt }}
         aria-label="Bildirim Merkezi"
       >
@@ -80,7 +80,7 @@ export default function NotificationCenterDropdown({ pendingReportsCount = 0 }) 
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-80 max-w-[90vw] max-h-[min(30rem,calc(100vh-6rem))] rounded-xl shadow-lg overflow-hidden z-40 flex flex-col"
+          className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+4.5rem)] sm:absolute sm:inset-x-auto sm:top-full sm:right-0 mt-2 sm:w-80 max-h-[min(30rem,calc(100dvh-7rem))] rounded-xl shadow-lg overflow-hidden z-40 flex flex-col"
           style={{ background: theme.surface, border: `1px solid ${theme.border}` }}
         >
           <div className="shrink-0 flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: `1px solid ${theme.border}` }}>
