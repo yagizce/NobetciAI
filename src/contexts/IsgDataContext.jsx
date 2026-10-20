@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { getNotificationRecords, saveNotificationRecord } from "../services/notificationRecordService.js";
 import { useToast } from "./ToastContext.jsx";
+import { isFeatureEnabled } from "../constants/releaseProfile.js";
 
 const IsgDataContext = createContext(null);
 
@@ -10,6 +11,10 @@ export function IsgDataProvider({ children }) {
   const { showToast } = useToast();
 
   useEffect(() => {
+    if (!isFeatureEnabled("employeeReports")) {
+      setLoaded(true);
+      return;
+    }
     getNotificationRecords().then((notif) => {
       setNotifications(notif);
       setLoaded(true);
@@ -29,6 +34,7 @@ export function IsgDataProvider({ children }) {
   // gerektiği anlamına geliyor. Aksi halde kullanıcı, aslında diskte olmayan bir kaydı
   // ekranda görmeye devam eder (bkz. proje kuralı: sessiz/sahte veri yok).
   const addNotification = useCallback((notif) => {
+    if (!isFeatureEnabled("employeeReports")) return;
     setNotifications((prev) => [notif, ...prev]);
     saveNotificationRecord(notif).catch((err) => {
       console.error("Bildirim kaydedilemedi:", err);
@@ -38,6 +44,7 @@ export function IsgDataProvider({ children }) {
   }, [showToast]);
 
   const updateNotification = useCallback((id, patch) => {
+    if (!isFeatureEnabled("employeeReports")) return;
     let previous;
     setNotifications((prev) => {
       previous = prev;

@@ -1,7 +1,10 @@
+import { isFeatureEnabled } from "./releaseProfile.js";
+
 // Pre-written quick-action Q&A — answered instantly in chat without an API call.
 export const QUICK_ACTIONS = [
   {
     label: "Ramak kala bildir", iconKey: "ClipboardList", prompt: "Ramak kala olayı nasıl bildiririm?",
+    feature: "employeeReports",
     answer: "Ramak kala bildirimi için:\n• Risk Analizi sayfasından \"Yeni Bildirim\" oluştur\n• Türü \"Ramak Kala\" seç, yer/açıklama gir, fotoğraf ekleyebilirsin\n• AI ön analiz yapar, İSG uzmanına düşer\n• Uzman onaylayınca işverene görev olarak düşer\nKimlik bilgin süreçte saklı tutulur.",
   },
   {
@@ -24,4 +27,4 @@ export const QUICK_ACTIONS = [
     label: "Acil toplanma noktası", iconKey: "MapPin", prompt: "Acil durumda toplanma noktası neresi ve nasıl davranmalıyım?",
     answer: "• Alarm çalınca çalışmayı bırak, makineyi güvenli konuma al\n• En yakın çıkışa yürüyerek (koşmadan) ilerle\n• Toplanma noktasına git\n• Amirin sayım yapana kadar alanı terk etme",
   },
-];
+].filter((action) => !action.feature || isFeatureEnabled(action.feature));

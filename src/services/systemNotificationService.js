@@ -5,6 +5,7 @@
 import { dataProvider } from "./dataProvider.js";
 import { getActiveCompanyId } from "./companyService.js";
 import { createId } from "../utils/id.js";
+import { isNotificationEnabled } from "../constants/releaseProfile.js";
 
 /**
  * @returns {Promise<import("../types/index.js").SystemNotification[]>} en yeni en üstte
@@ -13,13 +14,15 @@ export async function getSystemNotifications() {
   const companyId = await getActiveCompanyId();
   if (companyId == null) return [];
   const all = await dataProvider.getAll("systemNotifications", { companyId });
-  return all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return all.filter((notification) => isNotificationEnabled(notification.type))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 /**
  * @param {{ type: string, title: string, message: string }} input
  */
 export async function pushSystemNotification({ type, title, message }) {
+  if (!isNotificationEnabled(type)) return null;
   const companyId = await getActiveCompanyId();
   if (companyId == null) throw new Error("Bildirim için aktif firma seçilmelidir.");
   return dataProvider.upsert("systemNotifications", {
@@ -40,7 +43,7 @@ export async function markNotificationRead(id) {
   const companyId = await getActiveCompanyId();
   if (companyId == null) return null;
   const notif = await dataProvider.getById("systemNotifications", id);
-  if (!notif || String(notif.companyId) !== String(companyId)) return null;
+  if (!notif || !isNotificationEnabled(notif.type) || String(notif.companyId) !== String(companyId)) return null;
   return dataProvider.upsert("systemNotifications", { ...notif, read: true, companyId });
 }
 
@@ -50,7 +53,7 @@ export async function markNotificationRead(id) {
 export async function markAllNotificationsRead(notifications) {
   const companyId = await getActiveCompanyId();
   if (companyId == null) return;
-  const scoped = notifications.filter((notification) => String(notification.companyId) === String(companyId) && !notification.read);
+  const scoped = notifications.filter((notification) => isNotificationEnabled(notification.type) && String(notification.companyId) === String(companyId) && !notification.read);
   await Promise.all(scoped.map((notification) => dataProvider.upsert("systemNotifications", { ...notification, read: true, companyId })));
 }
 

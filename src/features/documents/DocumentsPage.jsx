@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, lazy } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useRole } from "../../contexts/RoleContext.jsx";
@@ -6,7 +6,9 @@ import { BookOpen, FileText, ListChecks } from "../../components/icons/index.jsx
 import DocumentGenerator from "./DocumentGenerator.jsx";
 import PeriodicChecksPanel from "./periodicChecks/PeriodicChecksPanel.jsx";
 import AskAiButton from "../../components/AskAiButton.jsx";
-import TrainingModule from "../training/TrainingModule.jsx";
+import { getReleaseTabs, resolveReleaseTab } from "../../constants/releaseProfile.js";
+
+const TrainingModule = lazy(() => import("../training/TrainingModule.jsx"));
 
 // QR Kod → Periyodik Kontrol entegrasyonu: "Ekipman Kayıtları" sekmesi (QR tarama +
 // ayrı equipment listesi) buradan KALDIRILDI, aynı işlev artık Periyodik Kontroller
@@ -14,7 +16,7 @@ import TrainingModule from "../training/TrainingModule.jsx";
 // PeriodicChecksPanel.jsx → "QR Okut"). Eski equipmentList/addEquipment
 // (IsgDataContext.jsx) hiç kullanılmadığı doğrulandıktan sonra tamamen temizlendi.
 const ALL_TABS = [
-  { key: "education", label: "Eğitim Modülleri", icon: BookOpen, roles: ["employee", "expert", "employer"] },
+  { key: "education", label: "Eğitim Modülleri", icon: BookOpen, roles: ["employee", "expert", "employer"], feature: "training" },
   { key: "generator", label: "Belge Oluştur", icon: FileText, roles: ["expert", "employer"] },
   { key: "periodicChecks", label: "Periyodik Kontroller", icon: ListChecks, roles: ["expert", "employer"] },
 ];
@@ -22,21 +24,20 @@ const ALL_TABS = [
 export default function DocumentsPage() {
   const { theme } = useTheme();
   const { role } = useRole();
-  const visibleTabs = useMemo(() => ALL_TABS.filter((t) => t.roles.includes(role)), [role]);
+  const visibleTabs = useMemo(() => getReleaseTabs(ALL_TABS, role), [role]);
   const [searchParams] = useSearchParams();
   // Sprint 7.4: Dashboard kartlarından (Yaklaşan Periyodik Kontroller / Devam Eden
   // Eğitimler) "?tab=periodicChecks" gibi derin bağlantı ile doğrudan ilgili sekmeye
   // gelinebilir. Geçersiz/eksik bir değer varsa ilk görünür sekmeye düşülür.
   const requestedTab = searchParams.get("tab");
   const prefillSearch = searchParams.get("q") || undefined; // Genel arama (GlobalSearchBar.jsx) buradan gelir
-  const [tab, setTab] = useState(
-    visibleTabs.some((t) => t.key === requestedTab) ? requestedTab : (visibleTabs[0]?.key || "education")
-  );
+  const [selectedTab, setTab] = useState(requestedTab);
+  const tab = resolveReleaseTab(visibleTabs, selectedTab);
 
-  // Rol değişip mevcut sekme artık görünmüyorsa, görünür ilk sekmeye dön.
+  // URL değişimleri takip edilir; kapalı sekme ilk render'da bile bağlanmaz.
   useEffect(() => {
-    if (!visibleTabs.some((t) => t.key === tab)) setTab(visibleTabs[0]?.key || "education");
-  }, [visibleTabs, tab]);
+    setTab(requestedTab);
+  }, [requestedTab]);
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-3xl mx-auto">

@@ -6,7 +6,7 @@ import { useRole } from "../contexts/RoleContext.jsx";
 import { SWITCHABLE_ROLES } from "../constants/allRoles.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
-import { NOTIFICATION_PREFS_STORAGE_KEY, DEFAULT_NOTIFICATION_PREFS, NOTIFICATION_PREF_LABELS } from "../constants/notificationPrefs.js";
+import { NOTIFICATION_PREFS_STORAGE_KEY, DEFAULT_NOTIFICATION_PREFS, NOTIFICATION_PREF_LABELS, normalizeNotificationPrefs } from "../constants/notificationPrefs.js";
 import { isNotificationSupported, getNotificationPermission, requestNotificationPermission } from "../services/notificationService.js";
 import { UserRound, Bell, Building2 } from "../components/icons/index.jsx";
 import Badge from "../components/ui/Badge.jsx";
@@ -14,7 +14,7 @@ import CompanyManagementPanel from "../features/company/CompanyManagementPanel.j
 import BackupSection from "../features/settings/BackupSection.jsx";
 import DemoDataSection from "../features/settings/DemoDataSection.jsx";
 import StorageUsageIndicator from "../features/settings/StorageUsageIndicator.jsx";
-import RouteGuard from "../components/RouteGuard.jsx";
+import { canEditCompany, isFeatureEnabled, isNotificationEnabled } from "../constants/releaseProfile.js";
 import ToggleSwitch from "../components/ui/ToggleSwitch.jsx";
 
 function permissionBadge(permission) {
@@ -30,6 +30,7 @@ export default function Settings() {
   const { language, setLanguage } = useLanguage();
   const { role, setRole } = useRole();
   const [notifPrefs, setNotifPrefs] = useLocalStorage(NOTIFICATION_PREFS_STORAGE_KEY, DEFAULT_NOTIFICATION_PREFS);
+  const effectivePrefs = normalizeNotificationPrefs(notifPrefs);
   const [permission, setPermission] = useState("default");
 
   useEffect(() => {
@@ -46,15 +47,14 @@ export default function Settings() {
       <p className="font-[Oswald] text-xl uppercase tracking-wide mb-4" style={{ color: theme.textPrimary }}>Ayarlar</p>
 
       <div className="flex flex-col gap-4">
-        {/* Firma Yönetimi — yalnızca İşveren rolü görür/yönetir */}
-        <RouteGuard allowedRoles={["employer"]} fallback={null}>
+        {canEditCompany(role) && (
           <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
             <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
               <Building2 style={{ fontSize: "14px" }} /> Firma Yönetimi
             </p>
             <CompanyManagementPanel />
           </div>
-        </RouteGuard>
+        )}
 
         {/* Dil */}
         <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
@@ -100,11 +100,11 @@ export default function Settings() {
           )}
 
           <div className="flex flex-col gap-3 pt-1">
-            {Object.entries(NOTIFICATION_PREF_LABELS).map(([key, label]) => (
+            {Object.entries(NOTIFICATION_PREF_LABELS).filter(([key]) => isNotificationEnabled(key)).map(([key, label]) => (
               <div key={key} className="flex items-center justify-between gap-3">
                 <span className="text-sm" style={{ color: theme.textMuted }}>{label}</span>
                 <ToggleSwitch
-                  checked={notifPrefs[key]}
+                  checked={effectivePrefs[key]}
                   onChange={(val) => setNotifPrefs({ ...notifPrefs, [key]: val })}
                   theme={theme}
                 />
@@ -133,10 +133,9 @@ export default function Settings() {
         <BackupSection />
 
         {/* Örnek Veri */}
-        <DemoDataSection />
+        {isFeatureEnabled("demoData") && <DemoDataSection />}
 
-        {/* Rol (Demo) */}
-        <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
+        {SWITCHABLE_ROLES.length > 1 && <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
           <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Rol (Demo)</p>
           <div className="flex gap-2">
             {SWITCHABLE_ROLES.map((r) => (
@@ -149,7 +148,7 @@ export default function Settings() {
           <p className="text-[11px] mt-2" style={{ color: theme.textFaint }}>
             Rollerin örnek görünümlerini deneyin. Bu seçim kimlik doğrulaması yapmaz.
           </p>
-        </div>
+        </div>}
 
       </div>
     </div>

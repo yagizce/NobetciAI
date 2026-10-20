@@ -3,6 +3,7 @@
 | Dosya | Amaç |
 |---|---|
 | [Proje bağlamı](PROJECT_CONTEXT.md) | Mevcut durum, sınırlar ve çalışma ilkeleri |
+| [Yayın kapsamı](RELEASE_SCOPE.md) | Uzman sürümü, saklı modüller ve yeniden açma adımları |
 | [Yayın hazırlığı](MOBILE_RELEASE_READINESS.md) | Android/iOS öncesi eksikler ve doğrulama |
 | [Mimari](ARCHITECTURE.md) | Katmanlar, veri akışı ve modüller |
 | [Geliştirme kuralları](DEVELOPMENT_RULES.md) | Katkı standardı |

@@ -6,15 +6,21 @@
 // companyId yoksa otomatik doldurur, bkz. createCrudService.js).
 
 import { createCrudService } from "./createCrudService.js";
+import { isFeatureEnabled, requireFeature } from "../constants/releaseProfile.js";
 
 const { getAll, save } = createCrudService("notifications", { companyScoped: true });
 
 /**
  * @returns {Promise<import("../types/index.js").Notification[]>}
  */
-export const getNotificationRecords = getAll;
+export async function getNotificationRecords() {
+  return isFeatureEnabled("employeeReports") ? getAll() : [];
+}
 
 /**
  * @param {import("../types/index.js").Notification} notification
  */
-export const saveNotificationRecord = save;
+export async function saveNotificationRecord(notification) {
+  requireFeature("employeeReports");
+  return save(notification);
+}

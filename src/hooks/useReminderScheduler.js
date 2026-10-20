@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useRole } from "../contexts/RoleContext.jsx";
 import { MOCK_USERS } from "../constants/mockUsers.js";
 import { getPeriodicChecks } from "../services/periodicCheckService.js";
+import { getActiveCompanyId } from "../services/companyService.js";
 import { getTrainingCompletions, getTrainingProgress } from "../services/trainingService.js";
 import { getTrainingCourseSettings } from "../services/trainingCourseSettingsService.js";
 import { TRAINING_COURSES } from "../constants/trainingCourses.js";
@@ -11,8 +12,9 @@ import { showLocalNotification } from "../services/notificationService.js";
 import { pushSystemNotification } from "../services/systemNotificationService.js";
 import { readLastBackupAt, isBackupStale, daysSinceLastBackup } from "../constants/backup.js";
 import { todayISO } from "../utils/dateUtils.js";
+import { isFeatureEnabled, RELEASE_PROFILE } from "../constants/releaseProfile.js";
 
-const LAST_SCAN_STORAGE_KEY = "nobetci-last-reminder-scan";
+const LAST_SCAN_STORAGE_KEY = `nobetci-last-reminder-scan:${RELEASE_PROFILE}`;
 
 /**
  * AI_ROADMAP.md → Bildirim/Hatırlatma. Uygulama açıldığında (Layout.jsx içinden,
@@ -43,12 +45,15 @@ export function useReminderScheduler() {
 
   useEffect(() => {
     const todayIso = todayISO();
-    const lastScan = localStorage.getItem(LAST_SCAN_STORAGE_KEY);
-    if (lastScan === todayIso) return; // bugün zaten tarandı
-
     let cancelled = false;
 
     async function scan() {
+      const companyId = await getActiveCompanyId();
+      if (cancelled || companyId == null) return;
+      const scanKey = `${LAST_SCAN_STORAGE_KEY}:${companyId}:${role}`;
+      try {
+        if (localStorage.getItem(scanKey) === todayIso) return;
+      } catch { /* Depolama tercihi kapalı olsa da uygulama açılabilir. */ }
       if (role === "expert" || role === "employer") {
         const checks = await getPeriodicChecks();
         const reminders = getOverdueOrDueSoonChecks(checks);
@@ -61,7 +66,7 @@ export function useReminderScheduler() {
         }
       }
 
-      if (role === "employee") {
+      if (isFeatureEnabled("training") && role === "employee") {
         const employeeName = MOCK_USERS.employee.name;
         const [progress, completions, courseSettings] = await Promise.all([
           getTrainingProgress(), getTrainingCompletions(), getTrainingCourseSettings(),
@@ -90,10 +95,12 @@ export function useReminderScheduler() {
         }
       }
 
-      if (!cancelled) localStorage.setItem(LAST_SCAN_STORAGE_KEY, todayIso);
+      if (!cancelled) {
+        try { localStorage.setItem(scanKey, todayIso); } catch { /* Kalıcı tarama zamanı isteğe bağlı. */ }
+      }
     }
 
-    scan();
+    scan().catch((error) => console.error("Hatırlatmalar taranamadı:", error));
     return () => { cancelled = true; };
   }, [role]);
 }

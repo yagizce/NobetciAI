@@ -5,23 +5,28 @@ import CompanyInfoSection from "./CompanyInfoSection.jsx";
 import BranchesSection from "./BranchesSection.jsx";
 import DepartmentsSection from "./DepartmentsSection.jsx";
 import EmployeesSection from "./EmployeesSection.jsx";
+import { getReleaseTabs, resolveReleaseTab } from "../../constants/releaseProfile.js";
+import { useRole } from "../../contexts/RoleContext.jsx";
 
 const TABS = [
   { key: "info", label: "Firma Bilgileri", icon: Building2 },
   { key: "branches", label: "Şubeler", icon: ListChecks },
   { key: "departments", label: "Departmanlar", icon: BookOpen },
-  { key: "employees", label: "Çalışanlar", icon: Users },
+  { key: "employees", label: "Çalışanlar", icon: Users, feature: "employeeDirectory" },
 ];
 
 export default function CompanyManagementPanel() {
   const { theme } = useTheme();
-  const [tab, setTab] = useState("info");
+  const { role } = useRole();
+  const tabs = getReleaseTabs(TABS, role);
+  const [selectedTab, setTab] = useState("info");
+  const tab = resolveReleaseTab(tabs, selectedTab);
   const [company, setCompany] = useState(null);
 
   return (
     <div>
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const disabled = t.key !== "info" && !company;
           return (
             <button

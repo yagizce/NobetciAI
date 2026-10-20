@@ -1,8 +1,10 @@
 import { dataProvider } from "./dataProvider.js";
 import { createId } from "../utils/id.js";
 import { getActiveCompanyId } from "./companyService.js";
+import { isFeatureEnabled, requireFeature } from "../constants/releaseProfile.js";
 
 async function requireActiveCompanyId() {
+  requireFeature("training");
   const companyId = await getActiveCompanyId();
   if (companyId == null) throw new Error("Eğitim kaydı için aktif firma seçilmelidir.");
   return companyId;
@@ -12,6 +14,7 @@ async function requireActiveCompanyId() {
  * @returns {Promise<import("../types/index.js").TrainingCompletion[]>}
  */
 export async function getTrainingCompletions() {
+  if (!isFeatureEnabled("training")) return [];
   const companyId = await getActiveCompanyId();
   return companyId == null ? [] : dataProvider.getAll("trainingCompletions", { companyId });
 }
@@ -35,6 +38,7 @@ export async function saveTrainingCompletion(completion) {
  * @returns {Promise<import("../types/index.js").TrainingProgress[]>}
  */
 export async function getTrainingProgress() {
+  if (!isFeatureEnabled("training")) return [];
   const companyId = await getActiveCompanyId();
   return companyId == null ? [] : dataProvider.getAll("trainingProgress", { companyId });
 }

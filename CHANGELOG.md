@@ -1,5 +1,12 @@
 # Değişiklikler
 
+## 2026-10-20 — Uzman odaklı ilk sürüm
+
+- İşveren/çalışan rolleri, uzaktan eğitim, çalışan yönetimi ve bildirim/onay akışı merkezi yayın profiliyle kapatıldı; kod ve eski veriler korunur.
+- Kapalı modüller doğrudan sekme bağlantısından açılamaz ve servis üzerinden veri yazamaz. Eğitim/ekip hatırlatmaları ile demo veri sıfırlaması kapalıdır.
+- Uzmanın firma/şube/departman kurulumu açık; kritik risk uyarıları ayrı tercihle korunur. Tam yedek tüm modülleri içerir.
+- Kök AGENTS.md ve RELEASE_SCOPE rehberi gelecekteki yeniden açılışı belgeler. PWA önbellek sürümü v5 oldu.
+
 ## 2026-10-20 — Yedek ve çevrimdışı güvenilirliği
 
 - Veri bölümü içermeyen yedek reddedilir; eski kısmi yedeklerde silinecek bölümler geri yükleme öncesinde belirtilir. Dosya okuma hatası gösterilir.

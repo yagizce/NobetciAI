@@ -12,6 +12,7 @@ import Button from "../../components/ui/Button.jsx";
 import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { Building2 } from "../../components/icons/index.jsx";
+import { isRoleEnabled } from "../../constants/releaseProfile.js";
 
 const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], employeeCount: "", logo: null, address: "", phone: "", email: "", expertIsEmployer: false, dangerClass: "" };
 
@@ -110,7 +111,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
     <div>
       {!company && (
         <div className="rounded-lg px-3 py-2.5 mb-3 text-xs" style={{ background: theme.warnBg, color: theme.warnText }}>
-          Henüz firma oluşturulmadı. Şube, departman ve çalışan eklemek için önce firma bilgilerini kaydedin.
+          Şube ve departman eklemek için önce firma bilgilerini kaydedin.
         </div>
       )}
 
@@ -155,7 +156,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
           className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
       </div>
 
-      <label className="flex items-start gap-2.5 rounded-lg border px-3 py-2.5 mb-3 cursor-pointer" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
+      {isRoleEnabled("employer") && <label className="flex items-start gap-2.5 rounded-lg border px-3 py-2.5 mb-3 cursor-pointer" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
         <input type="checkbox" checked={Boolean(form.expertIsEmployer)} onChange={(e) => setForm({ ...form, expertIsEmployer: e.target.checked })}
           className="mt-0.5" style={{ accentColor: theme.accent }} />
         <span>
@@ -166,7 +167,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
             yalnızca görüntüler — ekleme/düzenleme/kapatma İSG Uzmanı'na özgü kalır.
           </span>
         </span>
-      </label>
+      </label>}
 
       <Button onClick={guardedHandleSave} disabled={!form.name.trim() || isSubmitting}>{isSubmitting ? "Kaydediliyor..." : company ? "Güncelle" : "Firma Oluştur"}</Button>
     </div>

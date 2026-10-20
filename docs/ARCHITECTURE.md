@@ -103,8 +103,8 @@ araçları yeterli görülür:
 | Context | Sorumluluk |
 |---|---|
 | `ThemeContext` | Açık/koyu tema |
-| `RoleContext` | Aktif demo rolü (`expert`/`employer`/`employee`) |
-| `IsgDataContext` | Sık erişilen paylaşılan veri (ekipman, bildirimler) |
+| `RoleContext` | Yayın kapsamına göre çözülen rol; uzman sürümünde yalnızca `expert` |
+| `IsgDataContext` | Çalışan bildirimi verisi; uzman sürümünde yüklenmez |
 | `ToastContext` | Genel bildirim/toast mesajları |
 | `LanguageContext` | Dil tercihi |
 
@@ -133,6 +133,10 @@ ihtiyacı önce burada aranır (bkz.
 Rota değişince içerik başa döner ve çekmece kapanır.
 
 ## Dashboard Mimarisi
+
+Etkin `expert` yayın profili yalnızca Uzman Paneli'ni açar. Diğer dashboard'lar
+gelecekte kullanılmak üzere korunur ve gerektiğinde ayrı parça olarak yüklenir.
+Kapsam kontrolü, servis korumaları ve yeniden açma adımları [RELEASE_SCOPE.md](RELEASE_SCOPE.md) içindedir.
 
 `DashboardPage.jsx`, URL'yi değiştirmeden (`/dashboard` her rol için aynı),
 `RoleContext`'teki aktif role göre üç farklı dashboard'dan birini render eder:

@@ -4,6 +4,7 @@
 
 import { createCrudService } from "./createCrudService.js";
 import { createId } from "../utils/id.js";
+import { isFeatureEnabled, requireFeature } from "../constants/releaseProfile.js";
 
 const { getAll: getAllScoped, save } = createCrudService("trainingCourseSettings", { companyScoped: true });
 
@@ -11,6 +12,7 @@ const { getAll: getAllScoped, save } = createCrudService("trainingCourseSettings
  * @returns {Promise<Array<{id: string|number, companyId: string|number, courseId: string, dueDate: string|null}>>}
  */
 export async function getTrainingCourseSettings() {
+  if (!isFeatureEnabled("training")) return [];
   const records = await getAllScoped();
   return records.map((record) => ({ ...record, courseId: record.courseId || String(record.id) }));
 }
@@ -20,6 +22,7 @@ export async function getTrainingCourseSettings() {
  * @param {string|null} dueDate
  */
 export async function saveTrainingCourseDueDate(courseId, dueDate) {
+  requireFeature("training");
   const existing = (await getAllScoped()).find((record) => String(record.courseId || record.id) === String(courseId));
   return save({
     ...(existing || {}),

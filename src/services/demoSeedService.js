@@ -28,6 +28,7 @@ import { saveDocument } from "./documentService.js";
 import { saveTrainingCompletion, saveTrainingProgressRecord } from "./trainingService.js";
 import { getCompanies } from "./companyService.js";
 import { replaceAllData } from "./db.js";
+import { requireFeature } from "../constants/releaseProfile.js";
 import { computeFineKinneyScore, getFineKinneyRiskLevel } from "../constants/fineKinney.js";
 import { createId } from "../utils/id.js";
 
@@ -229,6 +230,7 @@ async function buildDemoDataset() {
  * @returns {Promise<{ seeded: boolean, companyId: string|null }>}
  */
 export async function seedDemoData() {
+  requireFeature("demoData");
   const existing = await getCompanies();
   if (existing.length > 0) return { seeded: false, companyId: null };
   const { companyId } = await buildDemoDataset();
@@ -246,6 +248,7 @@ export async function seedDemoData() {
  * @returns {Promise<{ companyId: string }>}
  */
 export async function resetAndSeedDemoData() {
+  requireFeature("demoData");
   await replaceAllData({});
   try {
     localStorage.removeItem(ACTIVE_COMPANY_STORAGE_KEY);
