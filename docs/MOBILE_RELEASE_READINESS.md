@@ -22,14 +22,12 @@ Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapı
 | Fiziksel cihaz doğrulaması | Kamera/galeri, QR okuma, dosya seçme, klavye, yön değişimi, güvenli alanlar, bildirim, çevrimdışı açılış, yedek geri yükleme, PDF/yazdırma ve güncelleme senaryoları Android/iOS cihazlarında denenmeli. |
 | Paket bağımlılıklarının ayrı incelemesi | Temizlikte sürüm yükseltmesi yapılmadı. Yayın öncesi bağımlılık güvenliği ve yükseltme uyumluluğu ayrıca değerlendirilmelidir. |
 
-## Son doğrulama — web ve mobil düzen
+## Son doğrulama — mobil uygulama düzeni (21 Ekim 2026)
 
-- Zorunlu telefon çerçevesi kaldırıldı. 1024 px ve üstünde kalıcı yan menü; altında çekmece ve alt gezinme var.
-- 320/390/768/1024 px iframe test pencerelerinde sayfa genişliği ekranla eşit; yatay sayfa taşması yok. 1280 px masaüstü görünümü ayrıca kontrol edildi.
-- 320 px ayarlarda içerik 950 px kaydırılırken başlık ve alt menü sabit kaldı; risk sayfasına geçişte kaydırma sıfırlandı ve çekmece kapandı. Mobil bildirim paneli ekran içinde, giriş yazısı 16 px.
-- 390/768/1024 px sohbet görünümünde mesaj alanı kullanılabilir yüksekliğe sığıyor. Tarayıcı konsolunda hata görülmedi.
-- **601/601 test**, **254** uygulama JS/JSX dosyasında temiz sözdizimi/import kontrolü ve aynı Vite ayarlarıyla üretim derlemesi. Mevcut ExcelJS büyük parça uyarısı sürüyor.
-- Gerçek dokunmatik cihaz, sanal klavye ve çentikli ekran testi yapılmadı; iframe kontrolleri fiziksel Android/iOS doğrulamasının yerine geçmez.
+- Uygulama telefonda tam genişlikte, geniş tarayıcıda ortalanmış en fazla 430 px alanda çalışır. Alt gezinme ve çekmece tüm ekranlarda kullanılır.
+- 601/601 test ve 254 uygulama dosyasında sözdizimi/import kontrolü geçti; üretim derlemesi başarılı. Mevcut ExcelJS büyük parça uyarısı sürüyor.
+- Tarayıcı bağlantısı hata verdiğinden bu düzenin görsel/etkileşim doğrulaması tamamlanamadı. Önceki düzenin görsel testleri bu değişikliği doğrulamaz.
+- Fiziksel Android/iOS cihaz, sanal klavye ve güvenli alan testleri bekliyor.
 
 ## Önceki doğrulama — uzman sürümü
 

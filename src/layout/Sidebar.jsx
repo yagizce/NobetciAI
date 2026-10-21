@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Ayarlar", icon: Settings, emoji: "⚙️" },
 ];
 
-/** Masaüstünde kalıcı yan menü, dar ekranlarda açılır çekmece. */
+/** Mobil uygulamanın açılır gezinme menüsü. */
 export default function Sidebar({ mobileOpen, onClose }) {
   const { theme } = useTheme();
   const { role } = useRole();
@@ -49,7 +49,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
           </div>
           <span className="font-[Oswald] text-[15px] uppercase tracking-wide" style={{ color: theme.textPrimary }}>Nöbetçi</span>
         </div>
-        <button onClick={onClose} className="lg:hidden w-11 h-11 flex items-center justify-center rounded-lg" aria-label="Kapat">
+        <button onClick={onClose} className="w-11 h-11 flex items-center justify-center rounded-lg" aria-label="Kapat">
           <X style={{ fontSize: "18px", color: theme.textMuted }} />
         </button>
       </div>
@@ -80,13 +80,11 @@ export default function Sidebar({ mobileOpen, onClose }) {
     </div>
   );
 
+  if (!mobileOpen) return null;
   return (
-    <>
-      <aside className="hidden lg:block w-60 shrink-0 min-h-0">{content}</aside>
-      {mobileOpen && <div className="fixed inset-0 z-40 lg:hidden">
+    <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div role="dialog" aria-modal="true" aria-label="Gezinme menüsü" className="absolute left-0 top-0 h-full w-64">{content}</div>
-      </div>}
-    </>
+    </div>
   );
 }
