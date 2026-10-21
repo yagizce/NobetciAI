@@ -25,8 +25,8 @@ Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapı
 ## Son doğrulama — mobil uygulama düzeni (21 Ekim 2026)
 
 - Uygulama telefonda tam genişlikte, geniş tarayıcıda ortalanmış en fazla 430 px alanda çalışır. Alt gezinme ve çekmece tüm ekranlarda kullanılır.
-- 601/601 test ve 254 uygulama dosyasında sözdizimi/import kontrolü geçti; üretim derlemesi başarılı. Mevcut ExcelJS büyük parça uyarısı sürüyor.
-- Tarayıcı bağlantısı hata verdiğinden bu düzenin görsel/etkileşim doğrulaması tamamlanamadı. Önceki düzenin görsel testleri bu değişikliği doğrulamaz.
+- 604/604 test ve 253 uygulama dosyasında sözdizimi/import kontrolü geçti; üretim derlemesi başarılı. Mevcut ExcelJS büyük parça uyarısı sürüyor.
+- 21 Ekim kontrolü: 320/390 px’de yatay sayfa taşması yok; 1280 px’de kök alan 430 px ve ortalanmış. Firma güncelleme, risklere geçiş ve profil menüsü doğrulandı; tarayıcı hata kaydı yok.
 - Fiziksel Android/iOS cihaz, sanal klavye ve güvenli alan testleri bekliyor.
 
 ## Önceki doğrulama — uzman sürümü

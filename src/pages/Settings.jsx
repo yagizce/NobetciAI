@@ -56,11 +56,11 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Dil */}
-        <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
+        {/* Birden fazla kullanılabilir dil olduğunda gösterilir. */}
+        {LANGUAGES.filter((item) => item.enabled).length > 1 && <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
           <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Dil</p>
           <div className="flex gap-2">
-            {LANGUAGES.map((l) => (
+            {LANGUAGES.filter((item) => item.enabled).map((l) => (
               <button
                 key={l.id}
                 onClick={() => l.enabled && setLanguage(l.id)}
@@ -73,7 +73,7 @@ export default function Settings() {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* Bildirimler */}
         <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>

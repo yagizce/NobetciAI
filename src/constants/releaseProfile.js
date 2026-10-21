@@ -12,7 +12,7 @@ const PROFILES = Object.freeze({
   multiRoleDemo: Object.freeze({
     roles: Object.freeze(["employer", "expert", "employee"]),
     companyEditorRoles: Object.freeze(["employer"]),
-    features: Object.freeze(["training", "employeeReports", "employeeDirectory", "demoData"]),
+    features: Object.freeze(["training", "employeeReports", "employeeDirectory", "demoData", "companyAdminFields"]),
   }),
 });
 

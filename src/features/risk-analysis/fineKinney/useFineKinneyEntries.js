@@ -168,7 +168,7 @@ export function useFineKinneyEntries(initialSearch = "") {
 
   return {
     entries: filteredEntries,
-    allEntries: entries, // Sprint 7.5: AI Mevzuat Taraması filtreden bağımsız TÜM kayıtları görmeli
+    allEntries: entries, // Açık ayrıntı kaydını filtrelerden bağımsız çözümlemek için.
     totalCount: entries.length,
     loaded,
     loadError,

@@ -12,7 +12,8 @@ import Button from "../../components/ui/Button.jsx";
 import Loading from "../../components/Loading.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { Building2 } from "../../components/icons/index.jsx";
-import { isRoleEnabled } from "../../constants/releaseProfile.js";
+import { buildCompanyUpdate } from "./companyForm.js";
+import { isRoleEnabled, isFeatureEnabled } from "../../constants/releaseProfile.js";
 
 const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], employeeCount: "", logo: null, address: "", phone: "", email: "", expertIsEmployer: false, dangerClass: "" };
 
@@ -22,6 +23,7 @@ const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], empl
 export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
   const { showToast } = useToast();
   const { role } = useRole();
+  const showAdminFields = isFeatureEnabled("companyAdminFields");
   const [company, setCompany] = useState(null);
   const [form, setForm] = useState(EMPTY_COMPANY);
   const [loaded, setLoaded] = useState(false);
@@ -66,18 +68,14 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
 
   async function handleSave() {
     if (!form.name.trim()) return;
+    const count = Number(form.employeeCount);
+    if (!Number.isSafeInteger(count) || count < 0) {
+      showToast("Çalışan sayısı sıfır veya pozitif bir tam sayı olmalı.", "error");
+      return;
+    }
     const saved = {
+      ...buildCompanyUpdate(form, company, showAdminFields),
       id: company?.id || createId(),
-      name: form.name.trim(),
-      taxNumber: form.taxNumber.trim(),
-      sector: form.sector,
-      employeeCount: Number(form.employeeCount) || 0,
-      logo: form.logo,
-      address: form.address.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-      expertIsEmployer: Boolean(form.expertIsEmployer),
-      dangerClass: form.dangerClass || "",
     };
     // UX FIX (hata yönetimi cilası): önceden try/catch yoktu — kayıt başarısız olursa
     // (örn. depolama alanı erişilemez) kullanıcıya hiçbir geri bildirim verilmiyordu,
@@ -115,7 +113,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
         </div>
       )}
 
-      <div className="flex items-center gap-3 mb-4">
+      {showAdminFields && <div className="flex items-center gap-3 mb-4">
         <div className="w-16 h-16 rounded-xl border flex items-center justify-center overflow-hidden shrink-0" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
           {form.logo ? <img src={form.logo} alt="Firma logosu" className="w-full h-full object-cover" /> : <Building2 style={{ fontSize: "24px", color: theme.textFaint }} />}
         </div>
@@ -123,37 +121,36 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
           Logo Yükle
           <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
         </label>
-      </div>
+      </div>}
 
-      <div className="grid gap-2 sm:grid-cols-2 mb-2">
-        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Firma adı *"
-          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
-        <input value={form.taxNumber} onChange={(e) => setForm({ ...form, taxNumber: e.target.value })} placeholder="Vergi numarası (opsiyonel)"
-          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2 mb-2">
-        <select value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })}
-          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }}>
-          {SECTOR_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <input type="number" min="0" value={form.employeeCount} onChange={(e) => setForm({ ...form, employeeCount: e.target.value })} placeholder="Çalışan sayısı"
-          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
-        <select value={form.dangerClass} onChange={(e) => setForm({ ...form, dangerClass: e.target.value })}
-          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }}>
-          <option value="">Tehlike sınıfı (opsiyonel)</option>
-          {DANGER_CLASS_OPTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-        </select>
-      </div>
-
-      <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Firma adresi"
-        className="w-full text-sm rounded-lg px-3 py-2 mb-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
-
-      <div className="grid gap-2 sm:grid-cols-2 mb-3">
-        <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefon"
-          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
-        <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="E-posta" type="email"
-          className="text-sm rounded-lg px-3 py-2 outline-none border" style={{ background: theme.surface, borderColor: theme.border, color: theme.textPrimary }} />
+      <div className="grid gap-3 mb-4">
+        {[
+          { key: "name", label: "Firma adı", required: true },
+          { key: "sector", label: "Sektör", options: SECTOR_OPTIONS.map((value) => ({ value, label: value })) },
+          { key: "dangerClass", label: "Tehlike sınıfı", options: [{ value: "", label: "Seçiniz" }, ...DANGER_CLASS_OPTIONS] },
+          { key: "employeeCount", label: "Çalışan sayısı", type: "number" },
+          { key: "address", label: "İşyeri adresi" },
+          ...(showAdminFields ? [
+            { key: "taxNumber", label: "Vergi numarası" },
+            { key: "phone", label: "Telefon", type: "tel" },
+            { key: "email", label: "E-posta", type: "email" },
+          ] : []),
+        ].map(({ key, label, options, type = "text", required }) => {
+          const props = {
+            value: form[key],
+            onChange: (e) => setForm((previous) => ({ ...previous, [key]: e.target.value })),
+            className: "w-full text-sm rounded-lg px-3 py-2 border",
+            style: { background: theme.surface, borderColor: theme.border, color: theme.textPrimary },
+            required,
+          };
+          return (
+            <label key={key} className="block text-xs font-medium" style={{ color: theme.textMuted }}>
+              <span className="block mb-1">{label}{required ? " *" : ""}</span>
+              {options ? <select {...props}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                : <input {...props} type={type} min={type === "number" ? "0" : undefined} step={type === "number" ? "1" : undefined} />}
+            </label>
+          );
+        })}
       </div>
 
       {isRoleEnabled("employer") && <label className="flex items-start gap-2.5 rounded-lg border px-3 py-2.5 mb-3 cursor-pointer" style={{ borderColor: theme.border, background: theme.surfaceAlt }}>
