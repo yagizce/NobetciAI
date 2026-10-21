@@ -95,6 +95,30 @@ export async function loadAllData(storeName) {
   });
 }
 
+// Sayım ve yazma aynı transaction'da: iki sekme son boş yeri birlikte kullanamaz.
+export async function saveDataWithLimit(storeName, data, limit) {
+  const db = await getDBInstance();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, "readwrite");
+    const store = tx.objectStore(storeName);
+    let failure;
+    const existing = store.get(data.id);
+    existing.onsuccess = () => {
+      if (existing.result) { store.put(data); return; }
+      const count = store.count();
+      count.onsuccess = () => {
+        if (count.result >= limit) {
+          failure = new Error(`Bu cihazda en fazla ${limit} firma eklenebilir.`);
+          tx.abort();
+        } else store.put(data);
+      };
+    };
+    tx.oncomplete = () => resolve(data);
+    tx.onerror = () => reject(failure || tx.error);
+    tx.onabort = () => reject(failure || tx.error || new Error("Firma kaydedilemedi."));
+  });
+}
+
 export async function deleteData(storeName, id) {
   const db = await getDBInstance();
   return new Promise((resolve, reject) => {

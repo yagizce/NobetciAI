@@ -26,12 +26,13 @@ export default function StorageUsageIndicator() {
 
   const { usageBytes, quotaBytes, percentUsed } = estimate;
   const level = getStorageUsageLevel(percentUsed);
+  if (level.tone === "success") return null;
   const tone = TONE_KEYS[level.tone];
 
   return (
     <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
       <p className="text-sm font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.textPrimary }}>
-        <HardDrive style={{ fontSize: "14px" }} /> Cihaz Depolama Alanı
+        <HardDrive style={{ fontSize: "14px" }} /> Depolama alanı azalıyor
       </p>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-xs" style={{ color: theme.textMuted }}>

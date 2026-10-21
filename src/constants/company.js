@@ -1,3 +1,6 @@
+// Yerel ilk sürümün ürün sınırı; yasal uzman kapasitesi hesabı değildir.
+export const MAX_COMPANIES = 30;
+
 export const SECTOR_OPTIONS = [
   "İnşaat", "Metal İşleme", "Tekstil", "Gıda", "Kimya", "Lojistik ve Depolama",
   "Enerji", "Otomotiv", "Ambalaj", "İSG Danışmanlığı", "Sağlık", "Eğitim", "Diğer",

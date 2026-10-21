@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useCompany } from "../../hooks/useCompany.js";
+import Loading from "../../components/Loading.jsx";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useToast } from "../../contexts/ToastContext.jsx";
@@ -70,19 +72,19 @@ function toApiMessages(messages) {
 // burada elle yazıldı çünkü fotoğraf mesajlarındaki base64 veri localStorage kotasını
 // (~5-10MB) hızla doldurabilir — bu yüzden kaydetmeden önce `image` alanı ÇIKARILIR ve
 // son N mesajla sınırlanır.
-const CHAT_HISTORY_KEY = "nobetci-chat-history";
+
 const MAX_HISTORY_MESSAGES = 50;
 
-function loadChatHistory() {
+function loadChatHistory(historyKey) {
   try {
-    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    const raw = localStorage.getItem(historyKey);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveChatHistory(messages) {
+function saveChatHistory(messages, historyKey) {
   try {
     // DÜZELTME: `image` gibi `kimiMeta.reasoningContent` de (Kimi K3'ün "high" reasoning
     // effort'ta ürettiği düşünce metni, bazen yanıttan daha uzun olabiliyor) localStorage
@@ -90,13 +92,20 @@ function saveChatHistory(messages) {
     // gösterilmiyor. Kaydetmeden önce çıkarılıyor (sayfa yenilendiğinde eski asistan
     // turları için preserved-thinking bağlamı kaybolur, yeni turlar etkilenmez).
     const trimmed = messages.slice(-MAX_HISTORY_MESSAGES).map(({ image, kimiMeta, ...rest }) => rest);
-    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmed));
+    localStorage.setItem(historyKey, JSON.stringify(trimmed));
   } catch {
     // localStorage dolu/kullanılamıyor — sessizce vazgeç, sohbetin kendisi etkilenmez
   }
 }
 
-export default function ChatPanel({ contextId: initialContextId }) {
+export default function ChatPanel(props) {
+  const { company, loaded } = useCompany();
+  if (!loaded) return <Loading label="Sohbet yükleniyor..." />;
+  const historyKey = company ? 'nobetci-chat-history:' + company.id : 'nobetci-chat-history';
+  return <CompanyChatPanel key={historyKey} {...props} historyKey={historyKey} />;
+}
+
+function CompanyChatPanel({ contextId: initialContextId, historyKey }) {
   const { theme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -107,7 +116,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
   const [messages, setMessages] = useState(() => {
     // Yalnızca genel sohbet (bağlamsız) için geçmişi geri yükle — bkz. yukarıdaki not.
     if (!initialContextId) {
-      const saved = loadChatHistory();
+      const saved = loadChatHistory(historyKey);
       if (saved && saved.length > 0) return saved;
     }
     return [
@@ -143,8 +152,8 @@ export default function ChatPanel({ contextId: initialContextId }) {
   }, [messages]);
 
   useEffect(() => {
-    if (!contextId) saveChatHistory(messages);
-  }, [messages, contextId]);
+    if (!contextId) saveChatHistory(messages, historyKey);
+  }, [messages, contextId, historyKey]);
 
   async function sendMessage(text) {
     if (!text.trim() || loading || sendingRef.current) return;
@@ -236,7 +245,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
     setActivePhoto(null);
     setMessages([{ role: "assistant", text: activeContext ? activeContext.greeting : "Sohbet temizlendi. Nasıl yardımcı olabilirim?", time: nowLabel() }]);
     if (!contextId) {
-      try { localStorage.removeItem(CHAT_HISTORY_KEY); } catch { /* no-op */ }
+      try { localStorage.removeItem(historyKey); } catch { /* no-op */ }
     }
   }
 
@@ -251,7 +260,7 @@ export default function ChatPanel({ contextId: initialContextId }) {
     setContextId(null);
     setActivePhoto(null);
     navigate("/chat", { replace: true, state: {} });
-    const saved = loadChatHistory();
+    const saved = loadChatHistory(historyKey);
     setMessages(saved && saved.length > 0 ? saved : [{ role: "assistant", text: "Genel sohbete döndük. Nasıl yardımcı olabilirim?", time: nowLabel() }]);
   }
 

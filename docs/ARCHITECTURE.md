@@ -258,3 +258,7 @@ adım adım plan için [DATABASE_PLAN.md](./DATABASE_PLAN.md)'ye bakın.
 - TypeScript'e geçiş — JSDoc yeterli tip güvenliği sağlıyor.
 - Harici state yönetim kütüphanesi — React Context + hook'lar bu ölçek için
   yeterli.
+
+### Firma portföyü
+
+Uzman paneli aktif firmanın iş özetini expertDashboardService üzerinden filtreli okur. Yeni firma için companyService → dataProvider.upsertWithLimit → db.saveDataWithLimit zinciri, sayım ve yazmayı tek transaction içinde yapar. 30 sınırı yeni eklemeye uygulanır; güncelleme ve eski yedek kayıtları korunur. İkinci firma öncesi legacy geçiş çalışır. Firma değişimi tam yeniden yüklemeyle tüm ekran kapsamlarını yeniler.
