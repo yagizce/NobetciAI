@@ -62,7 +62,7 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
 
       {/* Profile menu */}
       <div className="relative" ref={profileMenuRef}>
-        <button onClick={() => setProfileOpen((v) => !v)} aria-label="Profil menüsü" aria-haspopup="true" aria-expanded={profileOpen} className="flex items-center justify-center min-w-11 min-h-11 gap-1.5 sm:pl-1 sm:pr-2 py-1 rounded-full" style={{ background: theme.surfaceAlt }}>
+        <button onClick={() => setProfileOpen((v) => !v)} aria-label="Profil menüsü" aria-haspopup="true" aria-expanded={profileOpen} className="w-11 h-11 p-0 shrink-0 flex items-center justify-center rounded-full" style={{ background: theme.surfaceAlt }}>
           <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: theme.accent, color: theme.onAccent }}>
             <UserRound style={{ fontSize: "14px" }} />
           </div>
