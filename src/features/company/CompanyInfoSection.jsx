@@ -109,7 +109,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
     <div>
       {!company && (
         <div className="rounded-lg px-3 py-2.5 mb-3 text-xs" style={{ background: theme.warnBg, color: theme.warnText }}>
-          Şube ve departman eklemek için önce firma bilgilerini kaydedin.
+          Çalışma alanınızı oluşturmak için firma bilgilerini kaydedin.
         </div>
       )}
 
@@ -129,8 +129,8 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
           { key: "sector", label: "Sektör", options: SECTOR_OPTIONS.map((value) => ({ value, label: value })) },
           { key: "dangerClass", label: "Tehlike sınıfı", options: [{ value: "", label: "Seçiniz" }, ...DANGER_CLASS_OPTIONS] },
           { key: "employeeCount", label: "Çalışan sayısı", type: "number" },
-          { key: "address", label: "İşyeri adresi" },
           ...(showAdminFields ? [
+            { key: "address", label: "İşyeri adresi" },
             { key: "taxNumber", label: "Vergi numarası" },
             { key: "phone", label: "Telefon", type: "tel" },
             { key: "email", label: "E-posta", type: "email" },

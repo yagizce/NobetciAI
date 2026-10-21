@@ -19,8 +19,8 @@ Risk değerlendirmesi, manuel/fotoğraflı saha tespiti, denetim, düzeltici faa
 
 ## Uzman çalışma alanı — 21 Ekim 2026
 
-- Firma formu ad, sektör, tehlike sınıfı, çalışan sayısı ve işyeri adresini gösterir. Şube/departman yönetimi saha kayıtları için açıktır.
-- Logo, vergi numarası ve genel iletişim alanları companyAdminFields özelliğiyle kapalıdır; eski değerler güncellemede korunur. Geri açmak için profilin özellik listesine bu anahtarı ekleyin. İşveren yetki seçeneği ayrıca işveren rolüne bağlıdır.
+- Firma formu ad, sektör, tehlike sınıfı ve çalışan sayısını gösterir. Şube/departman yönetim sekmeleri companyOrgManagement kapsamında gizlidir; mevcut kayıtlar ve saha bağlantıları korunur.
+- İşyeri adresi, logo, vergi numarası ve genel iletişim alanları companyAdminFields özelliğiyle kapalıdır; eski değerler güncellemede korunur. Geri açmak için profilin özellik listesine bu anahtarı ekleyin. İşveren yetki seçeneği ayrıca işveren rolüne bağlıdır.
 - AI Mevzuat & Risk Taraması kullanıcı kararıyla tamamen kaldırıldı; panel/hook/istem/ayrıştırıcı bulunmaz. Yeniden açılacak saklı modüllerden değildir. Mevzuat sayfası ve diğer risk araçları korunur.
 - Alt menüde Riskler doğrudan açılır; profil üst menüden erişilir. Üst profilde rol etiketi gösterilmez. Tek kullanılabilir dil varken dil seçimi görünmez.
 

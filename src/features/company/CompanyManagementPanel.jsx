@@ -10,8 +10,8 @@ import { useRole } from "../../contexts/RoleContext.jsx";
 
 const TABS = [
   { key: "info", label: "Firma Bilgileri", icon: Building2 },
-  { key: "branches", label: "Şubeler", icon: ListChecks },
-  { key: "departments", label: "Departmanlar", icon: BookOpen },
+  { key: "branches", label: "Şubeler", icon: ListChecks, feature: "companyOrgManagement" },
+  { key: "departments", label: "Departmanlar", icon: BookOpen, feature: "companyOrgManagement" },
   { key: "employees", label: "Çalışanlar", icon: Users, feature: "employeeDirectory" },
 ];
 
@@ -25,7 +25,7 @@ export default function CompanyManagementPanel() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+      {tabs.length > 1 && <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {tabs.map((t) => {
           const disabled = t.key !== "info" && !company;
           return (
@@ -40,7 +40,7 @@ export default function CompanyManagementPanel() {
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {tab === "info" && <CompanyInfoSection theme={theme} onCompanyLoaded={setCompany} />}
       {tab === "branches" && company && <BranchesSection theme={theme} companyId={company.id} />}

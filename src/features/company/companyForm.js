@@ -6,8 +6,8 @@ export function buildCompanyUpdate(form, company, includeAdmin = false) {
     sector: form.sector,
     employeeCount: Number(form.employeeCount) || 0,
     dangerClass: form.dangerClass || "",
-    address: form.address.trim(),
     ...(includeAdmin ? {
+      address: form.address.trim(),
       taxNumber: form.taxNumber.trim(),
       logo: form.logo,
       phone: form.phone.trim(),

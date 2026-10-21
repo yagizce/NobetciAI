@@ -4,7 +4,7 @@
 
 ## Yapılan Geliştirmeler
 
-AI Mevzuat & Risk Taraması paneli, hook’u, istemi ve ayrıştırıcısı tamamen kaldırıldı. Profildeki rol etiketi kaldırıldı. Firma formu beş saha bilgisine indirildi; kalıcı etiketler eklendi. Riskler alt menüye alındı, işlevsiz dil seçimi gizlendi. PWA önbelleği v8.
+AI Mevzuat & Risk Taraması paneli, hook’u, istemi ve ayrıştırıcısı tamamen kaldırıldı. Profildeki rol etiketi kaldırıldı. Firma formu dört saha bilgisine indirildi; kalıcı etiketler eklendi. Riskler alt menüye alındı, işlevsiz dil seçimi gizlendi. İşyeri adresi ve şube/departman sekmeleri gizlendi; mevcut kayıtlar korunur. PWA önbelleği v9.
 
 ## Etkilenen Modüller
 
