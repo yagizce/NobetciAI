@@ -1,27 +1,27 @@
 # Son geliştirme raporu
 
-**21 Ekim 2026 — Mobil uygulama düzeni**
+**21 Ekim 2026 — Uzman çalışma alanı**
 
 ## Yapılan Geliştirmeler
 
-430 px azami genişlik, ortalanmış uygulama alanı, her genişlikte alt gezinme ve açılır menü. Responsive sınıflar uygulama kapsayıcısını ölçer. PWA önbelleği v7.
+AI Mevzuat & Risk Taraması paneli, hook’u, istemi ve ayrıştırıcısı tamamen kaldırıldı. Profildeki rol etiketi kaldırıldı. Firma formu dört saha bilgisine indirildi; kalıcı etiketler eklendi. Riskler alt menüye alındı, işlevsiz dil seçimi gizlendi. İşyeri adresi ve şube/departman sekmeleri gizlendi; mevcut kayıtlar korunur. PWA önbelleği v9.
 
 ## Etkilenen Modüller
 
-Ortak CSS, Tailwind yapılandırması, yan ve alt menü. Veri ve uzman yayın kapsamı değişmedi.
+Fine-Kinney, firma formu, gezinme ve ayarlar. Diğer roller/eğitim saklı kalır. Gizlenen firma bilgileri ve ek eski alanlar güncellemede korunur.
 
 ## Doğrulama
 
-601 test geçti; 254 JS/JSX dosyasında sözdizimi/import kontrolü temiz. Üretim derlemesi başarılı.
+604 test geçti; 253 uygulama JS/JSX dosyasında sözdizimi/import kontrolü temiz. Üretim derlemesi başarılı. 320/390 px’de yatay sayfa taşması yok; 1280 px’de uygulama ortalanmış 430 px. Firma güncellemesi, risklere geçiş, tarama panelinin yokluğu ve profil menüsü kontrol edildi. Tarayıcı hata kaydı yok.
 
 ## Bilinen Riskler
 
-Tarayıcı bağlantısı kapandığı için görsel ve etkileşim doğrulaması tamamlanamadı. Fiziksel Android/iOS testi yapılmadı. Mevcut ExcelJS büyük parça uyarısı sürüyor.
+Fiziksel Android/iOS testi yapılmadı. Mevcut ExcelJS büyük parça uyarısı sürüyor. Gerçek hesap ve native paketleme bu değişikliğin kapsamında değil.
 
 ## Sonraki Öneriler
 
-Tarayıcı erişimi sağlandığında 320/390 px ve geniş ekranlarda menü, modal, sohbet ve form akışlarını doğrulayın.
+Fiziksel cihazlarda klavye, kamera/galeri ve belge dışa aktarma akışlarını doğrulayın.
 
 ## Documentation Check
 
-ARCHITECTURE ve MOBILE_RELEASE_READINESS eski masaüstü düzeni tarif ettiği için düzeltildi. README değiştirilmedi; kapsam ve veri belgeleri korundu.
+RELEASE_SCOPE, SPRINTS ve MOBILE_RELEASE_READINESS güncellendi. README ve veri modeli değiştirilmedi.

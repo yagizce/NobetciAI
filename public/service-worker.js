@@ -1,7 +1,7 @@
 // HTML/JS/CSS için network-first; resim ve fontlar için cache-first.
 // Önbellek davranışı değişirse CACHE_VERSION artırılır; eski uygulama cache’leri temizlenir.
 
-const CACHE_VERSION = "v7";
+const CACHE_VERSION = "v9";
 const RUNTIME_CACHE = `nobetci-isg-runtime-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/manifest.json"];

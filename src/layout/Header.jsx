@@ -1,18 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext.jsx";
-import { useRole } from "../contexts/RoleContext.jsx";
-import { SWITCHABLE_ROLES } from "../constants/allRoles.js";
-import { ChevronDown, Menu, Sun, Moon, LogOut, UserRound, Settings as SettingsIcon, HardHat } from "../components/icons/index.jsx";
+import { Menu, Sun, Moon, LogOut, UserRound, Settings as SettingsIcon, HardHat } from "../components/icons/index.jsx";
 import NotificationCenterDropdown from "../features/notifications/NotificationCenterDropdown.jsx";
 import GlobalSearchBar from "./GlobalSearchBar.jsx";
 
 export default function Header({ onMenuClick, pendingCount = 0 }) {
   const { theme, mode, toggleMode } = useTheme();
-  const { role } = useRole();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileMenuRef = useRef(null);
-  const currentRole = SWITCHABLE_ROLES.find((r) => r.id === role);
 
   // BUG FIX (mobil): bu menü önceden yalnızca onMouseLeave ile kapanıyordu — dokunmatik
   // ekranlarda hover/mouseleave hiç oluşmadığı için mobilde açılan menü, bir bağlantıya
@@ -70,8 +66,6 @@ export default function Header({ onMenuClick, pendingCount = 0 }) {
           <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: theme.accent, color: theme.onAccent }}>
             <UserRound style={{ fontSize: "14px" }} />
           </div>
-          <span className="hidden sm:inline text-xs font-medium" style={{ color: theme.textPrimary }}>{currentRole?.label}</span>
-          <ChevronDown className="hidden sm:block" style={{ fontSize: "12px", color: theme.textFaint }} />
         </button>
         {profileOpen && (
           <div

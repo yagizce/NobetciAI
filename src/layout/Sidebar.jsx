@@ -5,8 +5,8 @@ import { useRole } from "../contexts/RoleContext.jsx";
 import { Home, MessageSquare, ShieldAlert, FileText, Scale, UserRound, Settings, X, HardHat, BookOpen, ClipboardList } from "../components/icons/index.jsx";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", icon: Home, emoji: "🏠" },
-  { to: "/chat", label: "AI Chat", icon: MessageSquare, emoji: "🤖" },
+  { to: "/dashboard", label: "Ana Sayfa", icon: Home, emoji: "🏠" },
+  { to: "/chat", label: "AI Sohbet", icon: MessageSquare, emoji: "🤖" },
   { to: "/risk-analysis", label: "Risk Analizi", icon: ShieldAlert, emoji: "⚠️" },
   // Denetim: yalnızca İSG Uzmanı ve İşveren — Çalışan bu sekmeyi menüde hiç görmesin/
   // ulaşamasın diye `roles` ile kısıtlı (bkz. aşağıdaki filtre). Diğer NAV_ITEMS'ta

@@ -9,7 +9,7 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useIsgData } from "../contexts/IsgDataContext.jsx";
 import { useReminderScheduler } from "../hooks/useReminderScheduler.js";
 
-const MORE_ROUTES = ["/risk-analysis", "/legislation", "/knowledge-center", "/settings", "/audit"];
+const MORE_ROUTES = ["/profile", "/legislation", "/knowledge-center", "/settings", "/audit"];
 
 export default function Layout() {
   const { theme } = useTheme();

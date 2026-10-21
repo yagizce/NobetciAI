@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext.jsx";
-import { Home, MessageSquare, FileText, UserRound, Menu } from "../components/icons/index.jsx";
+import { Home, MessageSquare, FileText, ShieldAlert, Menu } from "../components/icons/index.jsx";
 
 const TABS = [
-  { to: "/dashboard", label: "Dashboard", icon: Home },
+  { to: "/dashboard", label: "Ana Sayfa", icon: Home },
   { to: "/chat", label: "AI Sohbet", icon: MessageSquare },
-  { to: "/documents", label: "Dökümanlar", icon: FileText },
-  { to: "/profile", label: "Profil", icon: UserRound },
+  { to: "/documents", label: "Belgeler", icon: FileText },
+  { to: "/risk-analysis", label: "Riskler", icon: ShieldAlert },
 ];
 
 /** Ana gezinme, kaydırılan içeriğin dışında kalır ve alt güvenli alanı korur. */

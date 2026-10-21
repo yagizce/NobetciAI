@@ -31,7 +31,7 @@ test("kapalı veya bilinmeyen sekme ilk gösterimde açık sekmeye döner", () =
 
 test("çok rollü demo profili eski modülleri geri açabilir", () => {
   for (const role of ["expert", "employer", "employee"]) assert.equal(isRoleEnabled(role, "multiRoleDemo"), true);
-  for (const feature of ["training", "employeeReports", "employeeDirectory", "demoData"]) {
+  for (const feature of ["training", "employeeReports", "employeeDirectory", "demoData", "companyAdminFields", "companyOrgManagement"]) {
     assert.equal(isFeatureEnabled(feature, "expert"), false);
     assert.equal(isFeatureEnabled(feature, "multiRoleDemo"), true);
   }

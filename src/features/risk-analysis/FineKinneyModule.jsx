@@ -15,7 +15,6 @@ import FineKinneyCard from "./fineKinney/FineKinneyCard.jsx";
 import FineKinneyFilters from "./fineKinney/FineKinneyFilters.jsx";
 import FineKinneyExportButtons from "./fineKinney/FineKinneyExportButtons.jsx";
 import FineKinneyDetailDrawer from "./fineKinney/detail/FineKinneyDetailDrawer.jsx";
-import MevzuatScanPanel from "./fineKinney/MevzuatScanPanel.jsx";
 import { saveClosureEvidencePhoto } from "../../services/closureEvidenceService.js";
 
 // Orchestrator only — all real logic lives in ./fineKinney/*. This keeps the module the
@@ -59,11 +58,7 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
     setFormOpen(true);
   }
 
-  // Sprint 7.5 — AI Mevzuat Taraması'nın "Taslak Oluştur" butonu; Sprint 9.1 — Risk
-  // Tespiti'nin "AI ile Taslak Oluştur" / "Sahaya İn" butonları da buraya bağlanır.
-  // Bilinçli olarak `saveEntry` çağırmıyor — form yalnızca ÖN DOLDURULMUŞ açılır,
-  // kaydetme kararı ve olasılık/maruziyet/şiddet gibi kritik alanların doldurulması
-  // tamamen kullanıcıya bırakılır (AI hiçbir zaman doğrudan kayıt oluşturmaz).
+  // Saha tespitini forma aktarır; kayıt ancak kullanıcı onayıyla oluşturulur.
   function openDraftForm(hazard, risk, extra = {}) {
     setForm({
       ...EMPTY_FINE_KINNEY_FORM,
@@ -159,8 +154,7 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
     }
   }
 
-  // Sprint 7.5: allEntries kullanılıyor — AI Mevzuat Taraması'ndan "Kayda Git" ile
-  // gelen bir kayıt, o anki arama/filtre kriterlerinin dışında kalmış olsa bile açılabilsin.
+  // Filtre değişse de açık kaydın ayrıntısını koru.
   const detailEntry = detailEntryId != null ? allEntries.find((e) => e.id === detailEntryId) : null;
 
   if (!loaded) return <Loading label="Risk değerlendirmeleri yükleniyor..." />;
@@ -187,13 +181,6 @@ export default function FineKinneyModule({ pendingDraft, onDraftConsumed, initia
           )}
         </div>
       </div>
-
-      <MevzuatScanPanel
-        theme={theme}
-        fineKinneyEntries={allEntries}
-        onGoToEntry={(id) => setDetailEntryId(id)}
-        onCreateDraft={canManage ? openDraftForm : null}
-      />
 
       {formOpen && canManage && (
         <FineKinneyForm
