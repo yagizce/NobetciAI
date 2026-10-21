@@ -1,5 +1,7 @@
 # Proje dokümantasyonu
 
+İlk yayın İSG uzmanları için Android/iOS mobil uygulamadır; firmalara yönelik sürüm daha sonra ayrı yayınlanacaktır. Vercel web demosudur. Sürüm ayrımı ve firma portföyü sınırları için [Yayın kapsamı](RELEASE_SCOPE.md) esas alınır.
+
 | Dosya | Amaç |
 |---|---|
 | [Proje bağlamı](PROJECT_CONTEXT.md) | Mevcut durum, sınırlar ve çalışma ilkeleri |

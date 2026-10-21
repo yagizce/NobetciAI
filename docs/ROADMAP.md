@@ -1,5 +1,13 @@
 # Yol Haritası
 
+## Güncel yayın sırası — 21 Ekim 2026
+
+1. **Uzman mobil sürümü:** Bağımsız veya OSGB bünyesinde çalışan İSG uzmanı için Android/iOS. Firma bazında ayrı kayıtlar ve cihaz başına 30 firmalık portföy mevcut; gerçek hesap, veri altyapısı ve mobil yayın kontrolleri [yayın hazırlığı](MOBILE_RELEASE_READINESS.md) kapsamında tamamlanacak. Vercel web demosudur.
+2. **Firmalara yönelik ayrı sürüm:** Ekip erişimi, işveren/çalışan ve eğitim kapsamı ayrıca planlanacak. Saklı modüller korunur; uzman sürümünde kendiliğinden açılmaz. Firma sürümünün limiti, paket kimliği ve backend paylaşımı henüz kararlaştırılmadı.
+3. **Sabit kamera projesi:** Ertelendi; iki sürümün yayın ön koşulu değildir.
+
+Aşağıdaki fazlar geçmiş teknik planı ve gelecek fikirleri korur; güncel yayın taahhüdü veya etkin özellik listesi değildir. Çelişkide [Yayın kapsamı](RELEASE_SCOPE.md) esas alınır. Mobil yayın, aşağıdaki tüm fazların tamamlanmasını beklemez.
+
 Bu doküman Nöbetçi'nin ürün gelişimini **9 fazlı** bir yapıda tanımlar. Fazlar
 birbirini mantıksal olarak takip eder (temel platform → risk zekası → bilgi merkezi →
 AI copilot → RAG/proaktif besleme → görsel AI → kurumsallaşma → mobil dağıtım → canlı
@@ -202,7 +210,7 @@ uygulanmayacak şekilde kasıtlı olarak beklemede tutuluyor:
 
 - **Mobil dağıtım formatı** — PWA mı, Capacitor mı? (Phase 8)
 - **Offline AI davranışı** — bağlantı yokken Copilot/Vision AI ne yapmalı? (Phase 4, 6, 8)
-- **Çoklu firma UX detayı** — firma değiştirme ve izin modeli tasarımı (Phase 7)
+- **Firma sürümünün erişim modeli** — uzman portföyünde yerel ekleme/seçim mevcut; kurumsal üyelik, paylaşım ve sunucu yetkileri ayrıca tasarlanacak (Phase 7).
 
 ## Güncelleme Kuralı
 

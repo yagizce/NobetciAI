@@ -8,12 +8,10 @@ platformda toplamak.
 
 ## Hedef Kitle
 
-- **Küçük,orta ve büyük ölçekli işletmeler** — kendi İSG uzmanı olmayan veya dışarıdan hizmet alan
-  firmalar.
-- **İSG uzmanları/OSGB'ler** — birden fazla firmayı tek panelden yönetmek isteyenler
-  (çoklu firma mimarisi bu ihtiyaca yöneliktir).
-- **İşverenler** — yasal uyumluluğu ve saha güvenliğini üst düzeyden takip etmek
-  isteyenler.
+- **İlk yayın — İSG uzmanları:** Bağımsız veya OSGB bünyesinde çalışan uzmanların sahadaki risk, denetim, kontrol ve belge işlerini yürüttüğü Android/iOS mobil uygulama. Çoklu firma portföyü uzmanın kendi çalışma alanıdır; başlangıçta cihaz başına 30 firma ile sınırlıdır.
+- **Sonraki ayrı yayın — firmalar:** İşletmelerin kendi İSG süreçlerini ve ekiplerini yöneteceği firma sürümü. İşveren/çalışan erişimi ve eğitim gibi saklı modüller bu sürüm için değerlendirilecektir; ilk uzman sürümüne dahil değildir.
+
+Vercel yayını mobil uygulamanın web demosudur. Ayrı sürümlerin paketleme ve hesap altyapısı kararları henüz verilmedi; güncel sınırlar [Yayın kapsamı](RELEASE_SCOPE.md) belgesindedir.
 
 ## Ürün İlkeleri
 
@@ -36,7 +34,7 @@ platformda toplamak.
 
 ## Başarının Tanımı
 
-Bir İSG uzmanının/işverenin, ayrı bir Excel dosyası veya kağıt form açmadan; risk
+İlk sürümde bir İSG uzmanının, ayrı bir Excel dosyası veya kağıt form açmadan; risk
 oluşturma → onay → düzeltici faaliyet → kapanış döngüsünün tamamını Nöbetçi içinde
 yürütebilmesi.
 

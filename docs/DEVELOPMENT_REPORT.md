@@ -1,5 +1,12 @@
 # Son geliştirme raporu
 
+**21 Ekim 2026 — Yayın planı belgeleri**
+
+- İlk yayın uzmanlar için Android/iOS mobil uygulama; firmalara yönelik sürüm sonraki ayrı yayın olarak netleştirildi. Vercel web demosudur.
+- 30 firma sınırı geçici ürün kararı olarak korundu. Uzman portföyü ile firma/ekip hesabı ayrıldı; firma sürümünün limit ve paketleme kararları açık bırakıldı.
+- README, AGENTS, proje bağlamı, yayın kapsamı/hazırlığı, doküman dizini, vizyon ve yol haritası güncellendi. Şube/departmanların aktif olduğuna dair eski bağlam ifadesi düzeltildi.
+- Yalnızca Markdown değişti; kod, şema ve saklı modüller değişmedi. `git diff --check` geçti; bu belge güncellemesinde test/derleme yeniden çalıştırılmadı. Aşağıdaki 608 test önceki kod değişikliğinin doğrulamasıdır.
+
 **21 Ekim 2026 — Uzman ana ekranı ve firma portföyü**
 
 ## Yapılan Geliştirmeler

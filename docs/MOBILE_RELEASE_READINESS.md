@@ -7,6 +7,8 @@
 Etkin kapsam yalnızca İSG uzmanıdır. İşveren/çalışan ve uzaktan eğitim bilerek kapalıdır;
 bu özelliklerin kod ve verileri korunur. [Yeniden açma rehberi](RELEASE_SCOPE.md).
 
+İlk Android/iOS yayını bağımsız veya OSGB bünyesinde çalışan uzmanlar içindir. Firmalara yönelik sürüm daha sonra ayrı yayınlanacak; onun ekip/rol özellikleri uzman yayınının ön koşulu değildir. Vercel web demosudur. Uzman portföyünün cihaz başına 30 firma sınırı bir ürün kararıdır; gerçek cihazlarda kayıt ve ek dosya hacmiyle doğrulanmalıdır.
+
 Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapılandırması veya başka bir yerel mobil proje yoktur. Temizlik, mağazaya yüklenebilir Android/iOS paketi üretmez.
 
 ## Yayından önce tamamlanacak işler

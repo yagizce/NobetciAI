@@ -2,7 +2,9 @@
 
 İSG uzmanı için risk değerlendirmesi, denetim, periyodik kontrol, belge ve AI danışmanlığını birleştiren Türkçe, mobil öncelikli uygulama.
 
-**Mevcut durum:** React tabanlı web/PWA; yalnızca uzman görünümü açık. İşveren, çalışan ve eğitim modülleri ileride açılmak üzere korunur. Veriler cihazın IndexedDB alanında tutulur; gerçek hesap sistemi ve Android/iOS mağaza paketleri henüz yoktur. [Kapsam ve yeniden açma rehberi](docs/RELEASE_SCOPE.md) · [Yayın hazırlığı](docs/MOBILE_RELEASE_READINESS.md).
+**Yayın planı:** İlk sürüm İSG uzmanları için Android/iOS mobil uygulama olacak; firmalara yönelik sürüm daha sonra ayrı yayınlanacak. Vercel mevcut mobil uygulamanın web demosudur. Uzman, bağımsız veya OSGB bünyesinde çalışırken cihaz başına en fazla 30 firmayı ayrı kayıtlarla takip edebilir; bu firma hesabı veya ekip paylaşımı sağlamaz.
+
+**Mevcut durum:** React tabanlı web/PWA; yalnızca uzman görünümü açık. İşveren, çalışan ve eğitim modülleri firma sürümü için değerlendirilmek üzere korunur. Veriler cihazın IndexedDB alanında tutulur; gerçek hesap sistemi ve Android/iOS mağaza paketleri henüz yoktur. [Kapsam ve yeniden açma rehberi](docs/RELEASE_SCOPE.md) · [Yayın hazırlığı](docs/MOBILE_RELEASE_READINESS.md).
 
 ## Yerel geliştirme
 
