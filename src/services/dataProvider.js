@@ -17,7 +17,7 @@
 // With Supabase it would map 1:1 to a Postgres table name — no renaming needed since the
 // domain services already use plain, database-friendly names ("companies", "employees", ...).
 
-import { loadAllData, saveData, deleteData } from "./db.js";
+import { loadAllData, saveData, deleteData, saveDataWithLimit } from "./db.js";
 import { ensureId } from "../utils/id.js";
 
 function matchesFilter(record, filter) {
@@ -26,6 +26,10 @@ function matchesFilter(record, filter) {
 }
 
 const indexedDbProvider = {
+  async upsertWithLimit(collection, record, limit) {
+    const normalized = { ...record, id: ensureId(record) };
+    return saveDataWithLimit(collection, normalized, limit);
+  },
   async getAll(collection, filter) {
     const all = await loadAllData(collection);
     return filter ? all.filter((record) => matchesFilter(record, filter)) : all;

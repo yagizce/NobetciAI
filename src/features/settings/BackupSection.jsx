@@ -139,9 +139,7 @@ export default function BackupSection() {
     <div className="rounded-xl border px-4 py-4" style={{ borderColor: theme.border, background: theme.surface }}>
       <p className="text-sm font-semibold mb-1" style={{ color: theme.textPrimary }}>Yedekleme</p>
       <p className="text-[11px] mb-3" style={{ color: theme.textFaint }}>
-        Bu uygulama yalnızca bu cihazda veri tutar — telefon kaybolur veya arızalanırsa
-        buradan indirdiğiniz bir yedek olmadan veriler kurtarılamaz. Düzenli olarak
-        yedek almanız önerilir.
+        Tüm firmaların kayıtları bu cihazda tutulur. Cihaz kaybına karşı düzenli yedek indirin.
       </p>
 
       {lastBackupAt ? (
@@ -158,7 +156,7 @@ export default function BackupSection() {
 
       <div className="flex gap-2 flex-wrap">
         <Button size="sm" onClick={handleDownload} disabled={busy} className="flex items-center gap-1.5">
-          <Download style={{ fontSize: "13px" }} /> Tam Yedek İndir
+          <Download style={{ fontSize: "13px" }} /> Tüm Firmaları Yedekle
         </Button>
         <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={busy} className="flex items-center gap-1.5">
           <Upload style={{ fontSize: "13px" }} /> Yedekten Geri Yükle

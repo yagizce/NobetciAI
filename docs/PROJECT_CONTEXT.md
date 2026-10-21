@@ -1,12 +1,13 @@
 # Proje bağlamı
 
-Son inceleme: **20 Ekim 2026**.
+Son inceleme: **21 Ekim 2026**.
 
 Nöbetçi'nin ilk sürümü yalnızca İSG uzmanına yöneliktir. İşveren, çalışan, uzaktan eğitim ve çalışan bildirimi modülleri silinmeden kapatılmıştır. Hedef Android ve iOS yayınıdır; mevcut uygulama web/PWA aşamasındadır. Kapsamın tek kaynağı `src/constants/releaseProfile.js`; [yeniden açma rehberi](RELEASE_SCOPE.md) yeni geliştirmelerde okunmalıdır.
 
 ## Mevcut yapı
 
 - React 18 + Vite 5 + React Router 6; Tailwind CSS derleme sırasında üretilir.
+- Firma portföyü: cihaz başına en fazla 30 firma; ana ekrandan eklenir/seçilir. Risk, denetim, kontrol ve belge kayıtları firma kapsamlıdır; sohbet geçmişi firma anahtarıyla ayrılır. Uzman özeti yalnızca aktif firmanın kayıtlarını kullanır.
 - Yerel veri: IndexedDB; servisler `dataProvider.js` üzerinden erişir. Firma kapsamı ve eski kayıt geçişi vardır.
 - Kullanıcı profili demodur; etkin görünüm uzmandır. Login/Register gerçek kimlik doğrulama yapmaz; yayın kapsamı sunucu yetkilendirmesi değildir.
 - AI: Anthropic risk/belge işlemleri; NVIDIA metin sohbeti ve fotoğraf analizi. Anahtarlar sunucu proxy'lerinde tutulur.

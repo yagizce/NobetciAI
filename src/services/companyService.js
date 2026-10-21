@@ -1,5 +1,6 @@
 import { dataProvider } from "./dataProvider.js";
 import { createId, ensureId } from "../utils/id.js";
+import { MAX_COMPANIES } from "../constants/company.js";
 
 const ACTIVE_COMPANY_STORAGE_KEY = "activeCompanyId";
 
@@ -82,7 +83,13 @@ export async function setActiveCompany(companyId) {
  * @param {import("../types/index.js").Company} company
  */
 export async function saveCompany(company) {
-  const result = await dataProvider.upsert("companies", { ...company, id: ensureId(company) });
+  if (!company.name?.trim()) throw new Error("Firma adı zorunludur.");
+  const companies = await getCompanies();
+  const exists = companies.some((item) => String(item.id) === String(company.id));
+  if (!exists && companies.length >= MAX_COMPANIES) throw new Error(`Bu cihazda en fazla ${MAX_COMPANIES} firma eklenebilir.`);
+  // İkinci firma eklenmeden eski sahipsiz kayıtları ilk firmaya bağla.
+  if (!exists && companies.length === 1) await migrateLegacyCompanyData(companies[0].id);
+  const result = await dataProvider.upsertWithLimit("companies", { ...company, name: company.name.trim(), id: ensureId(company) }, MAX_COMPANIES);
   if (!getStoredActiveCompanyId()) storeActiveCompanyId(String(result.id));
   invalidatePrimaryCompanyIdCache();
   await migrateLegacyCompanyData(result.id);
@@ -138,6 +145,12 @@ export async function migrateLegacyCompanyData(companyId) {
   if (companies.length !== 1) return { companyId: companyId ?? null, migrated: 0, skipped: true };
 
   const targetCompanyId = companies[0].id;
+  // Eski genel sohbeti yalnızca tek firma varken kopyala; özgün geçmişi silme.
+  try {
+    const key = `nobetci-chat-history:${targetCompanyId}`;
+    const old = globalThis.localStorage?.getItem("nobetci-chat-history");
+    if (old && globalThis.localStorage?.getItem(key) == null) globalThis.localStorage?.setItem(key, old);
+  } catch { /* Sohbet tercihi erişilemese de firma kayıtları taşınır. */ }
   let migrated = 0;
 
   for (const storeName of COMPANY_SCOPED_STORES) {

@@ -24,6 +24,13 @@ Risk değerlendirmesi, manuel/fotoğraflı saha tespiti, denetim, düzeltici faa
 - AI Mevzuat & Risk Taraması kullanıcı kararıyla tamamen kaldırıldı; panel/hook/istem/ayrıştırıcı bulunmaz. Yeniden açılacak saklı modüllerden değildir. Mevzuat sayfası ve diğer risk araçları korunur.
 - Alt menüde Riskler doğrudan açılır; profil üst menüden erişilir. Üst profilde rol etiketi gösterilmez. Tek kullanılabilir dil varken dil seçimi görünmez.
 
+## Firma portföyü ve uzman özeti
+
+- Cihaz başına 30 firma ürün sınırı constants/company.js içindeki MAX_COMPANIES değerinden yönetilir; yasal kapasite limiti değildir. Yeni firma ana ekrandan eklenir. Sınır sayım/yazma transaction’ında uygulanır; mevcut firma güncellemesi engellenmez. Eski/geri yüklenen fazla kayıtlar silinmez, yeni ekleme engellenir.
+- İkinci firma eklenmeden eski firmasız kayıtlar ilk firmaya taşınır. Firma değişimi uygulamayı yeniden yükleyerek açık ekranların önceki firma verisini tutmasını önler. Sohbet geçmişi ayrı firma anahtarlarıyla saklanır; tek firmalı eski genel geçmiş kopyalanır, özgün kayıt silinmez.
+- Ana ekran yüksek riskler, geciken işler, bugün/7 günlük plan ve incelenecek tespitleri gösterir. Verisi olmayan firmaya güvenlik puanı üretilmez. Saklı ekip modülleri açılmaz.
+- Tüm firma kayıtlarını kapsayan yedekleme korunur. Yerel sohbet geçmişi mevcut yedek formatının dışında kalır. Depolama göstergesi yalnızca kullanım %70 ve üstündeyse görünür.
+
 ## Korumalar ve veri bütünlüğü
 
 - Sekme seçimi görünür sekme listesiyle **render öncesinde** çözülür. `?tab=education` ve eski `location.state.targetTab = notifications` kapalı bileşeni kısa süreliğine bile bağlamaz.

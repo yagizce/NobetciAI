@@ -6,6 +6,10 @@ import EmptyState from "../../components/EmptyState.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import Loading from "../../components/Loading.jsx";
 import Badge from "../../components/ui/Badge.jsx";
+import Modal from "../../components/ui/Modal.jsx";
+import CompanyInfoSection from "../company/CompanyInfoSection.jsx";
+import ExpertWorkOverview from "./ExpertWorkOverview.jsx";
+import { MAX_COMPANIES, getDangerClassLabel } from "../../constants/company.js";
 import Button from "../../components/ui/Button.jsx";
 import { useToast } from "../../contexts/ToastContext.jsx";
 import { MessageSquare, ShieldAlert } from "../../components/icons/index.jsx";
@@ -22,6 +26,8 @@ export default function ExpertDashboard({ theme }) {
   const [companiesError, setCompaniesError] = useState(null);
   const [activeCompanyId, setActiveCompanyIdState] = useState(null);
   const [switching, setSwitching] = useState(false);
+  const [addingCompany, setAddingCompany] = useState(false);
+  const activeCompany = companies.find((c) => String(c.id) === String(activeCompanyId));
 
   useEffect(() => {
     let cancelled = false;
@@ -66,44 +72,36 @@ export default function ExpertDashboard({ theme }) {
       <div className="flex items-center justify-between mb-4">
         <p className="font-[Oswald] text-xl uppercase tracking-wide" style={{ color: theme.textPrimary }}>Uzman Paneli</p>
         <Link to="/chat">
-          <Button size="sm" className="flex items-center gap-1.5"><MessageSquare style={{ fontSize: "13px" }} /> AI Chat</Button>
+          <Button size="sm" className="flex items-center gap-1.5"><MessageSquare style={{ fontSize: "13px" }} /> AI Sohbet</Button>
         </Link>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
         {[["/risk-analysis", "Risk değerlendirmesi"], ["/audit", "Denetim"], ["/documents", "Belgeler ve kontroller"]].map(([to, label]) => (
-          <Link key={to} to={to} className="rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.border, color: theme.accent }}>{label}</Link>
+          <Link key={to} to={to} state={to === "/risk-analysis" ? { targetTab: "fineKinney" } : undefined} className="rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.border, color: theme.textPrimary }}>{label}</Link>
         ))}
       </div>
 
       <div className={`grid gap-4 ${isFeatureEnabled("employeeReports") ? "md:grid-cols-2" : ""}`}>
-        <section>
-          <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Aktif Şirketler</p>
-          <div className="grid gap-2">
-            {!companiesLoaded ? (
-              <Loading label="Firmalar yükleniyor..." />
-            ) : companiesError ? (
-              <ErrorState title="Firmalar yüklenemedi" description="Tarayıcı depolama alanına erişilemedi. Sayfayı yenileyip tekrar deneyin." onRetry={() => window.location.reload()} />
-            ) : companies.length === 0 ? (
-              <div>
-                <EmptyState icon={ShieldAlert} title="Henüz firma oluşturulmadı" />
-                <Link to="/settings" className="text-sm font-semibold" style={{ color: theme.accent }}>Firma bilgilerini ekle →</Link>
-              </div>
-            ) : companies.map((company) => {
-              const isActive = String(company.id) === String(activeCompanyId);
-              return (
-                <button key={company.id} onClick={() => handleSwitch(company.id)} disabled={switching}
-                  className="text-left rounded-lg border px-3 py-2.5 flex items-center justify-between gap-2"
-                  style={{ borderColor: isActive ? theme.accent : theme.border, background: theme.surface }}>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{company.name}</p>
-                    <p className="text-xs" style={{ color: theme.textFaint }}>{company.sector} • {company.employeeCount} çalışan</p>
-                  </div>
-                  {isActive ? <Badge tone="success">Aktif</Badge> : <span className="text-[10.5px] font-semibold" style={{ color: theme.accent }}>Bu firmaya geç →</span>}
-                </button>
-              );
-            })}
+        <section className="rounded-xl border p-3" style={{ background: theme.surface, borderColor: theme.border }}>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h2 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Firmalarım <span style={{ color: theme.textFaint }}>({companies.length}/{MAX_COMPANIES})</span></h2>
+            <Button size="sm" onClick={() => setAddingCompany(true)} disabled={!companiesLoaded || Boolean(companiesError) || companies.length >= MAX_COMPANIES}>Firma Ekle</Button>
           </div>
+          {!companiesLoaded ? <Loading label="Firmalar yükleniyor..." />
+            : companiesError ? <ErrorState title="Firmalar yüklenemedi" description="Kayıtlara erişilemedi." onRetry={() => window.location.reload()} />
+            : companies.length === 0 ? <p className="text-sm" style={{ color: theme.textMuted }}>İlk firmanızı ekleyerek saha kayıtlarına başlayın.</p>
+            : <>
+              <label className="block text-xs" style={{ color: theme.textMuted }}>
+                <span className="block mb-1">Çalıştığınız firma</span>
+                <select value={activeCompanyId ?? ""} onChange={(e) => handleSwitch(e.target.value)} disabled={switching} className="w-full rounded-lg border p-2 text-sm" style={{ color: theme.textPrimary, background: theme.surface, borderColor: theme.border }}>
+                  {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+                </select>
+              </label>
+              <p className="text-xs mt-2" style={{ color: theme.textMuted }}>{activeCompany?.sector} · {getDangerClassLabel(activeCompany?.dangerClass) || "Tehlike sınıfı belirtilmedi"} · {activeCompany?.employeeCount ?? 0} çalışan</p>
+              <div className="flex justify-between gap-2 mt-2 text-xs"><span style={{ color: theme.textFaint }}>Kayıtlar bu firmaya aittir.</span><Link to="/settings" style={{ color: theme.accent }}>Düzenle</Link></div>
+            </>}
+          {companies.length >= MAX_COMPANIES && <p className="text-xs mt-2" style={{ color: theme.textMuted }}>{MAX_COMPANIES} firma sınırına ulaşıldı. Mevcut firmalarınızı kullanmaya devam edebilirsiniz.</p>}
         </section>
 
         {isFeatureEnabled("employeeReports") && <section>
@@ -130,6 +128,11 @@ export default function ExpertDashboard({ theme }) {
           )}
         </section>}
       </div>
+
+      {activeCompany && <ExpertWorkOverview theme={theme} />}
+      <Modal open={addingCompany} onClose={() => setAddingCompany(false)} title="Yeni Firma">
+        {addingCompany && <CompanyInfoSection theme={theme} createNew />}
+      </Modal>
 
       {isFeatureEnabled("employeeReports") && <section className="mt-4">
         <p className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>Son Analizler</p>

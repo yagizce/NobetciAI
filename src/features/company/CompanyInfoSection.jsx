@@ -3,7 +3,7 @@ import { useToast } from "../../contexts/ToastContext.jsx";
 import { useRole } from "../../contexts/RoleContext.jsx";
 import { useSubmitGuard } from "../../hooks/useSubmitGuard.js";
 import { getRoleLabel } from "../../constants/allRoles.js";
-import { getPrimaryCompany, saveCompany } from "../../services/companyService.js";
+import { getPrimaryCompany, saveCompany, setActiveCompany } from "../../services/companyService.js";
 import { logActivity } from "../../services/auditService.js";
 import { createId } from "../../utils/id.js";
 import { SECTOR_OPTIONS, DANGER_CLASS_OPTIONS } from "../../constants/company.js";
@@ -20,7 +20,7 @@ const EMPTY_COMPANY = { name: "", taxNumber: "", sector: SECTOR_OPTIONS[0], empl
 /**
  * @param {{ theme: object, onCompanyLoaded: (company: object|null) => void }} props
  */
-export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
+export default function CompanyInfoSection({ theme, onCompanyLoaded = () => {}, createNew = false }) {
   const { showToast } = useToast();
   const { role } = useRole();
   const showAdminFields = isFeatureEnabled("companyAdminFields");
@@ -32,6 +32,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
   const loadCompany = useCallback(() => {
     setLoaded(false);
     setLoadError(false);
+    if (createNew) { setLoaded(true); return; }
     getPrimaryCompany()
       .then((c) => {
         setCompany(c);
@@ -83,6 +84,11 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
     // (Çalışanlar, Şubeler, Departmanlar) tutarlı hale getirildi.
     try {
       const persisted = await saveCompany(saved);
+      if (createNew) {
+        await setActiveCompany(persisted.id);
+        window.location.reload();
+        return;
+      }
       setCompany(persisted);
       onCompanyLoaded(persisted);
       showToast(company ? "Firma bilgileri güncellendi." : "Firma oluşturuldu.", "success");
@@ -94,7 +100,7 @@ export default function CompanyInfoSection({ theme, onCompanyLoaded }) {
       });
     } catch (err) {
       console.error("Firma bilgileri kaydedilemedi:", err);
-      showToast("Firma bilgileri kaydedilemedi. Yerel depolama alanını kontrol edip tekrar deneyin.", "error");
+      showToast(err.message || "Firma bilgileri kaydedilemedi.", "error");
     }
   }
   // HARDENING: özellikle burada önemli — çift tıklama korunmazsa iki AYRI firma kaydı
