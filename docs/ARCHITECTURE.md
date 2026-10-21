@@ -129,9 +129,10 @@ ihtiyacı önce burada aranır (bkz.
   yükleniyor — her sayfa yalnızca ziyaret edildiğinde indiriliyor.
 
 `Layout`, dinamik ekran yüksekliğini doldurur; başlık ve alt menü kaydırılan
-`main` alanının dışında kalır. Telefon maketi kullanılmaz: 1024 px ve üzerinde
-240 px kalıcı yan menü, daha dar ekranlarda çekmece ve alt gezinme görünür.
-İçerik ekranı doldurur; formlar okunabilir azami genişliklerini korur.
+`main` alanının dışında kalır. Uygulama en fazla 430 px genişliğinde ortalanır;
+dar telefonlarda ekranı doldurur. Çekmece ve alt gezinme tüm ekranlarda kullanılır.
+Tailwind genişlik varyantları tarayıcı yerine `mobile-app` kapsayıcısını ölçer.
+Kök kapsayıcı sabit panelleri de uygulama alanında tutar.
 Rota değişince içerik başa döner ve çekmece kapanır.
 
 ## Dashboard Mimarisi

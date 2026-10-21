@@ -6,6 +6,20 @@ html, body, #root {
   height: 100%;
 }
 
+/* Aynı mobil çalışma alanı: telefonda tam genişlik, demoda ortalanmış. */
+#root {
+  width: 100%;
+  max-width: 430px;
+  height: 100vh;
+  height: 100dvh;
+  margin-inline: auto;
+  position: relative;
+  overflow: auto;
+  transform: translateZ(0);
+  container: mobile-app / inline-size;
+  background: #EDEAE2;
+}
+
 /* Sayfanın tamamı yatay kaymaz; yatay listeler kendi alanında kaydırılır. */
 html, body {
   margin: 0;
@@ -13,7 +27,7 @@ html, body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
-  background: #EDEAE2;
+  background: #1C1917;
 }
 
 .overflow-x-auto {
@@ -59,7 +73,7 @@ html, body {
 }
 
 /* Dokunmatik yatay ekranlarda da iOS alan odaklama yakınlaştırmasını önler. */
-@media (max-width: 640px), (pointer: coarse) {
+@container mobile-app (max-width: 640px) {
   #root input, #root select, #root textarea {
     font-size: 16px;
   }

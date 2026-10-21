@@ -16,7 +16,7 @@ export default function BottomTabBar({ onMoreClick, isMoreActive }) {
   return (
     <nav
       aria-label="Mobil gezinme"
-      className="z-30 flex lg:hidden items-stretch shrink-0"
+      className="z-30 flex items-stretch shrink-0"
       style={{
         background: theme.header,
         borderTop: `1px solid ${theme.border}`,

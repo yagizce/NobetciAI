@@ -1,18 +1,12 @@
-// Tailwind'i CDN'den (cdn.tailwindcss.com — tarayıcıda her sayfa yüklemesinde çalışan
-// bir JIT derleyici) gerçek bir build-time adımına taşıyan config. `content` altındaki
-// yollar TARANIP kullanılan class isimleri tespit ediliyor, sonuçta sadece GERÇEKTEN
-// kullanılan utility'leri içeren küçük/statik bir CSS dosyası üretiliyor.
-//
-// BİLİNÇLİ OLARAK BOŞ BIRAKILDI: `theme.extend` ve `plugins` — proje CDN sürümünü hiç
-// özelleştirmeden (index.html'de tailwind.config script'i yoktu), sadece varsayılan
-// tema + inline style/CSS custom property'lerle (bkz. constants/theme.js,
-// ThemeContext.jsx) çalışıyordu. Buradaki config o davranışı BİREBİR koruyor — hiçbir
-// yeni renk/spacing/breakpoint eklenmedi, sadece "CDN'de neydi, build'de de o".
-/** @type {import('tailwindcss').Config} */
+import plugin from "tailwindcss/plugin.js";
+
+// Ekran düzeni tarayıcıya değil, mobil uygulama alanının genişliğine göre değişir.
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
+  theme: { screens: {}, extend: {} },
+  plugins: [plugin(({ addVariant }) => {
+    for (const [name, width] of Object.entries({ sm: 640, md: 768, lg: 1024, xl: 1280, "2xl": 1536 })) {
+      addVariant(name, `@container mobile-app (min-width: ${width}px)`);
+    }
+  })],
 };
