@@ -30,10 +30,14 @@ export function evaluateAudit(report, policy, lock, today = new Date().toISOStri
   for (const [name, vulnerability] of Object.entries(report.vulnerabilities)) {
     const approved = policy.packages[name];
     if (!approved) { failures.push(name + ": yeni paket bulgusu"); continue; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(approved.expires) || approved.expires <= today ||
+    const expiresAt = Date.parse(approved.expires + "T00:00:00Z");
+    const validExpiry = /^\d{4}-\d{2}-\d{2}$/.test(approved.expires) && Number.isFinite(expiresAt) &&
+      new Date(expiresAt).toISOString().slice(0, 10) === approved.expires;
+    if (!validExpiry || approved.expires <= today ||
         !approved.reason || !approved.issue) failures.push(name + ": inceleme süresi/gerekçesi geçersiz");
     if (approved.severity !== vulnerability.severity) failures.push(name + ": önem derecesi değişti");
-    if (!Array.isArray(vulnerability.via) || !Array.isArray(vulnerability.nodes) || !vulnerability.nodes.length) {
+    if (!Array.isArray(vulnerability.via) || !vulnerability.via.length ||
+        !Array.isArray(vulnerability.nodes) || !vulnerability.nodes.length) {
       throw new Error("Audit paket yapısı geçersiz: " + name);
     }
     for (const via of vulnerability.via) {

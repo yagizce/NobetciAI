@@ -19,7 +19,7 @@ veri store'ları değiştirilmedi. Saklı roller/eğitim ve mevcut veriler korun
 ## Doğrulama
 
 Windows Node 24.19.0/npm 11.17.0: temiz npm ci, 607 uygulama testi
-(mevcut 604 + 3), 7 tooling testi, bağımsız örnek ve npm run build başarılı.
+(mevcut 604 + 3), 9 tooling testi, bağımsız örnek ve npm run build başarılı.
 actionlint 1.7.12 ve diff whitespace kontrolü temiz.
 Audit 8 yüksek/7 orta → 6 yüksek/7 orta; süreli politika bu riskleri görünür tutar.
 Uzak CI sonucu yalnızca Actions run bağlantısıyla ayrıca doğrulanır.
@@ -44,3 +44,7 @@ CONTRIBUTING, SECURITY, DEPENDENCY_SECURITY, FINE_KINNEY, LICENSING_OPTIONS,
 MAINTENANCE ve OSS_READINESS eklendi.
 ARCHITECTURE, DATABASE_PLAN, PROJECT_CONTEXT, ROADMAP ve SPRINTS'in ürün/mimari
 kapsamı değişmediği için bu dosyalara kozmetik güncelleme yapılmadı.
+
+## Son inceleme — 23 Ekim 2026
+
+67aa6d3 için Linux/Windows CI loglarında 607 uygulama ve 7 tooling testi ile build başarıları doğrulandı. Audit denetleyicisinin boş via zincirini ve geçersiz takvim tarihini kabul etmesi tekrar üretildi; bu iki sınır iki regresyon testiyle kapatıldı. Güncel yerel sonuç 607 uygulama/9 tooling testi ve başarılı build; yeni commit uzak CI ile ayrıca doğrulanmalıdır. İstisna kapsamı ve 22 Kasım bitiş tarihi genişletilmedi. Lisans önerisi gerekçelendirildi; lisans eklenmedi.

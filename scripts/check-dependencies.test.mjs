@@ -62,3 +62,16 @@ test("boş paket listesiyle çelişen audit özeti başarı sayılmaz", () => {
   report.vulnerabilities = {};
   assert.throws(() => evaluateAudit(report, policy, lock, "2026-10-23"), /Tutarsız/);
 });
+
+test("duyuru zinciri boş audit kaydı başarı sayılmaz", () => {
+  const { report, policy, lock } = fixture();
+  report.vulnerabilities.example.via = [];
+  assert.throws(() => evaluateAudit(report, policy, lock, "2026-10-23"), /paket yapısı/);
+});
+test("takvimde geçersiz bitiş tarihi istisnayı uzatamaz", () => {
+  const { report, policy, lock } = fixture();
+  for (const expires of ["2026-99-99", "2027-02-30"]) {
+    policy.packages.example.expires = expires;
+    assert.match(evaluateAudit(report, policy, lock, "2026-10-23").join(), /inceleme süresi/);
+  }
+});

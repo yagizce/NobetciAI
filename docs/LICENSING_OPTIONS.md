@@ -25,3 +25,27 @@ Sahip seçimi onayladıktan sonra ayrı PR ile lisans, gerekli bildirimler ve ka
 tutarlı hale getirilir. O zamana kadar başvuruda “OSI lisanslı açık kaynak” denmemeli.
 [GitHub kullanım koşulları](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
 kapsamındaki görüntüleme/fork izinleri genel bir açık kaynak lisansının yerini tutmaz.
+
+## Ticari ürün için öneri — onay bekliyor
+
+Kapalı ticari türevlerin karşılıksız oluşmasını sınırlamak öncelikse, bu proje için
+**AGPL-3.0-only + ayrı ticari lisans** modelini öneriyorum. Bu bir öneridir; kabul
+edilmiş lisans veya eklenmiş ticari sözleşme değildir.
+
+[AGPL madde 13](https://opensource.org/license/agpl-3.0), değiştirilmiş ağ sürümünün
+kullanıcılarına ilgili kaynağı sunmasını gerektirir. Bu, copyleft koşullarını kabul
+etmeyen kapalı entegrasyonlar için ayrı ticari anlaşma seçeneği bırakabilir.
+MIT ve [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) kapalı türevlere de
+izin verdiğinden bu hedef için daha zayıf karşılıklılık sağlar; Apache ayrıca açık
+patent lisansı ve marka sınırları sunar.
+
+**Sınır:** AGPL rakiplerin ticari kullanımını veya koşullara uygun satışını yasaklamaz.
+[Açık Kaynak Tanımı](https://opensource.org/osd) ticari kullanımı dışlamaya izin vermez.
+“Rakip hiç kullanamasın” hedefi varsa bunu bir açık kaynak lisansı garanti edemez.
+
+Çift lisans yalnızca sahibinin yeterli yeniden lisanslama yetkisine sahip olduğu kod
+için kurulabilir. Tüm katkıların hak sahipliği ve gelecekteki katkı anlaşmalarının ticari
+lisanslama yetkisi incelenmeli; üçüncü taraf bağımlılık koşulları korunmalıdır.
+Önceden verilen açık kaynak izinleri koşullara uyulduğu sürece sonradan geri alınamaz.
+Nöbetçi adı/logo hakları ayrıca ele alınmalı. Nihai model, kapsam ve sözleşme metni
+[#12](https://github.com/yagizce/NobetciAI/issues/12) içinde sahibin kararıyla netleşmelidir.

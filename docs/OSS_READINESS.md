@@ -39,7 +39,7 @@ Lisans eklenmeden OSI lisanslı açık kaynak proje olarak sunulmamalıdır.
 Windows, Node 24.19.0/npm 11.17.0:
 - Temiz npm ci başarılı.
 - npm test: **607/607**; mevcut 604 + bağımsız kullanım için 3 test.
-- npm run test:tooling: **7/7**, yeni/bozuk/eskimiş audit sonuçlarının reddi dahil.
+- npm run test:tooling: **9/9**, yeni/bozuk/eskimiş audit sonuçlarının, boş duyuru zincirinin ve geçersiz takvim tarihinin reddi dahil.
 - npm run example:fine-kinney: 126 / important / Önemli Risk.
 - npm run build başarılı; mevcut ExcelJS parçası 942.09 kB (gzip 272.74 kB) uyarısı sürüyor.
 - actionlint 1.7.12 ve git diff --check başarılı.

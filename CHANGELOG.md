@@ -2,6 +2,8 @@
 
 ## 2026-10-23 — Katkı ve güvenlik bakım hazırlığı
 
+- Son incelemede audit denetleyicisi boş duyuru zinciri ve geçersiz takvim tarihini reddedecek şekilde sıkılaştırıldı; iki regresyon testi eklendi.
+
 - Uyumlu bağımlılık yamaları; audit 8 yüksek/7 orta kayıttan 6 yüksek/7 orta kayda indi. Kalan riskler süreli ve duyuru/sürüm bazlı izlenir.
 - Linux/Windows test/build CI, bağımlılık kontrolü ve katkı/güvenlik/PR/Issue süreçleri eklendi.
 - Fine-Kinney motoru değiştirilmeden bağımsız ESM örneği ve üç testle belgelendi; mevcut 604 test korundu.
