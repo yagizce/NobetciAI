@@ -1,9 +1,10 @@
-# Lisans kararı — henüz kabul edilmedi
+# Ticari uygulama lisansı — bileşenden ayrı değerlendirme
 
-23 Ekim 2026 incelemesinde LICENSE yok ve GitHub metadata'sı license=null.
-Public depo, tek başına yeniden kullanım/dağıtım lisansı vermez.
-Bu belge bir lisans veya hukuki izin değildir. Sahip onayı olmadan LICENSE,
-SPDX lisans alanı veya katkıları yeniden lisanslama taahhüdü eklenmedi.
+Güncel [LICENSING.md](../LICENSING.md) kapsamına göre yalnızca
+`packages/fine-kinney-core/` bakımcı onayıyla Apache-2.0 altında sunulur.
+Buradaki seçenekler ve geçmiş öneriler ticari uygulamanın geri kalanı içindir;
+kabul edilmiş uygulama lisansı değildir. Kök LICENSE yoktur. Tarihsel MIT ve
+korunan eski izinler kapsam belgesinde açıklanır.
 
 | Seçenek | Temel koşul ve ürün etkisi |
 |---|---|
@@ -21,12 +22,13 @@ haklarını otomatik değiştirmez. Fine-Kinney formülünün bağımsız kullan
 bu depodaki somut kod/etiketlerin serbestçe yeniden lisanslanabileceği anlamına gelmez.
 
 [#12](https://github.com/yagizce/NobetciAI/issues/12) karar ve hak sahipliği takibidir.
-Sahip seçimi onayladıktan sonra ayrı PR ile lisans, gerekli bildirimler ve katkı koşulları
-tutarlı hale getirilir. O zamana kadar başvuruda “OSI lisanslı açık kaynak” denmemeli.
+Ticari uygulama için ayrıca seçim onaylandıktan sonra lisans, gerekli bildirimler ve katkı koşulları
+tutarlı hale getirilir. Uygulamanın bütünü “OSI lisanslı açık kaynak” diye sunulmamalı;
+başvuruda Apache-2.0 kapsamındaki bileşen ve klasör sınırı açıkça belirtilmelidir.
 [GitHub kullanım koşulları](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
 kapsamındaki görüntüleme/fork izinleri genel bir açık kaynak lisansının yerini tutmaz.
 
-## Ticari ürün için öneri — onay bekliyor
+## Ticari uygulama için geçmiş öneri — kabul edilmedi
 
 Kapalı ticari türevlerin karşılıksız oluşmasını sınırlamak öncelikse, bu proje için
 **AGPL-3.0-only + ayrı ticari lisans** modelini öneriyorum. Bu bir öneridir; kabul

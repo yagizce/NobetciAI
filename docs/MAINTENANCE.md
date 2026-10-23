@@ -11,7 +11,7 @@ bildirimi ve otomatik deploy ayarları bu PR ile etkinleştirilmiş sayılmaz.
   Hassas raporlar SECURITY.md üzerinden ele alınsın; kamuya özel istismar ayrıntısı yazılmasın.
 - Her PR tek ana sonucu anlatsın; issue referansı, değişen davranış, test çıktısı ve
   kalan risk taşısın. Tamamlanmamış kabul ölçütünü kapatmak için `Closes` kullanmayın.
-- Main'e girmeden önce CI'ın iki OS test/build işi ve Dependency security sonucu
+- Main'e girmeden önce CI'ın iki OS test/build işi, Fine-Kinney Core'un iki OS paket/eşitlik işi ve Dependency security sonucu
   incelensin; bilinen istisnalar varsa tarihler ve erişilebilirlik tekrar okunsun.
 - Lisans, workflow ve güvenlik politikasına dokunan değişiklikleri özellikle inceleyin.
   Yeni npm bağımlılığı/backend/rol açılışı ürün kararıdır.
@@ -41,7 +41,8 @@ duyuru aralığı/önemi veya incelenmiş sürüm değişimi ve inceleme süresi
    Temiz `npm ci`, uygulama/tooling testleri, örnek, build ve audit çalıştırın.
 3. Veri şeması/yedek uyumluluğunu ve ilgili cihaz akışını kontrol edin.
    Canlı AI veya fiziksel cihaz testi yapılmadıysa sürüm notunda belirtin.
-4. Lisans kararı ve içerik hakları net değilse açık kaynak paket yayını yapmayın.
+4. LICENSING.md kapsamını inceleyin: yalnızca Fine-Kinney Core Apache-2.0 kapsamındadır.
+   Uygulamanın tamamı için izin çıkarmayın. Hak çatışması varsa ilgili yayını durdurun.
    Yayın hazırlığı engellerini gözden geçirin; pre-release etiketini gerekiyorsa kullanın.
 5. Depo sahibinin açık yayın onayından sonra `vX.Y.Z` tag'i ve commit'e bağlı
    GitHub Release oluşturun; test/CI bağlantılarını sürüm notuna koyun.

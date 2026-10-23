@@ -1,9 +1,10 @@
 # Katkı rehberi
 
-Nöbetçi şu anda public kaynak deposudur; açık kaynak lisansı henüz seçilmemiştir.
-Bu rehber yeniden kullanım veya katkıların gelecekte yeniden lisanslanması için izin vermez.
-Kod katkısından önce [lisans/hak sahipliği kararını](https://github.com/yagizce/NobetciAI/issues/12)
-bakımcıyla netleştirin. Lisans seçimi onaylanmadan paket yayımlanmaz.
+Yalnızca `packages/fine-kinney-core/` Apache-2.0 kapsamındadır; bu klasöre katkılar
+aynı lisans altında, sahiplik devri olmadan sunulur. [Bileşen rehberi](packages/fine-kinney-core/CONTRIBUTING.md)
+ve [kesin kapsam](LICENSING.md) geçerlidir. Uygulamanın geri kalanında katkı ve
+lisans haklarını bakımcıyla ayrıca netleştirin. [#12](https://github.com/yagizce/NobetciAI/issues/12)
+tüm uygulama için kapanmış sayılmaz. Paket yayını, merge ve deploy ayrıca onay gerektirir.
 
 ## Başlangıç
 
@@ -21,6 +22,9 @@ npm run test:tooling
 npm run example:fine-kinney
 npm run build
 npm run audit:security
+npm --prefix packages/fine-kinney-core ci --ignore-scripts
+npm --prefix packages/fine-kinney-core test
+node packages/fine-kinney-core/tools/verify-upstream.mjs src/constants/fineKinney.js
 ```
 
 AI olmadan yerel test ve derleme çalışır. Canlı AI için anahtarlar yalnızca sunucuda tutulur;

@@ -5,9 +5,10 @@ belge üretimi ve AI danışmanlığı uygulaması.
 
 **Durum:** React web/PWA geliştirme sürümü. Etkin ürün kapsamı yalnızca İSG uzmanı.
 Gerçek hesap sistemi, sunucu veri izolasyonu ve Android/iOS mağaza paketleri yoktur.
-Depo public'tir; **açık kaynak lisansı henüz seçilmemiştir**. Kaynakların görünür
-olması yeniden kullanım/dağıtım lisansı anlamına gelmez.
-[Lisans kararı](docs/LICENSING_OPTIONS.md) · [Katkı rehberi](CONTRIBUTING.md).
+Depo farklı lisans kapsamları içerir: yalnızca
+[Fine-Kinney Core](packages/fine-kinney-core/README.md) **Apache-2.0** kapsamındadır.
+Ticari uygulamanın geri kalanı için yeni bir açık kaynak lisansı verilmez.
+[Kesin lisans kapsamı](LICENSING.md) · [Katkı rehberi](CONTRIBUTING.md).
 
 ## Bugün bulunan özellikler
 
@@ -77,7 +78,10 @@ ExcelJS ve jsQR gerektiğinde yüklenir.
 
 Fine-Kinney hesabı doğrudan ESM olarak kullanılabilir:
 [bağımsız kullanım, sınırlar ve testler](docs/FINE_KINNEY.md).
-Ayrı npm paketi yayımlanmamıştır; hesaplama dosyasının davranışı bu hazırlıkta değiştirilmez.
+Bağımsız, sıfır bağımlılıklı [Fine-Kinney Core](packages/fine-kinney-core/README.md)
+aynı depoda bulunur; npm paketi yayımlanmamıştır. Yalnızca paket klasörü Apache-2.0
+kapsamındadır. Uygulama özgün motorunu kullanır; dosyası ve davranışı değişmez.
+272 paket testi ve motorla sonuç eşitliği ayrı Linux/Windows CI ile doğrulanır.
 
 ## AI yapılandırması
 

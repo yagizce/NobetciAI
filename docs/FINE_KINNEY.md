@@ -5,8 +5,11 @@
 `src/constants/fineKinney.js` import bağımlılığı olmayan saf bir ESM dosyasıdır.
 Hesaplama ve sınıflandırma Node'da React, DOM, IndexedDB, AI, ağ veya npm kurulumu
 olmadan çalışır. Dosyada ayrıca UI etiketleri/paletleri vardır; ayrı npm paketi
-veya sürümlenmiş bağımsız API değildir. Bu çalışma dosyayı ayırmaz ve davranışını değiştirmez.
-Lisans kararı beklediği için dış projeye kopyalama/dağıtım izni verilmiş sayılmaz.
+veya sürümlenmiş bağımsız API değildir. Bu özgün dosya ve davranışı değiştirilmez.
+Ayrı [Fine-Kinney Core](../packages/fine-kinney-core/README.md) yalnızca gerekli
+hesaplama/ölçek/eşik kodunu ve 272 testi içerir; yalnızca paket klasörü Apache-2.0
+kapsamındadır. Özgün src dosyasının UI metinleri/paletleri bu izne dahil değildir.
+[Lisans sınırı](../LICENSING.md) geçerlidir; CI paket ve motor sonuçlarını karşılaştırır.
 
 Depo kökünde:
 

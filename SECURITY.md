@@ -34,3 +34,10 @@ Canlı hesap/sunucuya izinsiz test yapmayın. Açığa çıkan anahtarlar iptal 
 incelenmemiş paket sürümü, süre sonu veya audit hatasında başarısız olur.
 Yeşil kontrol yalnızca mevcut süreli politikanın karşılandığını ifade eder; sıfır
 zafiyet veya canlı güvenlik testi anlamına gelmez. Ham JSON CI artifact'idir.
+
+## Fine-Kinney Core bileşeni
+
+Yukarıdaki özel bildirim yolu Apache-2.0 kapsamındaki packages/fine-kinney-core/
+için de geçerlidir. [Bileşen politikası](packages/fine-kinney-core/SECURITY.md)
+girdi/sayısal davranış sınırlarını açıklar. Bağımlılıksız bileşen uygulamanın
+güvenlik borcunu gidermez; kök audit politikası ve süreleri değişmemiştir.

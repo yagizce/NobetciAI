@@ -1,0 +1,51 @@
+{
+  "name": "fine-kinney-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dependency-free Fine-Kinney arithmetic and risk thresholds extracted from NobetciAI.",
+  "keywords": [
+    "fine-kinney",
+    "risk-assessment",
+    "occupational-safety",
+    "esm"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "types": "./src/index.d.ts",
+  "files": [
+    "src",
+    "examples",
+    "docs",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "PROVENANCE.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "VERIFICATION.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/index.js && node --check examples/basic.js && node --check test/core.test.js && node --check tools/verify-upstream.mjs",
+    "example": "node examples/basic.js",
+    "audit:dependencies": "npm audit --audit-level=low"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yagizce/NobetciAI.git",
+    "directory": "packages/fine-kinney-core"
+  },
+  "bugs": {
+    "url": "https://github.com/yagizce/NobetciAI/issues"
+  }
+}

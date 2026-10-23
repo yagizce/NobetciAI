@@ -1,56 +1,72 @@
-# Codex for Open Source — doğrulanabilir hazırlık kaydı
+# Codex for Open Source — doğrulanabilir kapsam
 
-İnceleme: **23 Ekim 2026**. Bu belge başvuru gönderimi, program kabulü,
-lisans kararı veya üretim yayını değildir.
+İnceleme: **23 Ekim 2026**. Başvuru deposu mevcut
+[yagizce/NobetciAI](https://github.com/yagizce/NobetciAI) olacaktır.
+Başvuru gönderilmedi; yeni repo, npm yayını, merge veya deploy yapılmadı.
 
-## Program ve dürüst kapsam
+## Açık kaynak kapsamı
 
-[OpenAI Docs program sayfası](https://developers.openai.com/community/codex-for-oss)
-bakımcıların inceleme, triage ve bakım işlerini desteklemeyi amaçlar.
-[Program şartları](https://learn.chatgpt.com/docs/codex-for-oss-terms)
-doğru başvuru bilgisi ister; kullanım, ekosistem önemi ve bakım kanıtları
-değerlendirilebilir ve başvuru kabul garantisi vermez.
+**Yalnızca [packages/fine-kinney-core/](../packages/fine-kinney-core/README.md)
+Apache-2.0 lisanslı bileşendir.** Ticari uygulamanın tamamı Apache-2.0 veya
+tamamen açık kaynak olarak sunulamaz. [LICENSING.md](../LICENSING.md) kesin
+sınırı; bileşen LICENSE/NOTICE/PROVENANCE kaynak ve hak incelemesini tanımlar.
 
-Depo public; inceleme anındaki
-[GitHub metadata'sında](https://api.github.com/repos/yagizce/NobetciAI)
-**0 yıldız, 0 fork, license=null** görüldü. Kullanıcı/kurulum/indirme
-telemetrisi doğrulanmadı; yaygın kullanım iddiası kurulmamalı.
-Paket yayımlama veya ücretli/ücretsiz gerçek kullanıcı sayısı üretilmedi.
-İSG uzmanına yönelik yerel risk/denetim iş takibi ve bağımsız çalışabilen
-Fine-Kinney hesabı somut teknik bağlamdır; ekosistem etkisi ayrıca kanıtlanmalıdır.
+Başvuruda depo URL'sinin yanında gerçek bileşen tree/commit bağlantısı ve
+kapsam açıklaması verilmelidir. PR dalındaki bileşen main'de varmış gibi
+gösterilmemeli; PR #7'nin özellikleri bu tabana mal edilmemelidir.
+Uygulamanın önceki bakım geçmişi depo bağlamıdır; bağımsız paket geçmişi,
+kullanıcı sayısı veya benimsenme kanıtı değildir.
 
-**Açık karar:** [Lisans ve hak sahipliği #12](https://github.com/yagizce/NobetciAI/issues/12).
-Lisans eklenmeden OSI lisanslı açık kaynak proje olarak sunulmamalıdır.
-[Seçenekler](LICENSING_OPTIONS.md) yalnızca karşılaştırmadır.
+[OpenAI program sayfası](https://developers.openai.com/community/codex-for-oss)
+ve [şartları](https://learn.chatgpt.com/docs/codex-for-oss-terms) bakımcı rolü,
+gerçek kullanım, ekosistem önemi ve bakım kanıtlarını değerlendirebilir.
+Karma lisans düzeni için otomatik uygunluk veya kabul garantisi belirtilmez.
+Doğrulanmış kullanıcı/kurulum/indirme sayısı yoktur; yaygın kullanım iddiası
+kurulmamalıdır. Depo düzeyindeki GitHub lisans metadata'sı klasör kapsamını
+tek başına anlatmaz. [#12](https://github.com/yagizce/NobetciAI/issues/12)
+ticari uygulamanın bütünü için çözülmüş sayılmaz.
 
-## Kanıt haritası
+## Gerçek kanıtlar
 
-| İddia | Tekrar üretilebilir kanıt |
+| İddia | Kanıt |
 |---|---|
-| Mevcut 604 test korundu | Taban eb26b5a'daki test dosyaları değiştirilmedi; npm test artık üç ek testle 607 test çalıştırır. |
-| Hesap bağımsız çalışıyor | examples/fine-kinney.mjs ve src/constants/fineKinney.standalone.test.js; motor dosyası değişmedi. |
-| Güvenlik borcu izlendi | DEPENDENCY_SECURITY.md; kilit dosyası yamaları; security/audit-policy.json; ham audit CI artifact'i. |
-| Katkı/bakım süreci tanımlı | CONTRIBUTING.md, SECURITY.md, MAINTENANCE.md ve .github PR/Issue şablonları. |
-| Gerçek teknik işler izleniyor | #8–#13: bağımlılıklar, hesap/API, cihazlar, giriş doğrulama, lisans ve sohbet yedeği. Issues'ın açılması tamamlandıkları anlamına gelmez. |
-| CI tanımlı | .github/workflows/ci.yml; gerçek çalışmanın commit ve sonucu için Actions bağlantısı kullanılmalı. |
+| Mevcut uygulama korunuyor | 607 uygulama testi; src motoru, veri yapısı, API, yayın profili ve uygulama bağımlılıkları değişmedi. |
+| PR #14 güvenlik araçları korunuyor | 9 tooling testi; mevcut CI, security/audit-policy.json ve scripts değişmedi. |
+| Bağımsız açık kaynak hesaplama | Bileşende 272 test, saf ESM API, sayısal ölçekler, tip bildirimleri, örnek, bağımlılıksız kilit dosyası. |
+| Uygulama ile eşitlik | tools/verify-upstream.mjs: 252 birleşim, 19 sınıflandırma ucu, 7 aritmetik uç durum; özgün kaynak hash'i 52f2c9507feff142cf61c591fffaea8e4f1ccdc3688c94a364b2103ba1bbae1f. |
+| Lisansın sınırı | Kök LICENSING.md; Apache LICENSE/NOTICE yalnızca bileşen klasöründe. Tarihsel MIT izinleri ve üçüncü taraf hakları korunur. |
+| CI ve bakım | Mevcut test/build/security CI'a ek olarak ayrı fine-kinney-core.yml Linux/Windows paket testi/eşitlik/audit işleri; katkı ve bakım rehberleri. |
 
-## Bu çalışma sırasında yerel doğrulama
+## Bu entegrasyonda yerel sonuçlar
 
 Windows, Node 24.19.0/npm 11.17.0:
-- Temiz npm ci başarılı.
-- npm test: **607/607**; mevcut 604 + bağımsız kullanım için 3 test.
-- npm run test:tooling: **9/9**, yeni/bozuk/eskimiş audit sonuçlarının, boş duyuru zincirinin ve geçersiz takvim tarihinin reddi dahil.
-- npm run example:fine-kinney: 126 / important / Önemli Risk.
-- npm run build başarılı; mevcut ExcelJS parçası 942.09 kB (gzip 272.74 kB) uyarısı sürüyor.
-- actionlint 1.7.12 ve git diff --check başarılı.
-- Audit önce 8 yüksek/7 orta, uyumlu yamalardan sonra **6 yüksek/7 orta**.
-  Süreli politika kontrolünün geçmesi bu açık risklerin düzeldiğini ifade etmez.
+- Uygulama: **607/607**; tooling: **9/9**; paket: **272/272** başarılı.
+- Paket npm ci, sözdizimi, örnek 270/high ve motorla eşitlik başarılı.
+- npm run build başarılı; ExcelJS 942.09 kB büyük parça uyarısı devam ediyor.
+- Kök audit politikası başarılı; **6 yüksek/7 orta** mevcut paket kaydı sürüyor.
+  İstisnalar **22 Kasım 2026** tarihinde sona eriyor; kapsam/tarih değiştirilmedi.
+- Paket audit sonucu 0 bulgu; paketin npm bağımlılığı yok. Bu genel bir sıfır
+  güvenlik riski iddiası değildir.
+- Mevcut ve yeni workflow actionlint kontrolünden geçti.
 
-Linux/Windows hosted runner sonucu ancak
-[ilgili CI run'ı](https://github.com/yagizce/NobetciAI/actions/workflows/ci.yml)
-başarıyla bittiğinde başvuru kanıtına eklenebilir.
-Yerel testler sahada kullanımı, canlı AI kalitesini, fiziksel cihazı, yasal
-uygunluğu veya bağımsız insan incelemesini kanıtlamaz.
+Uzak CI sonucu için [PR #14 checks](https://github.com/yagizce/NobetciAI/pull/14/checks)
+ve [Actions](https://github.com/yagizce/NobetciAI/actions) üzerindeki **güncel
+head commit'e ait** sonuçları kullanın. Workflow tanımı veya önceki head'in
+başarılı çalışması yeni commit'in başarısı sayılmaz. Gerçek koşu bağlantıları
+PR açıklamasında güncellenir.
 
-PR #7 birleştirilmez; onun 30 firma portföyü bu tabanın tamamlanmış özelliği gibi
-anlatılmaz. Main, production, veritabanı ve yayın profili bu hazırlıkta değiştirilmez.
+Canlı AI, fiziksel cihaz, pentest, dış benimsenme ve metodolojinin sahadaki
+karar kalitesi doğrulanmadı. Başvuru kanıtı, production yayın onayı değildir.
+
+## Açık işler ve sınırlar
+
+[#8 bağımlılıklar](https://github.com/yagizce/NobetciAI/issues/8),
+[#9 oturum/API](https://github.com/yagizce/NobetciAI/issues/9),
+[#10 cihazlar](https://github.com/yagizce/NobetciAI/issues/10),
+[#11 girdi doğrulama](https://github.com/yagizce/NobetciAI/issues/11),
+[#12 uygulama lisansı](https://github.com/yagizce/NobetciAI/issues/12),
+[#13 sohbet yedeği](https://github.com/yagizce/NobetciAI/issues/13) açık kalır.
+İncelenen bileşende somut hak çatışması bulunmadı; Git yazarlığı bilinmeyen
+sözleşmelerin yokluğunu kanıtlamaz. Böyle bir çatışmada ilgili yayın durdurulur.
+Apache izni yalnızca hak sahiplerinin lisanslayabildiği kapsamda geçerlidir.
+Main ve Vercel production bu çalışma kapsamında değiştirilmez.
