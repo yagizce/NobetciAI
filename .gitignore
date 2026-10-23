@@ -4,3 +4,6 @@ dist/
 .env
 .vercel
 .env*
+
+# CI/local dependency audit output
+dependency-audit.json

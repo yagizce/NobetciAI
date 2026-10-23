@@ -1,0 +1,24 @@
+name: Teknik iş veya iyileştirme
+description: Kanıta ve kabul ölçütlerine dayanan bir bakım işi
+body:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Somut ihtiyaç ve kanıt
+      description: Mevcut dosya/commit, tekrar üretim veya kullanıcı ihtiyacı.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Kapsam ve kapsam dışı işler
+      description: Mimari, yayın profili, bağımlılık ve veri uyumluluğu etkisi.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Kabul ölçütleri ve doğrulama
+      description: Ölçülebilir sonuçlar; çalıştırılacak testler ve kullanıcı akışı.
+    validations:
+      required: true

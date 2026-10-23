@@ -1,0 +1,11 @@
+Fine-Kinney Core
+Copyright 2026 yagizce
+
+The arithmetic, numeric scales, and risk thresholds were extracted and adapted
+from yagizce/NobetciAI. Source commits and changes are recorded in PROVENANCE.md.
+New English documentation, tests, declarations, and project configuration were
+prepared with OpenAI Codex assistance at the requesting maintainer's direction.
+
+Apache-2.0 applies to the files of this standalone project. It does not grant
+rights to the rest of NobetciAI, its branding, assets, or commercial application.
+No trademark rights or ownership assignment are made by this notice.

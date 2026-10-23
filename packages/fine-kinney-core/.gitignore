@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+*.tgz
+*.log
+# Local credentials and environment files must never be committed.
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
+.vercel/
+.DS_Store
+Thumbs.db
