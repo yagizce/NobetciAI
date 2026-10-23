@@ -1,0 +1,175 @@
+{
+  "reviewedOn": "2026-10-23",
+  "description": "Geçici risk kabulü; sıfır zafiyet iddiası değildir. Yeni sürüm/duyuru veya süre sonu CIı durdurur.",
+  "packages": {
+    "braces": {
+      "versions": [
+        "3.0.3"
+      ],
+      "severity": "high",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Tailwind 3 geliştirme globları; güvenilmeyen desen derlenmiyor. Yama yayımlanmamış.",
+      "via": [
+        "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm|high|<=3.0.3"
+      ]
+    },
+    "chokidar": {
+      "versions": [
+        "3.6.0"
+      ],
+      "severity": "high",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Tailwind geliştirme izleyicisi üzerinden braces; ana sürüm değişikliği ayrı incelenecek.",
+      "via": [
+        "dependency:braces"
+      ]
+    },
+    "esbuild": {
+      "versions": [
+        "0.21.5"
+      ],
+      "severity": "moderate",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Vite derleme dönüştürücüsü; esbuild serve API doğrudan kullanılmıyor. Major override yok.",
+      "via": [
+        "https://github.com/advisories/GHSA-67mh-4wv8-2f99|moderate|<=0.24.2"
+      ]
+    },
+    "exceljs": {
+      "versions": [
+        "4.4.0"
+      ],
+      "severity": "moderate",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "XLSX üretimi; uuid v4 kullanımı. 3.4 sürümüne düşürmek güvenli çözüm sayılmadı.",
+      "via": [
+        "dependency:uuid"
+      ]
+    },
+    "fast-glob": {
+      "versions": [
+        "3.3.3"
+      ],
+      "severity": "high",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Tailwind dosya taraması; kullanıcı girdisi glob olarak alınmıyor.",
+      "via": [
+        "dependency:micromatch"
+      ]
+    },
+    "micromatch": {
+      "versions": [
+        "4.0.8"
+      ],
+      "severity": "high",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Tailwind geliştirme globları üzerinden braces.",
+      "via": [
+        "dependency:braces"
+      ]
+    },
+    "postcss-nested": {
+      "versions": [
+        "6.2.0"
+      ],
+      "severity": "moderate",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Tailwind CSS derlemesinde postcss-selector-parser kullanımı.",
+      "via": [
+        "dependency:postcss-selector-parser"
+      ]
+    },
+    "postcss-selector-parser": {
+      "versions": [
+        "6.1.5"
+      ],
+      "severity": "moderate",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Tailwind 3 derleme seçicileri; v7 override uyumluluğu kanıtlanmadı.",
+      "via": [
+        "https://github.com/advisories/GHSA-rj75-hqrm-r3gf|moderate|<7.1.6"
+      ]
+    },
+    "react-router": {
+      "versions": [
+        "6.30.6"
+      ],
+      "severity": "moderate",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "BrowserRouter CSR; SSR hydration yok, bağlantı hedefleri uygulama sabitlerinden kuruluyor. v7 geçişi bekliyor.",
+      "via": [
+        "https://github.com/advisories/GHSA-wrjc-x8rr-h8h6|moderate|>=6.0.0 <7.18.0",
+        "https://github.com/advisories/GHSA-337j-9hxr-rhxg|moderate|>=6.4.0 <7.18.0"
+      ]
+    },
+    "react-router-dom": {
+      "versions": [
+        "6.30.6"
+      ],
+      "severity": "moderate",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "React Router 6 zinciri; 6.30.6 XSS yaması uygulandı, diğer duyurular sürüyor.",
+      "via": [
+        "dependency:react-router"
+      ]
+    },
+    "tailwindcss": {
+      "versions": [
+        "3.4.19"
+      ],
+      "severity": "high",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Geliştirme/derleme bağımlılığı; v4 geçişi bu uyumlu yama kapsamı dışında.",
+      "via": [
+        "dependency:chokidar",
+        "dependency:fast-glob",
+        "dependency:micromatch",
+        "dependency:postcss-nested",
+        "dependency:postcss-selector-parser"
+      ]
+    },
+    "uuid": {
+      "versions": [
+        "8.3.2"
+      ],
+      "severity": "moderate",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "ExcelJS kaynakta yalnızca uuid v4 çağırıyor; duyuru v3/v5/v6 buffer yolları hakkında.",
+      "via": [
+        "https://github.com/advisories/GHSA-w5hq-g745-h8pq|moderate|<11.1.1"
+      ]
+    },
+    "vite": {
+      "versions": [
+        "5.4.21"
+      ],
+      "severity": "high",
+      "expires": "2026-11-22",
+      "issue": "https://github.com/yagizce/NobetciAI/issues/8",
+      "reason": "Geliştirme sunucusu riski; internete/LANa açılmamalı. Desteklenen major geçişi bekliyor.",
+      "via": [
+        "https://github.com/advisories/GHSA-4w7w-66w2-5vf9|moderate|<=6.4.1",
+        "https://github.com/advisories/GHSA-v6wh-96g9-6wx3|moderate|<=6.4.2",
+        "https://github.com/advisories/GHSA-fx2h-pf6j-xcff|high|<=6.4.2",
+        "https://github.com/advisories/GHSA-698v-4r3x-3vcv|moderate|<=6.4.3",
+        "https://github.com/advisories/GHSA-r825-w8mm-5pxw|moderate|<=6.4.3",
+        "https://github.com/advisories/GHSA-587h-7wmj-h5pm|high|<=6.4.3",
+        "https://github.com/advisories/GHSA-9jrq-w75r-8gcw|low|<=6.4.3",
+        "https://github.com/advisories/GHSA-rq7h-c2jc-7f22|moderate|<=6.4.3",
+        "dependency:esbuild"
+      ]
+    }
+  }
+}

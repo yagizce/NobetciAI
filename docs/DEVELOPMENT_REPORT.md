@@ -1,27 +1,46 @@
 # Son geliştirme raporu
 
-**21 Ekim 2026 — Uzman çalışma alanı**
+**23 Ekim 2026 — Açık kaynak başvurusu için bakım hazırlığı**
 
 ## Yapılan Geliştirmeler
 
-AI Mevzuat & Risk Taraması paneli, hook’u, istemi ve ayrıştırıcısı tamamen kaldırıldı. Profildeki rol etiketi kaldırıldı. Firma formu dört saha bilgisine indirildi; kalıcı etiketler eklendi. Riskler alt menüye alındı, işlevsiz dil seçimi gizlendi. İşyeri adresi ve şube/departman sekmeleri gizlendi; mevcut kayıtlar korunur. PWA önbelleği v9.
+codex/oss-readiness dalında uyumlu kilit dosyası güvenlik yamaları, Linux/Windows
+CI, süreli bağımlılık kontrolü, katkı/güvenlik rehberleri, PR/Issue şablonları,
+bakım/sürüm süreci ve Fine-Kinney bağımsız örneği hazırlandı.
+Gerçek eksikler #8–#13 olarak kaydedildi. Lisans seçenekleri incelendi; lisans eklenmedi.
+Başvuru gönderilmedi, PR #7 birleştirilmedi.
 
 ## Etkilenen Modüller
 
-Fine-Kinney, firma formu, gezinme ve ayarlar. Diğer roller/eğitim saklı kalır. Gizlenen firma bilgileri ve ek eski alanlar güncellemede korunur.
+Bağımlılık kilidi, geliştirme araçları ve dokümantasyon.
+Uygulama mimarisi, AGENTS.md, yayın profili, hesaplama motoru, mevcut testler ve
+veri store'ları değiştirilmedi. Saklı roller/eğitim ve mevcut veriler korunur.
 
 ## Doğrulama
 
-604 test geçti; 253 uygulama JS/JSX dosyasında sözdizimi/import kontrolü temiz. Üretim derlemesi başarılı. 320/390 px’de yatay sayfa taşması yok; 1280 px’de uygulama ortalanmış 430 px. Firma güncellemesi, risklere geçiş, tarama panelinin yokluğu ve profil menüsü kontrol edildi. Tarayıcı hata kaydı yok.
+Windows Node 24.19.0/npm 11.17.0: temiz npm ci, 607 uygulama testi
+(mevcut 604 + 3), 7 tooling testi, bağımsız örnek ve npm run build başarılı.
+actionlint 1.7.12 ve diff whitespace kontrolü temiz.
+Audit 8 yüksek/7 orta → 6 yüksek/7 orta; süreli politika bu riskleri görünür tutar.
+Uzak CI sonucu yalnızca Actions run bağlantısıyla ayrıca doğrulanır.
 
 ## Bilinen Riskler
 
-Fiziksel Android/iOS testi yapılmadı. Mevcut ExcelJS büyük parça uyarısı sürüyor. Gerçek hesap ve native paketleme bu değişikliğin kapsamında değil.
+Kalan bağımlılık riskleri için desteklenen sürüm geçişleri planlanmalı; major/force
+güncelleme yapılmadı. ExcelJS büyük parça uyarısı sürüyor.
+Lisans/hak sahipliği kararı, gerçek hesap/backend, canlı AI ve fiziksel cihaz
+doğrulaması açık. Özel güvenlik bildirim ayarı/branch protection etkinleştirilmiş sayılmaz.
 
 ## Sonraki Öneriler
 
-Fiziksel cihazlarda klavye, kamera/galeri ve belge dışa aktarma akışlarını doğrulayın.
+Hazırlık PR'sini inceleyin; #8 ve #12 kararlarını önceliklendirin.
+Main'e merge mevcut Vercel otomasyonunu tetikleyebileceğinden ayrı yayın onayı gerekir.
+Başvuruda yalnızca OSS_READINESS kanıt haritası ve gerçek CI sonuçları kullanılmalı.
 
 ## Documentation Check
 
-RELEASE_SCOPE, SPRINTS ve MOBILE_RELEASE_READINESS güncellendi. README ve veri modeli değiştirilmedi.
+README, kök CHANGELOG, docs/README ve bu rapor yeni kurulum/bakım akışları için güncellendi.
+CONTRIBUTING, SECURITY, DEPENDENCY_SECURITY, FINE_KINNEY, LICENSING_OPTIONS,
+MAINTENANCE ve OSS_READINESS eklendi.
+ARCHITECTURE, DATABASE_PLAN, PROJECT_CONTEXT, ROADMAP ve SPRINTS'in ürün/mimari
+kapsamı değişmediği için bu dosyalara kozmetik güncelleme yapılmadı.

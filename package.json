@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test \"src/**/*.test.js\""
+    "test": "node --test \"src/**/*.test.js\"",
+    "audit:security": "node scripts/check-dependencies.mjs",
+    "test:tooling": "node --test scripts/check-dependencies.test.mjs",
+    "example:fine-kinney": "node examples/fine-kinney.mjs"
   },
   "dependencies": {
     "exceljs": "^4.4.0",

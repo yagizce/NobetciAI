@@ -1,5 +1,13 @@
 # Değişiklikler
 
+## 2026-10-23 — Katkı ve güvenlik bakım hazırlığı
+
+- Uyumlu bağımlılık yamaları; audit 8 yüksek/7 orta kayıttan 6 yüksek/7 orta kayda indi. Kalan riskler süreli ve duyuru/sürüm bazlı izlenir.
+- Linux/Windows test/build CI, bağımlılık kontrolü ve katkı/güvenlik/PR/Issue süreçleri eklendi.
+- Fine-Kinney motoru değiştirilmeden bağımsız ESM örneği ve üç testle belgelendi; mevcut 604 test korundu.
+- Lisans seçimi bekliyor; production yayını ve PR #7 birleşmesi yapılmadı.
+
+
 ## 2026-10-20 — Web ve mobil uyumlu düzen
 
 - Masaüstünü 390 px telefon maketine sıkıştıran PhoneFrame kaldırıldı. Web uygulaması ekranı doldurur; 1024 px ve üstünde kalıcı yan menü gösterilir.

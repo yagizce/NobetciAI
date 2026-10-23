@@ -18,3 +18,7 @@
 Kurulum ve komutlar için [ana README](../README.md) dosyasına bakın.
 Belgeler yalnızca yapılan değişiklik mevcut içerikle çeliştiğinde veya eksik bıraktığında güncellenir.
 Geçmiş sprint kayıtları güncel ürün durumu olarak yorumlanmamalıdır; başlangıç noktası Proje bağlamı ve Yayın hazırlığıdır.
+
+## Katkı ve bakım
+
+[Katkı](../CONTRIBUTING.md) · [Güvenlik](../SECURITY.md) · [Bağımlılık değerlendirmesi](DEPENDENCY_SECURITY.md) · [Fine-Kinney bağımsız kullanım](FINE_KINNEY.md) · [Bakım/sürüm süreci](MAINTENANCE.md) · [Lisans seçenekleri](LICENSING_OPTIONS.md) · [Başvuru kanıtları](OSS_READINESS.md).

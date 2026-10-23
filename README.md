@@ -1,65 +1,116 @@
-# Nöbetçi — İSG Yönetim Platformu
+# Nöbetçi AI — İSG uzmanının saha çalışma alanı
 
-İSG uzmanı için risk değerlendirmesi, denetim, periyodik kontrol, belge ve AI danışmanlığını birleştiren Türkçe, mobil öncelikli uygulama.
+Türkçe, mobil öncelikli risk değerlendirmesi, denetim, periyodik kontrol,
+belge üretimi ve AI danışmanlığı uygulaması.
 
-**Mevcut durum:** React tabanlı web/PWA; yalnızca uzman görünümü açık. İşveren, çalışan ve eğitim modülleri ileride açılmak üzere korunur. Veriler cihazın IndexedDB alanında tutulur; gerçek hesap sistemi ve Android/iOS mağaza paketleri henüz yoktur. [Kapsam ve yeniden açma rehberi](docs/RELEASE_SCOPE.md) · [Yayın hazırlığı](docs/MOBILE_RELEASE_READINESS.md).
+**Durum:** React web/PWA geliştirme sürümü. Etkin ürün kapsamı yalnızca İSG uzmanı.
+Gerçek hesap sistemi, sunucu veri izolasyonu ve Android/iOS mağaza paketleri yoktur.
+Depo public'tir; **açık kaynak lisansı henüz seçilmemiştir**. Kaynakların görünür
+olması yeniden kullanım/dağıtım lisansı anlamına gelmez.
+[Lisans kararı](docs/LICENSING_OPTIONS.md) · [Katkı rehberi](CONTRIBUTING.md).
 
-## Yerel geliştirme
+## Bugün bulunan özellikler
 
-Node.js 24 ile doğrulanmıştır.
+- Fine-Kinney puanlama, filtreler, artık risk önerileri, düzeltici faaliyet ve kapanış kanıtları.
+- Manuel/fotoğraflı Risk Tespiti; fotoğraftan çoklu bulgu ve kullanıcı onayı.
+- Uzman dashboard'u, yerel firma kaydı, denetim/DİF ve periyodik kontrol takibi.
+- Belge taslağı oluşturma, mevzuat ekranı ve örnek içerikli bilgi kütüphanesi.
+- Anthropic risk/belge danışmanlığı; NVIDIA metin sohbeti ve fotoğraf analizi.
+- IndexedDB'de yerel kayıt, JSON yedek/geri yükleme, PWA çevrimdışı kabuğu ve XLSX dışa aktarım.
+
+İşveren/çalışan, eğitim, çalışan listesi/bildirimi ve demo veri sıfırlaması bilerek
+kapalıdır. Şube/departman yönetimi ve firma idari alanları gizlidir; eski verileri
+korunur. AI Mevzuat & Risk Taraması kaldırılmıştır. Sabit kamera sistemi ertelenmiştir.
+[Ürün kapsamı](docs/RELEASE_SCOPE.md) tek başvuru kaynağıdır;
+`src/constants/releaseProfile.js` kapsamın kod tarafındaki tek kontrol noktasıdır.
+
+## Kurulum ve doğrulama
+
+Node.js **24** kullanın. Terminalde:
 
 ```sh
+git clone https://github.com/yagizce/NobetciAI.git
+cd NobetciAI
 npm ci
 npm run dev
 ```
 
+Geliştirme sunucusunu yerelde tutun; açık LAN/tünel/production sunucusu olarak
+kullanmayın. Kalan [Vite güvenlik riskleri](docs/DEPENDENCY_SECURITY.md) vardır.
+
 ```sh
 npm test
+npm run test:tooling
+npm run example:fine-kinney
 npm run build
+npm run audit:security
 npm run preview
 ```
 
-`npm run dev` ön yüzü çalıştırır. `/api/*` fonksiyonları için Vercel işlevlerini çalıştıran bir ortam gerekir; yalnızca Vite çalışırken AI istekleri hizmet alamaz.
+Test/build için AI anahtarı veya backend gerekmez. `npm run dev` ve preview yalnızca
+ön yüz içindir; göreli `/api/*` fonksiyonlarını çalıştırmaz.
+Sunucu işlevlerini destekleyen ayrı yerel ortamda AI denenebilir.
+Windows'ta Vite yapılandırma yüklemesi ortam iznine takılırsa belgelenmiş
+[eşdeğer derleme kontrolünü](docs/MOBILE_RELEASE_READINESS.md) kullanın ve sonucu açıkça raporlayın.
 
-## Yapı
+[CI tanımı](.github/workflows/ci.yml) Node 24 ile Linux/Windows kurulum,
+test/build ve bağımlılık kontrolü çalıştırır. Gerçek sonuçlar
+[Actions](https://github.com/yagizce/NobetciAI/actions) sayfasındadır;
+workflow dosyası tek başına başarılı çalışma kanıtı değildir.
 
-| Yol | İçerik |
+## Mimari
+
+`pages → features → services → dataProvider → IndexedDB`.
+React 18, React Router 6, Vite 5; Tailwind derleme sırasında üretilir.
+State React Context/hook'larda, ortak bileşenler `src/components/ui/` altındadır.
+ExcelJS ve jsQR gerektiğinde yüklenir.
+
+| Yol | Sorumluluk |
 |---|---|
-| `src/pages/` | Sayfa girişleri |
-| `src/features/` | Dashboard, risk, denetim, firma, eğitim ve belge modülleri |
-| `src/components/` | Ortak arayüz bileşenleri ve ikonlar |
-| `src/services/` | IndexedDB veri erişimi ve AI servisleri |
-| `src/constants/`, `src/utils/` | Veri şablonları, iş kuralları ve yardımcılar |
-| `api/` | Sunucu taraflı AI proxy'leri |
-| `public/` | PWA manifesti, ikonlar, çevrimdışı sayfası ve service worker |
-| `docs/` | Mimari, geliştirme kuralları ve yayın hazırlığı |
+| src/pages, src/features | Sayfa girişleri ve modül iş mantığı |
+| src/services | Veri erişimi ve AI istemcileri |
+| src/constants, src/utils | Ölçekler, saf hesaplama ve yardımcılar |
+| api | Anthropic/NVIDIA sunucu proxy'leri |
+| public | PWA manifesti, service worker, çevrimdışı sayfası |
+| scripts, security | Bağımlılık kontrolü ve süreli risk incelemeleri |
+| docs, examples | Mimari/kurallar, teknik kullanım ve çalışan örnek |
 
-React 18, React Router 6, Vite 5 ve derleme sırasında üretilen Tailwind CSS kullanılır. ExcelJS dışa aktarım, jsQR QR okuma içindir; ağır modüller gerektiğinde yüklenir.
+Fine-Kinney hesabı doğrudan ESM olarak kullanılabilir:
+[bağımsız kullanım, sınırlar ve testler](docs/FINE_KINNEY.md).
+Ayrı npm paketi yayımlanmamıştır; hesaplama dosyasının davranışı bu hazırlıkta değiştirilmez.
 
 ## AI yapılandırması
 
-Anahtarları yalnızca sunucu ortamında tanımlayın; istemciye açılan `VITE_*` değişkenlerine koymayın.
+Anahtarları yalnızca sunucu ortamına koyun; `VITE_*` değişkenlerine veya repoya yazmayın.
 
-| Sunucu değişkeni | Kullanım |
+| Değişken | Sunucu yolu |
 |---|---|
-| `ANTHROPIC_API_KEY` | `/api/chat`: risk önerisi, belge analizi/üretimi, bilgi kütüphanesi |
-| `NVIDIA_API_KEY` | `/api/kimi-chat`: sohbet; `/api/cosmos-vision`: fotoğraf ve tehlike analizi |
+| ANTHROPIC_API_KEY | /api/chat: risk, belge ve bilgi kütüphanesi |
+| NVIDIA_API_KEY | /api/kimi-chat ve /api/cosmos-vision: sohbet/fotoğraf |
 
-AI çıktıları kullanıcı onayıyla uygulanır. Fotoğraf bulguları ayrıca doğrulanır. API anahtarlarının tanımlı olması, gerçek kimlik doğrulama ve sunucu yetkilendirmesi ihtiyacını ortadan kaldırmaz.
+AI önerir, insan onaylar. Bulgular onaylanmadan kaydolmaz.
+Bilgi kütüphanesi anahtar kelime bağlamı kullanır; tam vektör RAG değildir.
 
-## Veri ve demo sınırları
+## Mevcut sınırlamalar
 
-- Kayıtlar bu tarayıcı/cihazda saklanır; cihazlar arasında otomatik senkronizasyon yoktur.
-- Ayarlardan tam yedek alınabilir ve geri yüklenebilir.
-- Demo veri sıfırlama uzman sürümünde kapalıdır; saklı modüllerin verileri tam yedeğe dahildir.
-- Giriş, kayıt ve şifre işlemleri gerçek hesap sistemine bağlı değildir.
-- Bilgi kütüphanesinde örnek içerik bulunur. Kapalı eğitim modülündeki yer tutucu video yeniden açılıştan önce tamamlanmalıdır.
-- Mevcut ISO prototip yardımcıları ve testleri gelecek çalışma için korunur; aktif denetim ekranları `pages/Audit.jsx` üzerinden yapılandırılır.
+- Veriler cihaz/tarayıcıda kalır; bulut senkronizasyonu ve gerçek Auth/RLS yoktur.
+  Login/Register ve şifre işlemleri demodur. Yerel kapsam kontrolü yetkilendirme değildir.
+- API origin/IP kontrolleri kullanıcı oturumu veya kalıcı kota sağlamaz.
+- Yedek saklı modüllerin IndexedDB verilerini kapsar; **sohbet geçmişini kapsamaz**.
+  Kısmi eski yedek geri yükleme, eksik bölümleri onay sonrasında boşaltabilir.
+- Bilgi kütüphanesinde örnek içerik vardır; eğitim yer tutucu videosu kapalı modülde kalır.
+- Android/iOS paketleme, imzalama, fiziksel cihaz ve canlı AI doğrulamaları bekler.
+- Bağımlılıklarda açık güvenlik borcu ve ExcelJS büyük parça uyarısı vardır.
+  [Audit değerlendirmesi](docs/DEPENDENCY_SECURITY.md) · [Güvenlik bildirimi](SECURITY.md).
+- Supabase taslakları aktif değildir; yeni backend/sağlayıcı kendiliğinden eklenmez.
 
-## Web dağıtımı
+## Katkı ve bakım
 
-Vercel yapılandırması `vercel.json` içindedir: build komutu `npm run build`, çıktı `dist`, AI fonksiyonları `api/` altında. Ortam değişkenlerini dağıtım ortamında tanımlayın. Üretime geçmeden [yayın hazırlığı](docs/MOBILE_RELEASE_READINESS.md) maddelerini tamamlayın.
+[CONTRIBUTING](CONTRIBUTING.md) ve [AGENTS.md](AGENTS.md) ile başlayın.
+Hata/teknik iş şablonlarında kişisel veri içermeyen kanıt ve kabul ölçütleri kullanın.
+PR/sürüm süreci, güvenlik istisnası incelemesi ve gerçek açık işler
+[MAINTENANCE](docs/MAINTENANCE.md) içinde açıklanır. Bu süreç otomatik merge/deploy eklemez;
+mevcut Vercel bağlantısı nedeniyle main'e birleşmenin yayın etkisini ayrıca kontrol edin.
 
-## Dokümanlar
-
-[Dokümantasyon](docs/README.md) · [Değişiklikler](CHANGELOG.md) · [Geliştirme kuralları](docs/DEVELOPMENT_RULES.md) · [Mimari](docs/ARCHITECTURE.md)
+[Dokümantasyon](docs/README.md) · [Mimari](docs/ARCHITECTURE.md) ·
+[Yayın hazırlığı](docs/MOBILE_RELEASE_READINESS.md) · [Değişiklikler](CHANGELOG.md).
