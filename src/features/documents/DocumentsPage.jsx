@@ -32,7 +32,7 @@ export default function DocumentsPage() {
   const requestedTab = searchParams.get("tab");
   const prefillSearch = searchParams.get("q") || undefined; // Genel arama (GlobalSearchBar.jsx) buradan gelir
   const [selectedTab, setTab] = useState(requestedTab);
-  const tab = resolveReleaseTab(visibleTabs, selectedTab);
+  const tab = resolveReleaseTab(visibleTabs, selectedTab ?? "generator");
 
   // URL değişimleri takip edilir; kapalı sekme ilk render'da bile bağlanmaz.
   useEffect(() => {

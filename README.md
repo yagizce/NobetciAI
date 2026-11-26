@@ -3,7 +3,7 @@
 Türkçe, mobil öncelikli risk değerlendirmesi, denetim, periyodik kontrol,
 belge üretimi ve AI danışmanlığı uygulaması.
 
-**Durum:** React web/PWA geliştirme sürümü. Etkin ürün kapsamı yalnızca İSG uzmanı.
+**Durum:** Üç rollü React web/PWA ekip önizlemesi. Ayarlar → Rol (Demo) üzerinden İSG uzmanı, işveren ve çalışan görünümleri seçilebilir.
 Gerçek hesap sistemi, sunucu veri izolasyonu ve Android/iOS mağaza paketleri yoktur.
 Depo farklı lisans kapsamları içerir: yalnızca
 [Fine-Kinney Core](packages/fine-kinney-core/README.md) **Apache-2.0** kapsamındadır.
@@ -19,9 +19,10 @@ Ticari uygulamanın geri kalanı için yeni bir açık kaynak lisansı verilmez.
 - Anthropic risk/belge danışmanlığı; NVIDIA metin sohbeti ve fotoğraf analizi.
 - IndexedDB'de yerel kayıt, JSON yedek/geri yükleme, PWA çevrimdışı kabuğu ve XLSX dışa aktarım.
 
-İşveren/çalışan, eğitim, çalışan listesi/bildirimi ve demo veri sıfırlaması bilerek
-kapalıdır. Şube/departman yönetimi ve firma idari alanları gizlidir; eski verileri
-korunur. AI Mevzuat & Risk Taraması kaldırılmıştır. Sabit kamera sistemi ertelenmiştir.
+Uzaktan eğitim, çalışan listesi, çalışan bildirimleri ve bunların onay akışı açıktır.
+Firma yönetiminde şube/departman sekmeleri ve idari alanlar uzman ve işveren için
+görünür. Demo veri sıfırlaması kapalıdır. AI Mevzuat & Risk Taraması kaldırılmıştır.
+Sabit kamera sistemi ertelenmiştir.
 [Ürün kapsamı](docs/RELEASE_SCOPE.md) tek başvuru kaynağıdır;
 `src/constants/releaseProfile.js` kapsamın kod tarafındaki tek kontrol noktasıdır.
 
@@ -100,9 +101,9 @@ Bilgi kütüphanesi anahtar kelime bağlamı kullanır; tam vektör RAG değildi
 - Veriler cihaz/tarayıcıda kalır; bulut senkronizasyonu ve gerçek Auth/RLS yoktur.
   Login/Register ve şifre işlemleri demodur. Yerel kapsam kontrolü yetkilendirme değildir.
 - API origin/IP kontrolleri kullanıcı oturumu veya kalıcı kota sağlamaz.
-- Yedek saklı modüllerin IndexedDB verilerini kapsar; **sohbet geçmişini kapsamaz**.
+- Tam yedek eğitim ve çalışan modülleri dâhil IndexedDB verilerini kapsar; **sohbet geçmişini kapsamaz**.
   Kısmi eski yedek geri yükleme, eksik bölümleri onay sonrasında boşaltabilir.
-- Bilgi kütüphanesinde örnek içerik vardır; eğitim yer tutucu videosu kapalı modülde kalır.
+- Bilgi kütüphanesinde örnek içerik vardır; eğitim modülü yer tutucu video kullanır.
 - Android/iOS paketleme, imzalama, fiziksel cihaz ve canlı AI doğrulamaları bekler.
 - Bağımlılıklarda açık güvenlik borcu ve ExcelJS büyük parça uyarısı vardır.
   [Audit değerlendirmesi](docs/DEPENDENCY_SECURITY.md) · [Güvenlik bildirimi](SECURITY.md).

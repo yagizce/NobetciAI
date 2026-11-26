@@ -4,8 +4,7 @@
 
 ## Mevcut durum
 
-Etkin kapsam yalnızca İSG uzmanıdır. İşveren/çalışan ve uzaktan eğitim bilerek kapalıdır;
-bu özelliklerin kod ve verileri korunur. [Yeniden açma rehberi](RELEASE_SCOPE.md).
+Etkin ekip önizlemesi uzman, işveren ve çalışan demo görünümlerini ve uzaktan eğitimi açar. [Ürün kapsamı](RELEASE_SCOPE.md).
 
 Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapılandırması veya başka bir yerel mobil proje yoktur. Temizlik, mağazaya yüklenebilir Android/iOS paketi üretmez.
 
@@ -13,11 +12,11 @@ Uygulama React/Vite web/PWA olarak derlenir. `android/`, `ios/`, Capacitor yapı
 
 | İş | Depodaki kanıt / mevcut sınır |
 |---|---|
-| Gerçek hesap ve yetki sistemi | Login/Register yalnızca dashboard'a yönlendiriyor. `authService.js` mock; `isAuthenticated()` gerçek oturum doğrulamıyor. Demo rol seçimi uzman kapsamında kapalı; bu kontrol gerçek yetkilendirme değildir. |
+| Gerçek hesap ve yetki sistemi | Login/Register yalnızca dashboard'a yönlendiriyor. `authService.js` mock; `isAuthenticated()` gerçek oturum doğrulamıyor. Demo rol seçimi yereldir; gerçek yetkilendirme için sunucu oturumu ve firma izolasyonu gerekir. |
 | Sunucu veri katmanı ve firma izolasyonu | `dataProvider.js` IndexedDB kullanıyor. Supabase/RLS dosyaları taslak; aktif sunucu izolasyonu ve cihazlar arası senkronizasyon yok. |
 | AI uç noktalarında hesap doğrulaması ve kullanım sınırları | `api/` işlevlerinde oturum doğrulaması yok. IP hız sınırı process belleğinde; origin kontrolü kullanıcı kimliği değildir. |
 | Mobil paketleme ve API bağlantısı | Paketleme yaklaşımı, uygulama kimlikleri, imzalama ve sürümleme belirlenmeli. Göreli `/api/*` yolları ve origin kontrolleri seçilen mobil çalışma ortamında doğrulanmalı. |
-| İçerik ve demo temizliği | Örnek kullanıcılar, bilgi kütüphanesi ve işlevsiz hesap ekranları yayın kapsamına göre tamamlanmalı. Eğitim ve demo veri sıfırlama uzman kapsamında kapalı; yeniden açılmadan önce içerikleri değerlendirilmelidir. |
+| İçerik ve demo temizliği | Örnek kullanıcılar, bilgi kütüphanesi ve işlevsiz hesap ekranları yayın kapsamına göre tamamlanmalı. Eğitim yer tutucu videosu gerçek içerikle değiştirilmeli. Demo veri sıfırlaması kapalı. |
 | Veri/gizlilik akışları | Fotoğraf ve belge verisinin AI servislerine gönderimi, saklama/silme akışları ve kullanıcı bilgilendirmesi ürünün gerçek davranışıyla eşleştirilmeli. |
 | Fiziksel cihaz doğrulaması | Kamera/galeri, QR okuma, dosya seçme, klavye, yön değişimi, güvenli alanlar, bildirim, çevrimdışı açılış, yedek geri yükleme, PDF/yazdırma ve güncelleme senaryoları Android/iOS cihazlarında denenmeli. |
 | Paket bağımlılıklarının ayrı incelemesi | Temizlikte sürüm yükseltmesi yapılmadı. Yayın öncesi bağımlılık güvenliği ve yükseltme uyumluluğu ayrıca değerlendirilmelidir. |
