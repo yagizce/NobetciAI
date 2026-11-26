@@ -1,5 +1,11 @@
 # Değişiklikler
 
+## 2026-11-26 — Ekip önizlemesi
+
+- İşveren ve çalışan demo görünümleri, eğitim, çalışan dizini, çalışan bildirimleri ve ilgili hatırlatmalar yeniden açıldı.
+- Uzman ve işveren, firma yönetiminde şubeleri, departmanları, çalışanları ve idari alanları kullanabilir. Mevcut yerel kayıtlar ve yedek biçimi korunur.
+- Demo veri sıfırlaması kapalı kalır. Eğitim yer tutucu videoyla çalışır.
+
 ## 2026-10-23 — Katkı ve güvenlik bakım hazırlığı
 
 - Son incelemede audit denetleyicisi boş duyuru zinciri ve geçersiz takvim tarihini reddedecek şekilde sıkılaştırıldı; iki regresyon testi eklendi.

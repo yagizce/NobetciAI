@@ -1,6 +1,15 @@
 // Ürün kapsamı; kimlik doğrulama/yetkilendirme değildir. Yeniden açma: docs/RELEASE_SCOPE.md.
 // URL, localStorage veya kullanıcı tercihi bu seçimi değiştiremez.
-export const RELEASE_PROFILE = "expert";
+export const RELEASE_PROFILE = "teamPreview";
+
+const TEAM_ROLES = Object.freeze(["employer", "expert", "employee"]);
+const TEAM_FEATURES = Object.freeze([
+  "training",
+  "employeeReports",
+  "employeeDirectory",
+  "companyAdminFields",
+  "companyOrgManagement",
+]);
 
 const PROFILES = Object.freeze({
   expert: Object.freeze({
@@ -8,11 +17,16 @@ const PROFILES = Object.freeze({
     companyEditorRoles: Object.freeze(["expert"]),
     features: Object.freeze([]),
   }),
+  teamPreview: Object.freeze({
+    roles: TEAM_ROLES,
+    companyEditorRoles: Object.freeze(["employer", "expert"]),
+    features: TEAM_FEATURES,
+  }),
   // Önceki üç rollü DEMO kapsamı. Gerçek yayına hazır olduğu anlamına gelmez.
   multiRoleDemo: Object.freeze({
-    roles: Object.freeze(["employer", "expert", "employee"]),
+    roles: TEAM_ROLES,
     companyEditorRoles: Object.freeze(["employer"]),
-    features: Object.freeze(["training", "employeeReports", "employeeDirectory", "demoData", "companyAdminFields", "companyOrgManagement"]),
+    features: Object.freeze([...TEAM_FEATURES, "demoData"]),
   }),
 });
 

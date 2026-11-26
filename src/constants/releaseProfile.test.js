@@ -8,7 +8,6 @@ test("uzman sürümü eski, geçersiz ve değiştirilmiş rol tercihlerinde uzma
   for (const role of ["employer", "employee", "admin", null, {}, "expert"]) {
     assert.equal(resolveReleaseRole(role, "expert"), "expert");
   }
-  assert.deepEqual(SWITCHABLE_ROLES.map((role) => role.id), ["expert"]);
   assert.equal(ALL_ROLES.length, 3); // Geçmiş kayıtlardaki rol etiketleri korunur.
   assert.equal(isRoleEnabled("employee", "expert"), false);
   assert.equal(canEditCompany("expert", "expert"), true);
@@ -27,6 +26,20 @@ test("kapalı veya bilinmeyen sekme ilk gösterimde açık sekmeye döner", () =
   assert.deepEqual(getReleaseTabs(tabs, "employee", "expert"), []);
   assert.equal(resolveReleaseTab([], "education"), null);
   assert.equal(isFeatureEnabled("unrecognized", "expert"), false);
+});
+
+test("etkin önizleme ekip modüllerini açar ve veri sıfırlamasını kapalı tutar", () => {
+  assert.deepEqual(SWITCHABLE_ROLES.map(({ id }) => id).sort(), ["employee", "employer", "expert"]);
+  for (const feature of ["training", "employeeReports", "employeeDirectory", "companyAdminFields", "companyOrgManagement"]) {
+    assert.equal(isFeatureEnabled(feature), true);
+  }
+  assert.equal(isFeatureEnabled("demoData"), false);
+  assert.equal(canEditCompany("expert"), true);
+  assert.equal(canEditCompany("employer"), true);
+  assert.equal(canEditCompany("employee"), false);
+  for (const type of ["trainingDue", "taskAssigned", "employeeAdded", "newNotification", "aiAnalysisComplete", "criticalRisk"]) {
+    assert.equal(isNotificationEnabled(type), true);
+  }
 });
 
 test("çok rollü demo profili eski modülleri geri açabilir", () => {

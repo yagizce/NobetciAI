@@ -149,7 +149,7 @@ export default function RiskAnalysisPage() {
   // menüden girişte (state yok) davranış tamamen eskisi gibi.
   const location = useLocation();
   const [selectedTab, setTab] = useState(location.state?.targetTab);
-  const tab = resolveReleaseTab(visibleTabs, selectedTab);
+  const tab = resolveReleaseTab(visibleTabs, selectedTab ?? "riskDetection");
 
   // Phase 9.1 — Risk Tespiti'nden Fine-Kinney'e "köprü": bir tespit için "AI ile Taslak
   // Oluştur" veya "Sahaya İn" tıklanınca burada bir taslak objesi tutulur ve sekme
